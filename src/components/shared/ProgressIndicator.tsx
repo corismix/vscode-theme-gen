@@ -338,12 +338,7 @@ export const CircularProgress: React.FC<{
   percentage: number;
   size?: 'small' | 'medium' | 'large';
   showPercentage?: boolean;
-}> = ({ percentage, size = 'medium', showPercentage = true }) => {
-  const sizeMap = { small: 8, medium: 12, large: 16 };
-  const radius = sizeMap[size];
-  const circumference = 2 * Math.PI * radius;
-  const strokeDasharray = circumference;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+}> = ({ percentage, size: _size = 'medium', showPercentage = true }) => {
 
   return (
     <Box alignItems="center" justifyContent="center">

@@ -28,15 +28,14 @@ import {
   createWriteStream, 
   constants as fsConstants 
 } from 'fs';
-import { resolve, join, dirname, basename, extname } from 'path';
+import { join, dirname, basename, extname } from 'path';
 import { pipeline } from 'stream/promises';
 import { createHash } from 'crypto';
-import { SecurityService, getSecurityService, SecurityError } from './SecurityService';
+import { SecurityService, getSecurityService } from './SecurityService';
 import { 
   ValidationError, 
   FileProcessingError,
-  createErrorReport,
-  sanitizeErrorContext 
+  SecurityError
 } from '@/types';
 import { FILE_LIMITS, PERFORMANCE_LIMITS, RESOURCE_LIMITS, formatBytes } from '@/config';
 
@@ -221,7 +220,7 @@ export interface CopyMoveOptions extends FileOperationOptions {
   /** Whether to preserve timestamps */
   preserveTimestamps?: boolean;
   /** Custom filter function for copying directories */
-  filter?: (src: string, dest: string) => boolean | Promise<boolean>;
+  filter?: (src: string, dest: string) => boolean;
 }
 
 /**
@@ -260,7 +259,7 @@ export class FileService {
   /**
    * Create timeout promise for operations
    */
-  private createTimeoutPromise(timeout: number, operationId: string): Promise<never> {
+  private createTimeoutPromise(timeout: number, _operationId: string): Promise<never> {
     return new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error(`File operation timed out after ${timeout}ms`));
@@ -359,7 +358,7 @@ export class FileService {
   /**
    * Internal method to get file metadata
    */
-  private async getFileMetadata(filePath: string, options: FileOperationOptions): Promise<FileMetadata> {
+  private async getFileMetadata(filePath: string, _options: FileOperationOptions): Promise<FileMetadata> {
     const stats = await fs.stat(filePath);
     const metadata: FileMetadata = {
       size: stats.size,
@@ -493,13 +492,13 @@ export class FileService {
       let lastProgressUpdate = 0;
 
       const readStream = createReadStream(filePath, {
-        encoding: null, // Read as buffer first
         highWaterMark: options.chunkSize || FILE_SERVICE_CONFIG.STREAM_CHUNK_SIZE
       });
 
-      readStream.on('data', (chunk: Buffer) => {
-        chunks.push(chunk);
-        bytesRead += chunk.length;
+      readStream.on('data', (chunk) => {
+        const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        chunks.push(bufferChunk);
+        bytesRead += bufferChunk.length;
 
         // Update progress at intervals
         if (bytesRead - lastProgressUpdate >= FILE_SERVICE_CONFIG.PROGRESS_INTERVAL) {
@@ -969,8 +968,9 @@ export class FileService {
     let bytesProcessed = 0;
     let lastProgressUpdate = 0;
 
-    readStream.on('data', (chunk: Buffer) => {
-      bytesProcessed += chunk.length;
+    readStream.on('data', (chunk) => {
+      const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      bytesProcessed += bufferChunk.length;
       
       // Update progress at intervals
       if (bytesProcessed - lastProgressUpdate >= FILE_SERVICE_CONFIG.PROGRESS_INTERVAL) {
@@ -1936,11 +1936,13 @@ export function resetFileService(): void {
  * 
  * @since 1.0.0
  */
-export const createFileService = withErrorHandling(
-  async (): Promise<FileService> => {
+export const createFileService = async (): Promise<FileService> => {
+  try {
     return new FileService();
+  } catch (error) {
+    throw new FileProcessingError(`Failed to create file service: ${(error as Error).message}`);
   }
-);
+};
 
 /**
  * Export the service and utilities for easy access

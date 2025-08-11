@@ -257,9 +257,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       {/* Header */}
       <Box marginBottom={1} alignItems="center">
         <DialogIcon type={dialogType} />
-        <Text color="white" bold marginLeft={1}>
-          {title || (destructive ? 'Confirm Action' : 'Confirmation Required')}
-        </Text>
+        <Box marginLeft={1}>
+          <Text color="white" bold>
+            {title || (destructive ? 'Confirm Action' : 'Confirmation Required')}
+          </Text>
+        </Box>
       </Box>
 
       {/* Message */}

@@ -50,7 +50,7 @@ interface ErrorAnalysis {
 // Error Analysis Engine
 // ============================================================================
 
-const analyzeError = (error: Error, context: string): ErrorAnalysis => {
+const analyzeError = (error: Error, _context: string): ErrorAnalysis => {
   // Determine error type
   let type: ErrorAnalysis['type'] = 'unknown';
   let severity: ErrorAnalysis['severity'] = 'medium';
@@ -517,16 +517,20 @@ export const ErrorRecoveryUI: React.FC<ErrorRecoveryUIProps> = ({
         <Text color={severityInfo.color} bold>
           {severityInfo.icon} {analysis.category}
         </Text>
-        <Text color="gray" dimColor marginLeft={2}>
-          Context: {context}
-        </Text>
+        <Box marginLeft={2}>
+          <Text color="gray" dimColor>
+            Context: {context}
+          </Text>
+        </Box>
       </Box>
 
       {/* Error Summary */}
       <Box marginBottom={2} flexDirection="column">
-        <Text color="white" bold marginBottom={1}>
-          {error.name || 'Error'}
-        </Text>
+        <Box marginBottom={1}>
+          <Text color="white" bold>
+            {error.name || 'Error'}
+          </Text>
+        </Box>
         <Text color="white" wrap="wrap">
           {error.message}
         </Text>
@@ -535,9 +539,11 @@ export const ErrorRecoveryUI: React.FC<ErrorRecoveryUIProps> = ({
       {/* Suggestions */}
       {analysis.suggestions.length > 0 && (
         <Box marginBottom={2} flexDirection="column">
-          <Text color="cyan" bold marginBottom={1}>
-            💡 Suggestions:
-          </Text>
+          <Box marginBottom={1}>
+            <Text color="cyan" bold>
+              💡 Suggestions:
+            </Text>
+          </Box>
           {analysis.suggestions.map((suggestion, index) => (
             <Box key={index} marginLeft={2}>
               <Text color="white" dimColor>
@@ -558,9 +564,11 @@ export const ErrorRecoveryUI: React.FC<ErrorRecoveryUIProps> = ({
           paddingY={1}
         >
           <Box flexDirection="column">
-            <Text color="gray" bold marginBottom={1}>
-              Technical Details:
-            </Text>
+            <Box marginBottom={1}>
+              <Text color="gray" bold>
+                Technical Details:
+              </Text>
+            </Box>
             <Text color="gray" dimColor>
               Type: {analysis.type}
             </Text>
@@ -572,9 +580,11 @@ export const ErrorRecoveryUI: React.FC<ErrorRecoveryUIProps> = ({
             </Text>
             {error.stack && (
               <>
-                <Text color="gray" dimColor marginTop={1}>
-                  Stack trace:
-                </Text>
+                <Box marginTop={1}>
+                  <Text color="gray" dimColor>
+                    Stack trace:
+                  </Text>
+                </Box>
                 <Text color="gray" dimColor>
                   {error.stack.split('\n').slice(0, 3).join('\n')}
                 </Text>
@@ -586,9 +596,11 @@ export const ErrorRecoveryUI: React.FC<ErrorRecoveryUIProps> = ({
 
       {/* Recovery Actions */}
       <Box marginBottom={2} flexDirection="column">
-        <Text color="cyan" bold marginBottom={1}>
-          🛠️ Recovery Options:
-        </Text>
+        <Box marginBottom={1}>
+          <Text color="cyan" bold>
+            🛠️ Recovery Options:
+          </Text>
+        </Box>
         
         {isProcessing ? (
           <Box alignItems="center" paddingY={2}>

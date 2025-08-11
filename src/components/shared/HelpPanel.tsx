@@ -240,7 +240,7 @@ interface HelpSectionComponentProps {
 const HelpSectionComponent: React.FC<HelpSectionComponentProps> = ({
   section,
   expanded,
-  onToggle
+  onToggle: _onToggle
 }) => {
   return (
     <Box flexDirection="column" marginBottom={1}>
@@ -273,9 +273,11 @@ const HelpSectionComponent: React.FC<HelpSectionComponentProps> = ({
           {/* Tips */}
           {section.tips && section.tips.length > 0 && (
             <Box flexDirection="column" marginBottom={1}>
-              <Text color="yellow" bold marginBottom={1}>
-                💡 Tips:
-              </Text>
+              <Box marginBottom={1}>
+                <Text color="yellow" bold>
+                  💡 Tips:
+                </Text>
+              </Box>
               {section.tips.map((tip, index) => (
                 <Box key={index} marginLeft={2}>
                   <Text color="white" dimColor>
@@ -289,9 +291,11 @@ const HelpSectionComponent: React.FC<HelpSectionComponentProps> = ({
           {/* Examples */}
           {section.examples && section.examples.length > 0 && (
             <Box flexDirection="column" marginBottom={1}>
-              <Text color="green" bold marginBottom={1}>
-                📝 Examples:
-              </Text>
+              <Box marginBottom={1}>
+                <Text color="green" bold>
+                  📝 Examples:
+                </Text>
+              </Box>
               {section.examples.map((example, index) => (
                 <Box key={index} flexDirection="column" marginBottom={1}>
                   <Box marginLeft={2}>
@@ -322,9 +326,11 @@ const HelpSectionComponent: React.FC<HelpSectionComponentProps> = ({
           {/* Shortcuts */}
           {section.shortcuts && section.shortcuts.length > 0 && (
             <Box flexDirection="column">
-              <Text color="blue" bold marginBottom={1}>
-                ⌨️ Shortcuts:
-              </Text>
+              <Box marginBottom={1}>
+                <Text color="blue" bold>
+                  ⌨️ Shortcuts:
+                </Text>
+              </Box>
               {section.shortcuts.map((shortcut, index) => (
                 <Box key={index} marginLeft={2} alignItems="center">
                   <Text color="cyan" bold>
@@ -360,7 +366,7 @@ interface SearchComponentProps {
 
 const SearchComponent: React.FC<SearchComponentProps> = ({
   query,
-  onQueryChange,
+  onQueryChange: _onQueryChange,
   results
 }) => {
   return (
@@ -373,9 +379,11 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
       
       {query && (
         <Box flexDirection="column">
-          <Text color="white" marginBottom={1}>
-            Found {results.length} result{results.length !== 1 ? 's' : ''}:
-          </Text>
+          <Box marginBottom={1}>
+            <Text color="white">
+              Found {results.length} result{results.length !== 1 ? 's' : ''}:
+            </Text>
+          </Box>
           
           {results.map((section, index) => (
             <HelpSectionComponent
@@ -402,7 +410,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
 
 export const HelpPanel: React.FC<HelpPanelProps> = ({
   context,
-  shortcuts: customShortcuts = [],
+  shortcuts: _customShortcuts = [],
   customContent = [],
   showSearch = true,
   showCategories = true,
@@ -427,10 +435,6 @@ export const HelpPanel: React.FC<HelpPanelProps> = ({
   // Get keyboard shortcuts
   const keyboardContext = context as KeyboardContext;
   const contextShortcuts = useMemo(() => getContextShortcuts(keyboardContext), [keyboardContext]);
-  const allShortcuts = useMemo(() => [
-    ...contextShortcuts.flatMap(cat => cat.shortcuts),
-    ...customShortcuts
-  ], [contextShortcuts, customShortcuts]);
 
   // Search functionality
   const searchResults = useMemo(() => {
@@ -606,7 +610,7 @@ export const HelpPanel: React.FC<HelpPanelProps> = ({
       <Box flexDirection="column" flexGrow={1}>
         {viewMode === 'overview' && (
           <Box flexDirection="column">
-            {allSections.map((section, index) => (
+            {allSections.map((section, _index) => (
               <HelpSectionComponent
                 key={section.title}
                 section={section}
@@ -619,9 +623,11 @@ export const HelpPanel: React.FC<HelpPanelProps> = ({
 
         {viewMode === 'shortcuts' && (
           <Box flexDirection="column">
-            <Text color="cyan" bold marginBottom={1}>
-              ⌨️ Available Shortcuts
-            </Text>
+            <Box marginBottom={1}>
+              <Text color="cyan" bold>
+                ⌨️ Available Shortcuts
+              </Text>
+            </Box>
             
             {contextShortcuts.map((category, catIndex) => (
               <Box key={catIndex} flexDirection="column" marginBottom={1}>
