@@ -18,8 +18,7 @@ export const useKeyboard = (
   const {
     enabled = true,
     preventDefault = true,
-    stopPropagation = true,
-    global = false
+    stopPropagation = true
   } = options;
 
   useInput((input, key) => {
@@ -29,7 +28,7 @@ export const useKeyboard = (
     let keyCombo = '';
     if (key.ctrl) keyCombo += 'ctrl+';
     if (key.meta) keyCombo += 'meta+';
-    if (key.alt) keyCombo += 'alt+';
+    if ((key as any).alt) keyCombo += 'alt+';
     if (key.shift) keyCombo += 'shift+';
     
     // Add the main key
@@ -44,15 +43,15 @@ export const useKeyboard = (
     else if (key.rightArrow) keyCombo += 'right';
     else if (key.pageUp) keyCombo += 'pageup';
     else if (key.pageDown) keyCombo += 'pagedown';
-    else if (key.home) keyCombo += 'home';
-    else if (key.end) keyCombo += 'end';
+    else if ((key as any).home) keyCombo += 'home';
+    else if ((key as any).end) keyCombo += 'end';
     else keyCombo += input.toLowerCase();
 
     // Execute shortcut if found
     const handler = shortcuts[keyCombo] || shortcuts[input];
     if (handler) {
-      if (preventDefault) key.preventDefault?.();
-      if (stopPropagation) key.stopPropagation?.();
+      if (preventDefault) (key as any).preventDefault?.();
+      if (stopPropagation) (key as any).stopPropagation?.();
       handler();
     }
   }, { isActive: enabled });
@@ -65,9 +64,7 @@ export const useKeyboard = (
 export const useNotifications = (options: UseNotificationOptions = {}) => {
   const {
     maxNotifications = 5,
-    defaultDuration = 5000,
-    position = 'top',
-    pauseOnHover = true
+    defaultDuration = 5000
   } = options;
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -98,7 +95,7 @@ export const useNotifications = (options: UseNotificationOptions = {}) => {
     });
 
     // Auto-dismiss if duration is set
-    if (notification.duration > 0) {
+    if (notification.duration && notification.duration > 0) {
       const timeout = setTimeout(() => {
         dismissNotification(id);
       }, notification.duration);

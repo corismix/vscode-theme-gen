@@ -30,7 +30,6 @@ const colors = {
 const createGradientText = (text: string, startColor: string, endColor: string): React.ReactNode => {
   // Simplified gradient effect using alternating colors
   return text.split('').map((char, index) => {
-    const ratio = index / (text.length - 1);
     const isEven = index % 2 === 0;
     const color = isEven ? startColor : endColor;
     
@@ -57,7 +56,7 @@ const Logo: React.FC<LogoProps> = ({ logo, showLogo }) => {
   const defaultLogo = '🎨';
   
   return (
-    <Box marginRight={2}>
+    <Box marginX={2}>
       <Text color={colors.primary}>
         {logo || defaultLogo}
       </Text>
@@ -115,7 +114,7 @@ const Version: React.FC<VersionProps> = ({ version, showVersion }) => {
   if (!showVersion || !version) return null;
 
   return (
-    <Box marginLeft={2}>
+    <Box marginX={2}>
       <Text color={colors.textMuted} dimColor>
         v{version}
       </Text>
@@ -144,9 +143,11 @@ const Actions: React.FC<ActionsProps> = ({ actions }) => {
       {actions.map((action, index) => (
         <Box key={index} alignItems="center">
           {action.icon && (
-            <Text color={colors.secondary} marginRight={1}>
-              {action.icon}
-            </Text>
+            <Box marginX={1}>
+              <Text color={colors.secondary}>
+                {action.icon}
+              </Text>
+            </Box>
           )}
           <Text color={colors.secondary}>
             {action.label}
@@ -217,10 +218,8 @@ const Header: React.FC<HeaderProps> = ({
   gradient = true,
   borderStyle = 'single',
   height = 3,
-  backgroundColor,
-  textColor,
-  className,
-  testId
+  backgroundColor: _backgroundColor,
+  textColor: _textColor
 }) => {
   // ============================================================================
   // Dynamic Width Calculation
@@ -233,11 +232,6 @@ const Header: React.FC<HeaderProps> = ({
   // ============================================================================
   // Style Overrides
   // ============================================================================
-  
-  const headerStyle = useMemo(() => ({
-    backgroundColor: backgroundColor || colors.background,
-    color: textColor || colors.text
-  }), [backgroundColor, textColor]);
 
   // ============================================================================
   // Content Layout
@@ -268,8 +262,6 @@ const Header: React.FC<HeaderProps> = ({
       height={height}
       paddingX={1}
       paddingY={0}
-      className={className}
-      data-testid={testId}
     >
       {/* Top border */}
       {borderStyle !== 'none' && (
@@ -281,7 +273,7 @@ const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* Main content */}
-      <Box flex={1} alignItems="center">
+      <Box flexGrow={1} alignItems="center">
         {renderContent()}
       </Box>
 
@@ -297,4 +289,5 @@ const Header: React.FC<HeaderProps> = ({
   );
 };
 
+export { Header };
 export default Header;

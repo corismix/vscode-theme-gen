@@ -56,24 +56,23 @@ const getTypeIcon = (type: InfoBoxProps['type']): string => {
 // Main InfoBox Component
 // ============================================================================
 
-const InfoBox: React.FC<InfoBoxProps> = ({
+const InfoBox: React.FC<InfoBoxProps & { message?: string }> = ({
   title,
   content,
+  message,
   type = 'info',
   icon,
   dismissible = false,
-  onDismiss,
+  onDismiss: _onDismiss,
   actions = [],
   collapsible = false,
   defaultCollapsed = false,
   borderStyle = 'single',
   width = '100%',
   padding = 1,
-  className,
-  testId
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isCollapsed] = useState(defaultCollapsed);
+  const [isDismissed] = useState(false);
 
   // Don't render if dismissed
   if (isDismissed) {
@@ -85,16 +84,15 @@ const InfoBox: React.FC<InfoBoxProps> = ({
   const borderColor = colors.border[type] || colors.border.info;
   const displayIcon = icon || getTypeIcon(type);
 
-  // Handle dismiss
-  const handleDismiss = () => {
-    setIsDismissed(true);
-    onDismiss?.();
-  };
+  // Handlers are defined but not used directly in render - kept for potential future use
+  // const handleDismiss = () => {
+  //   setIsDismissed(true);
+  //   onDismiss?.();
+  // };
 
-  // Handle collapse toggle
-  const handleToggleCollapse = () => {
-    setIsCollapsed(prev => !prev);
-  };
+  // const handleToggleCollapse = () => {
+  //   setIsCollapsed(prev => !prev);
+  // };
 
   // Render actions
   const renderActions = () => {
@@ -152,15 +150,18 @@ const InfoBox: React.FC<InfoBoxProps> = ({
   const renderContent = () => {
     if (isCollapsed) return null;
 
+    const displayContent = content || message;
+    if (!displayContent) return null;
+
     return (
       <Box flexDirection="column" marginTop={title ? 1 : 0}>
         <Box>
-          {typeof content === 'string' ? (
+          {typeof displayContent === 'string' ? (
             <Text color={colors.text}>
-              {content}
+              {displayContent}
             </Text>
           ) : (
-            content
+            displayContent
           )}
         </Box>
         
@@ -177,8 +178,6 @@ const InfoBox: React.FC<InfoBoxProps> = ({
       borderColor={borderColor}
       paddingX={padding}
       paddingY={padding}
-      className={className}
-      data-testid={testId}
     >
       {/* Header */}
       {renderHeader()}
@@ -200,4 +199,5 @@ const InfoBox: React.FC<InfoBoxProps> = ({
   );
 };
 
+export { InfoBox };
 export default InfoBox;

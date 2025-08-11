@@ -33,7 +33,7 @@ interface HelpPanelProps {
   onClose: () => void;
 }
 
-const HelpPanel: React.FC<HelpPanelProps> = ({ shortcuts, category, onClose }) => {
+const HelpPanel: React.FC<HelpPanelProps> = ({ shortcuts, category }) => {
   const enabledShortcuts = shortcuts.filter(shortcut => shortcut.enabled !== false);
   const globalShortcuts = enabledShortcuts.filter(s => s.global);
   const localShortcuts = enabledShortcuts.filter(s => !s.global);
@@ -45,7 +45,7 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ shortcuts, category, onClose }) =
           {shortcut.key}
         </Text>
       </Box>
-      <Box flex={1}>
+      <Box flexGrow={1}>
         <Text color={colors.description}>
           {shortcut.description}
         </Text>
@@ -75,9 +75,11 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ shortcuts, category, onClose }) =
       {/* Local shortcuts */}
       {localShortcuts.length > 0 && (
         <Box flexDirection="column" marginBottom={2}>
-          <Text color={colors.category} bold marginBottom={1}>
-            Local Shortcuts
-          </Text>
+          <Box marginY={1}>
+            <Text color={colors.category} bold>
+              Local Shortcuts
+            </Text>
+          </Box>
           {localShortcuts.map((shortcut, index) => renderShortcut(shortcut, index))}
         </Box>
       )}
@@ -85,9 +87,11 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ shortcuts, category, onClose }) =
       {/* Global shortcuts */}
       {globalShortcuts.length > 0 && (
         <Box flexDirection="column" marginBottom={1}>
-          <Text color={colors.category} bold marginBottom={1}>
-            Global Shortcuts
-          </Text>
+          <Box marginY={1}>
+            <Text color={colors.category} bold>
+              Global Shortcuts
+            </Text>
+          </Box>
           {globalShortcuts.map((shortcut, index) => renderShortcut(shortcut, index))}
         </Box>
       )}
@@ -111,7 +115,7 @@ interface ShortcutsSummaryProps {
   onShowHelp: () => void;
 }
 
-const ShortcutsSummary: React.FC<ShortcutsSummaryProps> = ({ shortcuts, onShowHelp }) => {
+const ShortcutsSummary: React.FC<ShortcutsSummaryProps> = ({ shortcuts }) => {
   const enabledShortcuts = shortcuts.filter(shortcut => shortcut.enabled !== false);
   const quickShortcuts = enabledShortcuts.slice(0, 3); // Show first 3 shortcuts
 
@@ -120,23 +124,27 @@ const ShortcutsSummary: React.FC<ShortcutsSummaryProps> = ({ shortcuts, onShowHe
       {quickShortcuts.map((shortcut, index) => (
         <Box key={index} marginRight={2}>
           <Text color={colors.key}>{shortcut.key}</Text>
-          <Text color={colors.textMuted} marginLeft={1} dimColor>
-            {shortcut.description.split(' ')[0]}
-          </Text>
+          <Box marginX={1}>
+            <Text color={colors.textMuted} dimColor>
+              {shortcut.description.split(' ')[0]}
+            </Text>
+          </Box>
         </Box>
       ))}
       
       {enabledShortcuts.length > 3 && (
-        <Box marginLeft={1}>
+        <Box marginX={1}>
           <Text color={colors.textMuted} dimColor>
             +{enabledShortcuts.length - 3} more
           </Text>
         </Box>
       )}
       
-      <Text color={colors.secondary} marginLeft={2}>
-        [?] help
-      </Text>
+      <Box marginX={2}>
+        <Text color={colors.secondary}>
+          [?] help
+        </Text>
+      </Box>
     </Box>
   );
 };
@@ -151,8 +159,6 @@ const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
   helpToggleKey = '?',
   globalEnabled = true,
   category,
-  className,
-  testId
 }) => {
   const [helpVisible, setHelpVisible] = useState(false);
 
@@ -190,7 +196,7 @@ const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
 
   // Show shortcuts summary
   return (
-    <Box className={className} data-testid={testId}>
+    <Box>
       <ShortcutsSummary
         shortcuts={shortcuts}
         onShowHelp={() => setHelpVisible(true)}
@@ -199,4 +205,5 @@ const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
   );
 };
 
+export { KeyboardShortcuts };
 export default KeyboardShortcuts;

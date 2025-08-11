@@ -12,6 +12,7 @@ import React, { createContext, useContext, useCallback, useState, ReactNode } fr
 export interface Notification {
   id: string;
   message: string;
+  details?: string;
   type: 'success' | 'error' | 'warning' | 'info';
   duration?: number;
   persistent?: boolean;

@@ -3,7 +3,8 @@
  * Based on TweakCC patterns for consistent interfaces
  */
 
-import { ReactNode, Key } from 'react';
+import { ReactNode } from 'react';
+// import { Key } from 'react'; // Unused but kept for potential future use
 
 // ============================================================================
 // Base Component Props
@@ -237,7 +238,8 @@ export interface HeaderProps extends BaseComponentProps {
 
 export interface InfoBoxProps extends BaseComponentProps {
   title?: string;
-  content: ReactNode;
+  content?: ReactNode;
+  message?: string;
   type?: 'info' | 'warning' | 'error' | 'success' | 'tip';
   icon?: string;
   dismissible?: boolean;

@@ -53,34 +53,37 @@ export default ThemeExample;`;
 // Color Utilities
 // ============================================================================
 
-const isHexColor = (color: string): boolean => {
-  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
-};
+// Utility function for hex color validation (unused but kept for potential future use)
+// const isHexColor = (color: string): boolean => {
+//   return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
+// };
 
-const getContrastColor = (hexColor: string): string => {
-  if (!isHexColor(hexColor)) return '#FFFFFF';
-  
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  
-  return brightness > 128 ? '#000000' : '#FFFFFF';
-};
+// Utility function for color contrast calculation (unused but kept for potential future use)
+// const getContrastColor = (hexColor: string): string => {
+//   if (!isHexColor(hexColor)) return '#FFFFFF';
+//   
+//   const r = parseInt(hexColor.slice(1, 3), 16);
+//   const g = parseInt(hexColor.slice(3, 5), 16);
+//   const b = parseInt(hexColor.slice(5, 7), 16);
+//   const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+//   
+//   return brightness > 128 ? '#000000' : '#FFFFFF';
+// };
 
-const lightenColor = (hexColor: string, percent: number): string => {
-  if (!isHexColor(hexColor)) return hexColor;
-  
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  
-  const newR = Math.min(255, Math.floor(r + (255 - r) * percent / 100));
-  const newG = Math.min(255, Math.floor(g + (255 - g) * percent / 100));
-  const newB = Math.min(255, Math.floor(b + (255 - b) * percent / 100));
-  
-  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
-};
+// Utility function for color lightening (unused but kept for potential future use)
+// const lightenColor = (hexColor: string, percent: number): string => {
+//   if (!isHexColor(hexColor)) return hexColor;
+//   
+//   const r = parseInt(hexColor.slice(1, 3), 16);
+//   const g = parseInt(hexColor.slice(3, 5), 16);
+//   const b = parseInt(hexColor.slice(5, 7), 16);
+//   
+//   const newR = Math.min(255, Math.floor(r + (255 - r) * percent / 100));
+//   const newG = Math.min(255, Math.floor(g + (255 - g) * percent / 100));
+//   const newB = Math.min(255, Math.floor(b + (255 - b) * percent / 100));
+//   
+//   return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+// };
 
 // ============================================================================
 // Code Syntax Highlighting Component
@@ -92,10 +95,10 @@ interface CodePreviewProps {
   onColorClick?: (colorKey: string, colorValue: string) => void;
 }
 
-const CodePreview: React.FC<CodePreviewProps> = ({ code, theme, onColorClick }) => {
+const CodePreview: React.FC<CodePreviewProps> = ({ code, theme }) => {
   const lines = code.split('\n');
   
-  const getTokenColor = (token: string, type: 'keyword' | 'string' | 'comment' | 'number' | 'default'): string => {
+  const getTokenColor = (_token: string, type: 'keyword' | 'string' | 'comment' | 'number' | 'default'): string => {
     const tokenColors = theme.tokenColors || [];
     
     // Find matching token color rule
@@ -129,7 +132,6 @@ const CodePreview: React.FC<CodePreviewProps> = ({ code, theme, onColorClick }) 
   const renderLine = (line: string, lineIndex: number) => {
     // Simple syntax highlighting
     const tokens = [];
-    let currentIndex = 0;
     
     // Keywords
     const keywords = ['import', 'from', 'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'interface', 'type', 'export', 'default'];
@@ -248,7 +250,7 @@ interface UIPreviewProps {
   onColorClick?: (colorKey: string, colorValue: string) => void;
 }
 
-const UIPreview: React.FC<UIPreviewProps> = ({ theme, onColorClick }) => {
+const UIPreview: React.FC<UIPreviewProps> = ({ theme }) => {
   const colors = theme.colors;
 
   return (
@@ -270,7 +272,9 @@ const UIPreview: React.FC<UIPreviewProps> = ({ theme, onColorClick }) => {
         {/* Tab bar */}
         <Box marginBottom={1} borderStyle="single" borderColor={colors.border || '#374151'} paddingX={1}>
           <Text color={colors.primary || '#3B82F6'}>● theme.json</Text>
-          <Text color={colors.textMuted || '#9CA3AF'} marginLeft={2}>○ package.json</Text>
+          <Box marginX={2}>
+            <Text color={colors.textMuted || '#9CA3AF'}>○ package.json</Text>
+          </Box>
         </Box>
 
         {/* Status bar simulation */}
@@ -283,7 +287,9 @@ const UIPreview: React.FC<UIPreviewProps> = ({ theme, onColorClick }) => {
         <Box flexDirection="column" marginTop={1}>
           <Box marginBottom={1}>
             <Text color={colors.primary || '#3B82F6'}>Primary Button</Text>
-            <Text color={colors.secondary || '#10B981'} marginLeft={2}>Secondary</Text>
+            <Box marginX={2}>
+              <Text color={colors.secondary || '#10B981'}>Secondary</Text>
+            </Box>
           </Box>
           
           <Box marginBottom={1}>
@@ -312,7 +318,7 @@ interface TerminalPreviewProps {
   onColorClick?: (colorKey: string, colorValue: string) => void;
 }
 
-const TerminalPreview: React.FC<TerminalPreviewProps> = ({ theme, onColorClick }) => {
+const TerminalPreview: React.FC<TerminalPreviewProps> = ({ theme }) => {
   const colors = theme.colors;
 
   const terminalColors = {
@@ -381,8 +387,6 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({
   width = '100%',
   height,
   codeExample = defaultCodeExample,
-  className,
-  testId
 }) => {
   const containerStyle = useMemo(() => ({
     width: typeof width === 'string' ? width : `${width}ch`,
@@ -394,8 +398,6 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({
       flexDirection="column"
       width={containerStyle.width}
       height={containerStyle.height}
-      className={className}
-      data-testid={testId}
     >
       {/* Header */}
       <Box marginBottom={2}>
@@ -441,4 +443,5 @@ const ThemePreview: React.FC<ThemePreviewProps> = ({
   );
 };
 
+export { ThemePreview };
 export default ThemePreview;

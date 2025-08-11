@@ -8,6 +8,8 @@ import { Box } from 'ink';
 import { AppContextProvider, useAppContext } from '../context/AppContext';
 import { NotificationProvider } from '../context/NotificationContext';
 import { NotificationDisplay } from './NotificationDisplay';
+import ErrorBoundary from './shared/ErrorBoundary';
+import { processError, logError } from '../utils/error-handling';
 
 // Import step components
 import Welcome from './Welcome';
@@ -60,12 +62,32 @@ const AppContent: React.FC = () => {
 // ============================================================================
 
 export const App: React.FC = () => {
+  // Error handler that processes errors and logs them
+  const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
+    const userError = processError(error);
+    logError(error, { 
+      component: 'App',
+      errorInfo: errorInfo.componentStack,
+      userError 
+    });
+  };
+
   return (
-    <NotificationProvider>
-      <AppContextProvider>
-        <AppContent />
-      </AppContextProvider>
-    </NotificationProvider>
+    <ErrorBoundary 
+      level="application" 
+      onError={handleError}
+      showDetails={true}
+    >
+      <NotificationProvider>
+        <ErrorBoundary level="page" onError={handleError}>
+          <AppContextProvider>
+            <ErrorBoundary level="component" onError={handleError}>
+              <AppContent />
+            </ErrorBoundary>
+          </AppContextProvider>
+        </ErrorBoundary>
+      </NotificationProvider>
+    </ErrorBoundary>
   );
 };
 

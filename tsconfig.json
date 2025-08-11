@@ -55,6 +55,6 @@
     "build",
     ".tsbuildinfo",
     "src/test",
-    "src/components/{shared}"
+    "src/components/shared"
   ]
 }
