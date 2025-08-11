@@ -4,79 +4,180 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-VS Code theme generator CLI that converts Ghostty terminal color themes (.txt files) into complete VS Code extensions. Built with React + Ink for an interactive terminal UI.
+This is a TypeScript CLI application for converting Ghostty terminal color themes to VS Code extensions. It features an interactive React-based terminal UI built with Ink and a complete build system using Vite.
 
 ## Architecture
 
 ### Core Components
-- **theme-generator-cli.js**: Entry point, meow CLI setup, validation, and Ink app initialization
-- **components/App.js**: Main React component managing step-based UI flow (Welcome → File Selection → Theme Config → Extension Options → Progress → Success)
-- **lib/theme-generator.js**: Core theme conversion logic - parses .txt files, maps colors to VS Code theme JSON structure
-- **lib/file-generators.js**: Generates extension files (package.json, README, theme JSON, etc.)
-- **lib/utils.js**: File validation, path utilities, recent files management
 
-### UI Flow
-Interactive multi-step wizard using Ink components:
-1. Welcome screen with recent files
-2. File selector with live validation
-3. Theme configuration (name, description, version)
-4. Extension options (output path, file generation flags)
-5. Progress indicator during generation
-6. Success screen with next steps
+- **CLI Entry**: `src/main.ts` - Meow-based CLI with validation and error handling
+- **Theme Engine**: `src/lib/theme-generator.ts` - Ghostty to VS Code theme conversion logic
+- **File Generators**: `src/lib/file-generators.ts` - Extension file generation
+- **React Components**: `src/components/` - Interactive UI components using Ink
+- **State Management**: `src/context/` - React Context for app state and notifications
+
+### Key Technologies
+
+- **Runtime**: Node.js 18+ with ES modules
+- **Language**: TypeScript with strict mode
+- **UI Framework**: React 18 with Ink for terminal UI
+- **Build System**: Vite + TypeScript compiler
+- **Testing**: Vitest + React Testing Library
 
 ## Development Commands
 
+### Essential Commands
+
 ```bash
-# Run interactive CLI
+# Build for production
+npm run build
+
+# Development build with source maps
+npm run build:dev
+
+# Type checking (no emit)
+npm run type-check
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Lint code
+npm run lint
+
+# Auto-fix lint issues
+npm run lint:fix
+
+# Format code with Prettier
+npm run format
+
+# Check formatting
+npm run format:check
+
+# Clean build artifacts
+npm run clean
+
+# Start the CLI (builds first)
 npm start
-# or
+
+# Development mode
 npm run dev
-
-# Run with command-line arguments
-npm start -- --input theme.txt --name "My Theme"
-
-# Install dependencies
-npm install
 ```
 
-## Key Technical Details
+### Testing Specific Files
 
-### Babel Configuration
-Uses `babel-register-esm` for ES modules support with JSX transformation. The `.babelrc.json` configures React preset.
+```bash
+# Run specific test file
+npx vitest src/test/lib/theme-generator.test.ts
 
-### Color Mapping
-Ghostty format → VS Code theme:
-- `color0-15`: Terminal 16-color palette
-- `background/foreground`: Editor colors
-- `cursor/selection_*`: Cursor and selection colors
+# Run tests matching pattern
+npx vitest --grep "parseThemeFile"
 
-The `roleMap()` function assigns semantic roles (black, red, green, etc.) and `buildColors()` maps to VS Code workbench/syntax colors.
+# Debug tests
+npx vitest --reporter=verbose
+```
+
+## Code Standards
+
+### TypeScript Configuration
+
+- Strict mode enabled
+- Path aliases configured (@/, @/components, @/utils, @/lib, @/context)
+- Target: ES2020, Module: ESNext
+- React JSX automatic runtime
+
+### ESLint Rules
+
+- TypeScript strict rules with @typescript-eslint
+- React hooks rules enforced
+- Max line length: 120 characters
+- Trailing commas: always-multiline
+- Semicolons: always
+- Quotes: single (with template literals allowed)
+- Indent: 2 spaces
+
+### Prettier Configuration
+
+- Single quotes
+- Semicolons
+- Print width: 100
+- Arrow parens: avoid
+- Trailing comma: ES5
+
+## Project Structure
+
+```
+src/
+├── components/           # React UI components
+│   ├── App.tsx          # Main app orchestrator
+│   ├── Welcome.tsx      # Welcome screen
+│   ├── FileSelector.tsx # File selection UI
+│   ├── ThemeConfigurator.tsx # Theme configuration
+│   └── shared/          # Reusable components
+├── context/             # React Context providers
+├── hooks/               # Custom React hooks
+├── lib/                 # Core business logic
+│   ├── theme-generator.ts # Theme conversion
+│   ├── file-generators.ts # File generation
+│   └── utils.ts         # File utilities
+├── utils/               # Shared utilities
+│   ├── types.ts         # TypeScript types
+│   ├── config.ts        # Configuration
+│   └── error-handling.ts # Error classes
+└── main.ts              # CLI entry point
+```
+
+## Key Implementation Details
+
+### Theme Parsing
+
+The theme parser (`src/lib/theme-generator.ts`) handles:
+- Ghostty theme file format (key=value pairs)
+- Color validation (hex format)
+- Palette format parsing (palette = N=#color)
+- File size limits (1MB max)
+- Comprehensive error handling with ValidationError and FileProcessingError classes
+
+### State Management
+
+Uses React Context (`src/context/AppContext.tsx`) for:
+- Form data persistence
+- Step navigation
+- Error handling
+- Notification system
 
 ### File Generation
-Creates complete extension structure:
-- `package.json` with contribution points
-- Theme JSON in `themes/` directory
+
+Generates complete VS Code extension structure:
+- package.json with proper manifest
+- Theme JSON with workbench and token colors
 - README, CHANGELOG, LICENSE files
-- `.vscode/launch.json` for debugging
-- Optional quickstart guide
+- VS Code launch configuration
 
-### Recent Files
-Stores recently used theme files in `.vscode-theme-generator-recent.json` for quick access.
+## Error Handling
 
-## Input File Format
+- Custom error classes: ValidationError, FileProcessingError
+- Comprehensive validation at each step
+- User-friendly error messages with suggestions
+- Graceful error recovery in UI
 
-Expects Ghostty terminal theme .txt files:
-```
-background=#1a1a1a
-foreground=#e0e0e0
-color0=#000000
-color1=#ff0000
-# ... colors 2-15
-```
+## Testing Strategy
 
-## Testing Theme Generation
+- Unit tests for core logic (theme-generator, file-generators)
+- Component tests with React Testing Library
+- Mock filesystem operations in tests
+- Coverage thresholds: 80% for all metrics
 
-To test theme generation without the interactive UI:
-```bash
-node generate_theme_from_txt.js --in input.txt --out output.json --name "Theme Name"
-```
+## Important Notes
+
+- All new code must be TypeScript with proper types
+- Use existing error classes for consistency
+- Follow React hooks patterns in components
+- Maintain Ink component compatibility
+- Test file operations thoroughly
+- Preserve terminal UI responsiveness

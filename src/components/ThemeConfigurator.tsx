@@ -172,6 +172,16 @@ const ThemeConfigurator: React.FC = () => {
     loadThemeData();
   }, [loadThemeData]);
 
+  // Ensure currentFieldIndex is always valid
+  useEffect(() => {
+    if (configFields.length > 0) {
+      const maxIndex = configFields.length - 1;
+      if (currentFieldIndex < 0 || currentFieldIndex > maxIndex) {
+        setCurrentFieldIndex(Math.max(0, Math.min(currentFieldIndex, maxIndex)));
+      }
+    }
+  }, [currentFieldIndex, configFields.length]);
+
   // ============================================================================
   // Form Validation
   // ============================================================================
@@ -220,7 +230,19 @@ const ThemeConfigurator: React.FC = () => {
   }, []);
 
   const handleFieldSubmit = useCallback(() => {
-    const currentField = configFields[currentFieldIndex];
+    // Ensure currentFieldIndex is within bounds
+    const safeCurrentFieldIndex = Math.max(0, Math.min(currentFieldIndex, configFields.length - 1));
+    const currentField = configFields[safeCurrentFieldIndex];
+    
+    if (!currentField) {
+      addNotification({
+        type: 'error',
+        message: 'Configuration Error',
+        details: 'Invalid field configuration. Please restart the configuration process.'
+      });
+      return;
+    }
+    
     const value = formValues[currentField.id];
     const error = validateField(currentField, value);
     
@@ -234,8 +256,8 @@ const ThemeConfigurator: React.FC = () => {
       return;
     }
 
-    if (currentFieldIndex < configFields.length - 1) {
-      setCurrentFieldIndex(prev => prev + 1);
+    if (safeCurrentFieldIndex < configFields.length - 1) {
+      setCurrentFieldIndex(prev => Math.min(prev + 1, configFields.length - 1));
     } else {
       handleFormComplete();
     }
@@ -294,12 +316,14 @@ const ThemeConfigurator: React.FC = () => {
     if (key.escape) {
       handleBack();
     } else if (key.tab && !key.shift) {
-      if (currentFieldIndex < configFields.length - 1) {
-        setCurrentFieldIndex(prev => prev + 1);
+      const nextIndex = Math.min(currentFieldIndex + 1, configFields.length - 1);
+      if (nextIndex !== currentFieldIndex) {
+        setCurrentFieldIndex(nextIndex);
       }
     } else if (key.tab && key.shift) {
-      if (currentFieldIndex > 0) {
-        setCurrentFieldIndex(prev => prev - 1);
+      const prevIndex = Math.max(currentFieldIndex - 1, 0);
+      if (prevIndex !== currentFieldIndex) {
+        setCurrentFieldIndex(prevIndex);
       }
     } else if (input === 'p') {
       handlePreviewToggle();
@@ -343,7 +367,23 @@ const ThemeConfigurator: React.FC = () => {
   // ============================================================================
 
   const renderConfigurationForm = () => {
-    const currentField = configFields[currentFieldIndex];
+    // Ensure currentFieldIndex is within bounds
+    const safeCurrentFieldIndex = Math.max(0, Math.min(currentFieldIndex, configFields.length - 1));
+    const currentField = configFields[safeCurrentFieldIndex];
+    
+    // Add safety check for currentField
+    if (!currentField) {
+      return (
+        <Box flexDirection="column">
+          <InfoBox
+            type="error"
+            title="Configuration Error"
+            message="Invalid configuration state. Please go back and try again."
+          />
+        </Box>
+      );
+    }
+    
     const error = validationErrors[currentField.id];
 
     return (
@@ -485,6 +525,18 @@ const Welcome = () => {
   }
 
   // Normal Configuration Mode
+  // Additional safety check for configFields
+  if (configFields.length === 0) {
+    return (
+      <Box flexDirection="column" minHeight={20}>
+        <Header title="Configuration Error" />
+        <Box justifyContent="center" alignItems="center" flexGrow={1}>
+          <Text color="red">Configuration fields are not available. Please restart the application.</Text>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box flexDirection="column" minHeight={20}>
       <Header 
