@@ -32,6 +32,14 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
       '@/test': resolve(__dirname, './src/test'),
+      '@/components': resolve(__dirname, './src/components'),
+      '@/utils': resolve(__dirname, './src/utils'),
+      '@/lib': resolve(__dirname, './src/lib'),
+      '@/context': resolve(__dirname, './src/context'),
+      '@/config': resolve(__dirname, './src/config'),
+      '@/types': resolve(__dirname, './src/types'),
+      '@/services': resolve(__dirname, './src/services'),
+      '@/hooks': resolve(__dirname, './src/hooks'),
     },
   },
   esbuild: {

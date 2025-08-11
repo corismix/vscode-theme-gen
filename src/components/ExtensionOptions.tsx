@@ -1,6 +1,25 @@
 /**
  * ExtensionOptions component for VS Code Theme Generator
- * Configure extension generation options and output settings
+ * 
+ * Multi-step configuration component for VS Code extension generation options.
+ * Provides an intuitive interface for setting output path, selecting generation
+ * options, and confirming settings before theme generation.
+ * 
+ * Features:
+ * - Three-step workflow: path → options → confirmation
+ * - Interactive option selection with keyboard navigation
+ * - Real-time path validation and resolution
+ * - Generation progress indication
+ * - Form persistence and validation
+ * - Theme generation orchestration
+ * 
+ * Workflow Steps:
+ * 1. Path Configuration - Set output directory for extension
+ * 2. Options Selection - Choose files to generate (README, CHANGELOG, etc.)
+ * 3. Confirmation - Review settings and initiate generation
+ * 
+ * @component
+ * @since 1.0.0
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -15,7 +34,7 @@ import { InfoBox } from './shared/InfoBox';
 import { KeyboardShortcuts } from './shared/KeyboardShortcuts';
 import { buildVSCodeTheme } from '../lib/theme-generator';
 import { generateExtensionFiles } from '../lib/file-generators';
-import type { GenerationOptions } from '../utils/types';
+import type { GenerationOptions } from '@/types';
 
 // ============================================================================
 // Types
@@ -44,6 +63,25 @@ type OptionStep = 'path' | 'options' | 'confirmation';
 // Validation Functions
 // ============================================================================
 
+/**
+ * Validates output path for security and format requirements
+ * 
+ * Performs basic validation on the output path to ensure it's safe
+ * and properly formatted. Checks for required value and dangerous characters.
+ * 
+ * @param path - Output path to validate
+ * @returns Error message if invalid, null if valid
+ * 
+ * @example
+ * ```typescript
+ * const error = validateOutputPath('./my-theme');
+ * if (error) {
+ *   console.error('Invalid path:', error);
+ * }
+ * ```
+ * 
+ * @since 1.0.0
+ */
 const validateOutputPath = (path: string): string | null => {
   if (!path.trim()) {
     return 'Output path is required';
@@ -72,6 +110,26 @@ const pathField: ExtensionOptionsField = {
 // ExtensionOptions Component
 // ============================================================================
 
+/**
+ * ExtensionOptions React functional component
+ * 
+ * Main component providing multi-step interface for configuring VS Code
+ * extension generation options. Handles form state, validation, keyboard
+ * navigation, and theme generation orchestration.
+ * 
+ * State Management:
+ * - Form values for path and generation options
+ * - Current step tracking (path/options/confirmation)
+ * - Validation errors and loading states
+ * - Selected option index for keyboard navigation
+ * 
+ * Integration:
+ * - Uses AppContext for global form data and navigation
+ * - Integrates with theme generation pipeline
+ * - Updates generation results in global state
+ * 
+ * @returns JSX element containing the multi-step options interface
+ */
 const ExtensionOptions: React.FC = () => {
   const { 
     formData, 

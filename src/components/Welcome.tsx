@@ -8,7 +8,7 @@ import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../context/AppContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { readConfigFile, validateRecentFiles, addRecentFile } from '../utils/config';
-import { RecentFile } from '../utils/types';
+import { RecentFile } from '@/types';
 import { SelectInput } from './SelectInput';
 import { Header } from './shared/Header';
 import { InfoBox } from './shared/InfoBox';

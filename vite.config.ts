@@ -16,7 +16,8 @@ export default defineConfig({
       '@/utils': resolve(__dirname, 'src/utils'),
       '@/lib': resolve(__dirname, 'src/lib'),
       '@/context': resolve(__dirname, 'src/context'),
-      '@/types': resolve(__dirname, 'src/utils/types')
+      '@/config': resolve(__dirname, 'src/config'),
+      '@/types': resolve(__dirname, 'src/types')
     }
   },
 

@@ -13,7 +13,8 @@ import {
   RecentFile,
   DEFAULT_THEME_DEFAULTS,
   DEFAULT_USER_PREFERENCES,
-} from './types.js';
+} from '@/types';
+import { UI_LIMITS } from '@/config';
 
 // ============================================================================
 // Configuration Constants
@@ -400,12 +401,13 @@ export const resetConfig = async (): Promise<GeneratorConfig> => {
  */
 export const cleanupOldConfigs = async (): Promise<void> => {
   try {
-    // Remove files older than 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // Remove files older than configured threshold
+    const cleanupThresholdMs = UI_LIMITS.CLEANUP_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+    const thresholdDate = new Date(Date.now() - cleanupThresholdMs);
     
     try {
       const backupStats = await fs.stat(BACKUP_FILE);
-      if (backupStats.mtime < thirtyDaysAgo) {
+      if (backupStats.mtime < thresholdDate) {
         await fs.unlink(BACKUP_FILE);
       }
     } catch {

@@ -15,7 +15,7 @@ import {
   GeneratorConfig,
   DEFAULT_THEME_DEFAULTS,
   DEFAULT_USER_PREFERENCES
-} from '../utils/types';
+} from '@/types';
 
 // ============================================================================
 // Context Definition

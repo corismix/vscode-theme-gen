@@ -1,10 +1,22 @@
 /**
  * Theme generation functions for converting Ghostty themes to VS Code themes
- * Converted to TypeScript with comprehensive type safety
+ * 
+ * This module provides comprehensive functionality for parsing Ghostty terminal theme files
+ * and converting them to VS Code color themes with full workbench and token color support.
+ * 
+ * Features:
+ * - Secure file parsing with validation and sanitization
+ * - Comprehensive color mapping from terminal colors to editor colors
+ * - Token color generation for syntax highlighting
+ * - Color role mapping for semantic color usage
+ * - Theme name resolution from multiple sources
+ * - Color palette extraction for previews
+ * 
+ * @fileoverview Ghostty to VS Code theme conversion with comprehensive validation
+ * @since 1.0.0
  */
 
-import { readFileSync, statSync } from 'fs';
-import { resolve, basename } from 'path';
+import { basename } from 'path';
 import {
   GhosttyColors,
   VSCodeTheme,
@@ -12,20 +24,23 @@ import {
   TokenColor,
   ColorRoleMap,
   ParsedThemeFile,
-  FileValidationResult,
+  ColorValidationResult as FileValidationResult,
   FileProcessingError,
   ValidationError,
-} from '@/utils/types';
+} from '@/types';
+import { FILE_LIMITS, SECURITY_LIMITS } from '@/config';
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const MAX_FILE_SIZE_BYTES = 1024 * 1024; // 1MB
-const MAX_LINES = 10000;
-const MAX_CONFIG_LINES = 1000;
-const MAX_KEY_LENGTH = 100;
-const MAX_VALUE_LENGTH = 200;
+// Configuration constants now imported from centralized config
+// These remain as constants for easy access in this module
+const MAX_FILE_SIZE_BYTES = FILE_LIMITS.MAX_SIZE_BYTES;
+const MAX_LINES = FILE_LIMITS.MAX_LINES;
+const MAX_CONFIG_LINES = FILE_LIMITS.MAX_CONFIG_LINES;
+const MAX_KEY_LENGTH = SECURITY_LIMITS.MAX_KEY_LENGTH;
+const MAX_VALUE_LENGTH = SECURITY_LIMITS.MAX_VALUE_LENGTH;
 
 const VALID_COLOR_KEYS = [
   'background', 'foreground', 'cursor', 'cursor_text', 'cursor-text',
@@ -43,30 +58,143 @@ const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 // ============================================================================
 
 /**
+ * Check if a key is a valid GhosttyColors key
+ * 
+ * Validates whether a string key corresponds to a valid Ghostty color property.
+ * Accepts standard color names, numbered color keys, and palette entries.
+ * 
+ * @param key - The key to validate
+ * @returns True if the key is valid for Ghostty colors
+ * 
+ * @example
+ * ```typescript
+ * isValidGhosttyColorKey('background'); // true
+ * isValidGhosttyColorKey('color0'); // true
+ * isValidGhosttyColorKey('invalid'); // false
+ * ```
+ * 
+ * @since 1.0.0
+ */
+const isValidGhosttyColorKey = (key: string): boolean => {
+  return (
+    VALID_COLOR_KEYS.includes(key as any) ||
+    COLOR_KEY_REGEX.test(key) ||
+    key.startsWith('color')
+  );
+};
+
+/**
+ * Safely assigns a color value to a colors object using type guards
+ * 
+ * Validates the key and assigns the color value to the colors object.
+ * Logs warnings for unknown keys but doesn't throw to maintain parsing resilience.
+ * 
+ * @param colors - The Ghostty colors object to modify
+ * @param key - The color key to assign
+ * @param value - The color value to assign
+ * 
+ * @example
+ * ```typescript
+ * const colors: GhosttyColors = {};
+ * safeAssignColor(colors, 'background', '#000000');
+ * safeAssignColor(colors, 'invalid_key', '#ffffff'); // Logs warning, doesn't assign
+ * ```
+ * 
+ * @since 1.0.0
+ */
+const safeAssignColor = (
+  colors: GhosttyColors,
+  key: string,
+  value: string
+): void => {
+  if (!isValidGhosttyColorKey(key)) {
+    // Log warning for unknown keys but don't throw
+    console.warn(`Unknown color key ignored: ${key}`);
+    return;
+  }
+  
+  // Safe assignment with known key using index signature
+  (colors as Record<string, string>)[key] = value;
+};
+
+/**
  * Validates if a string is a valid hex color
+ * 
+ * Checks if the provided string matches the standard hex color format
+ * supporting both 3-digit (#RGB) and 6-digit (#RRGGBB) formats.
+ * 
+ * @param color - The color string to validate
+ * @returns True if the color is a valid hex format
+ * 
+ * @example
+ * ```typescript
+ * isValidHexColor('#ff0000'); // true
+ * isValidHexColor('#f00'); // true
+ * isValidHexColor('red'); // false
+ * isValidHexColor('#gg0000'); // false
+ * ```
+ * 
+ * @since 1.0.0
  */
 const isValidHexColor = (color: string): boolean => {
   return HEX_COLOR_REGEX.test(color);
 };
 
 /**
- * Sanitizes and validates a color value
+ * Sanitizes and validates a color value with security checks
+ * 
+ * Performs comprehensive sanitization of color values including:
+ * - Removal of dangerous characters for security
+ * - Length validation
+ * - Automatic hex prefix addition for valid patterns
+ * - Final format validation
+ * 
+ * @param value - The color value to sanitize
+ * @param key - Optional key name for debugging/logging
+ * @returns Sanitized color value in lowercase hex format, or null if invalid
+ * 
+ * @example
+ * ```typescript
+ * sanitizeColorValue('ff0000'); // '#ff0000'
+ * sanitizeColorValue('#FF0000'); // '#ff0000'
+ * sanitizeColorValue('invalid'); // null
+ * sanitizeColorValue('red<script>'); // null (dangerous characters)
+ * ```
+ * 
+ * @since 1.0.0
  */
-const sanitizeColorValue = (value: string): string | null => {
+const sanitizeColorValue = (value: string, key?: string): string | null => {
   if (!value || typeof value !== 'string') {
     return null;
   }
   
-  let sanitized = value.trim();
-  
-  // Add # prefix if missing
-  if (sanitized.length === 6 && /^[0-9a-fA-F]{6}$/.test(sanitized)) {
-    sanitized = `#${sanitized}`;
-  } else if (sanitized.length === 3 && /^[0-9a-fA-F]{3}$/.test(sanitized)) {
-    sanitized = `#${sanitized}`;
+  try {
+    // Basic security validation - remove dangerous characters
+    const cleaned = value.replace(/[;<>"'\\]/g, '').trim();
+    
+    if (cleaned.length === 0 || cleaned.length > MAX_VALUE_LENGTH) {
+      return null;
+    }
+    
+    let sanitized = cleaned;
+    
+    // Add # prefix if missing for valid hex patterns
+    if (sanitized.length === 6 && /^[0-9a-fA-F]{6}$/.test(sanitized)) {
+      sanitized = `#${sanitized}`;
+    } else if (sanitized.length === 3 && /^[0-9a-fA-F]{3}$/.test(sanitized)) {
+      sanitized = `#${sanitized}`;
+    }
+    
+    // Validate the final color format
+    if (!isValidHexColor(sanitized)) {
+      return null;
+    }
+    
+    return sanitized.toLowerCase();
+  } catch (error) {
+    console.warn(`Color sanitization failed for key ${key}: ${error}`);
+    return null;
   }
-  
-  return isValidHexColor(sanitized) ? sanitized.toLowerCase() : null;
 };
 
 // ============================================================================
@@ -74,23 +202,63 @@ const sanitizeColorValue = (value: string): string | null => {
 // ============================================================================
 
 /**
- * Reads text content from a file with validation
+ * Basic file path validation
  */
-export const readThemeFile = (filePath: string): string => {
+const validateFilePath = (filePath: string): string => {
   if (typeof filePath !== 'string' || !filePath.trim()) {
     throw new ValidationError('Invalid file path provided');
   }
   
+  // Basic security check - prevent path traversal
+  if (filePath.includes('..') || filePath.includes('\0')) {
+    throw new ValidationError('Invalid file path: path traversal detected');
+  }
+  
+  return filePath.trim();
+};
+
+/**
+ * Reads text content from a theme file with comprehensive validation
+ * 
+ * Securely reads and validates a theme file with size limits, path validation,
+ * and comprehensive error handling. Prevents path traversal attacks and
+ * validates file size constraints.
+ * 
+ * @param filePath - Path to the theme file to read
+ * @returns Promise resolving to the file content as a string
+ * 
+ * @throws {ValidationError} When file path is invalid or contains path traversal
+ * @throws {FileProcessingError} When file is too large or cannot be read
+ * 
+ * @example
+ * ```typescript
+ * try {
+ *   const content = await readThemeFile('./my-theme.txt');
+ *   console.log('File content loaded');
+ * } catch (error) {
+ *   if (error instanceof FileProcessingError) {
+ *     console.error('File processing failed:', error.message);
+ *     console.log('Suggestions:', error.suggestions);
+ *   }
+ * }
+ * ```
+ * 
+ * @since 1.0.0
+ */
+export const readThemeFile = async (filePath: string): Promise<string> => {
+  const validatedPath = validateFilePath(filePath);
+  
   try {
-    const resolvedPath = resolve(filePath);
-    const content = readFileSync(resolvedPath, 'utf8');
+    // Use dynamic import to avoid issues with bundling
+    const { readFile } = await import('fs/promises');
+    const content = await readFile(validatedPath, 'utf8');
     
     // Validate file size
     if (content.length > MAX_FILE_SIZE_BYTES) {
       throw new FileProcessingError(
         'File is too large',
         { fileSize: content.length, maxSize: MAX_FILE_SIZE_BYTES },
-        ['Choose a smaller file', 'File must be under 1MB']
+        ['Choose a smaller file', `File must be under ${(MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(1)}MB`]
       );
     }
     
@@ -113,16 +281,48 @@ export const readThemeFile = (filePath: string): string => {
 // ============================================================================
 
 /**
- * Parses a Ghostty theme file into structured data
+ * Parses a Ghostty theme file into structured data with validation
+ * 
+ * Comprehensively parses a Ghostty theme file extracting color definitions,
+ * metadata, and providing validation results. Supports multiple Ghostty formats
+ * including palette entries and standard key-value pairs.
+ * 
+ * Parsing features:
+ * - Support for palette format: `palette = N=#color`
+ * - Support for standard format: `key = value`
+ * - Color validation and sanitization
+ * - Metadata extraction
+ * - Line count and size validation
+ * - Comprehensive warning and error reporting
+ * 
+ * @param filePath - Path to the Ghostty theme file
+ * @returns Promise resolving to parsed theme data with validation results
+ * 
+ * @throws {ValidationError} When file format or content is invalid
+ * @throws {FileProcessingError} When file cannot be processed
+ * 
+ * @example
+ * ```typescript
+ * const parsed = await parseThemeFile('./dark-theme.txt');
+ * if (parsed.validation.isValid) {
+ *   console.log('Colors found:', Object.keys(parsed.colors).length);
+ *   console.log('Background:', parsed.colors.background);
+ * }
+ * if (parsed.validation.warnings?.length) {
+ *   console.warn('Warnings:', parsed.validation.warnings);
+ * }
+ * ```
+ * 
+ * @since 1.0.0
  */
-export const parseThemeFile = (filePath: string): ParsedThemeFile => {
+export const parseThemeFile = async (filePath: string): Promise<ParsedThemeFile> => {
   const validation: FileValidationResult = {
     isValid: true,
     warnings: [],
   };
   
   try {
-    const content = readThemeFile(filePath).trim();
+    const content = (await readThemeFile(filePath)).trim();
     const lines = content.split('\n')
       .map(line => line.trim())
       .filter(line => line && !line.startsWith('#') && !line.startsWith('//'));
@@ -150,11 +350,11 @@ export const parseThemeFile = (filePath: string): ParsedThemeFile => {
       const paletteMatch = line.match(PALETTE_REGEX);
       if (paletteMatch) {
         const [, paletteNumber, colorValue] = paletteMatch;
-        const colorKey = `color${paletteNumber}` as keyof GhosttyColors;
-        const sanitizedColor = sanitizeColorValue(colorValue.trim());
+        const colorKey = `color${paletteNumber}`;
+        const sanitizedColor = sanitizeColorValue(colorValue.trim(), colorKey);
         
         if (sanitizedColor) {
-          colors[colorKey] = sanitizedColor;
+          safeAssignColor(colors, colorKey, sanitizedColor);
         } else {
           validation.warnings?.push(`Invalid color value for ${colorKey}: ${colorValue}`);
         }
@@ -175,18 +375,18 @@ export const parseThemeFile = (filePath: string): ParsedThemeFile => {
         }
         
         if (COLOR_KEY_REGEX.test(trimmedKey)) {
-          const sanitizedColor = sanitizeColorValue(trimmedValue);
+          const sanitizedColor = sanitizeColorValue(trimmedValue, trimmedKey);
           if (sanitizedColor) {
-            (colors as any)[trimmedKey] = sanitizedColor;
+            safeAssignColor(colors, trimmedKey, sanitizedColor);
           } else {
             validation.warnings?.push(`Invalid color value for ${trimmedKey}: ${trimmedValue}`);
           }
         } else if (VALID_COLOR_KEYS.includes(trimmedKey as any)) {
-          const sanitizedColor = sanitizeColorValue(trimmedValue);
+          const sanitizedColor = sanitizeColorValue(trimmedValue, trimmedKey);
           if (sanitizedColor) {
             // Normalize key names (convert hyphens to underscores for consistency)
-            const normalizedKey = trimmedKey.replace(/-/g, '_') as keyof GhosttyColors;
-            colors[normalizedKey] = sanitizedColor;
+            const normalizedKey = trimmedKey.replace(/-/g, '_');
+            safeAssignColor(colors, normalizedKey, sanitizedColor);
           } else {
             validation.warnings?.push(`Invalid color value for ${trimmedKey}: ${trimmedValue}`);
           }
@@ -200,20 +400,34 @@ export const parseThemeFile = (filePath: string): ParsedThemeFile => {
       }
     }
 
-    // Get file metadata
-    const stats = readFileSync(filePath);
-    const fileStats = statSync(filePath);
-    
-    return {
-      colors,
-      metadata: {
-        fileName: basename(filePath),
-        filePath,
-        fileSize: stats.length,
-        lastModified: fileStats.mtime,
-      },
-      validation,
-    };
+    // Get file metadata using simple stat
+    try {
+      const { stat } = await import('fs/promises');
+      const fileStats = await stat(filePath);
+      
+      return {
+        colors,
+        metadata: {
+          fileName: basename(filePath),
+          filePath,
+          fileSize: fileStats.size,
+          lastModified: fileStats.mtime,
+        },
+        validation,
+      };
+    } catch (statError) {
+      // If stat fails, return without metadata
+      return {
+        colors,
+        metadata: {
+          fileName: basename(filePath),
+          filePath,
+          fileSize: content.length,
+          lastModified: new Date(),
+        },
+        validation,
+      };
+    }
   } catch (error) {
     if (error instanceof FileProcessingError || error instanceof ValidationError) {
       throw error;
@@ -231,7 +445,24 @@ export const parseThemeFile = (filePath: string): ParsedThemeFile => {
 // ============================================================================
 
 /**
- * Maps parsed colors to semantic roles
+ * Maps parsed colors to semantic roles with usage descriptions
+ * 
+ * Creates a comprehensive mapping of terminal colors to semantic roles
+ * with descriptive names and usage suggestions for each color. Provides
+ * fallback colors for missing entries.
+ * 
+ * @param colors - Parsed Ghostty colors object
+ * @returns ColorRoleMap with semantic color assignments and usage descriptions
+ * 
+ * @example
+ * ```typescript
+ * const roleMap = createColorRoleMap(parsedColors);
+ * console.log(roleMap.red.name); // 'Red'
+ * console.log(roleMap.red.hex); // '#ff0000'
+ * console.log(roleMap.red.usage); // ['Errors', 'Keywords', 'Warnings']
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const createColorRoleMap = (colors: GhosttyColors): ColorRoleMap => {
   return {
@@ -356,6 +587,23 @@ const createSimpleRoleMap = (colors: GhosttyColors) => {
 
 /**
  * Builds VS Code workbench colors from role mappings
+ * 
+ * Generates a comprehensive VS Code color theme including editor colors,
+ * workbench colors, and terminal colors. Maps semantic color roles to
+ * specific VS Code UI elements with appropriate opacity and styling.
+ * 
+ * @param roleMap - Simplified color role mapping
+ * @returns Complete VS Code theme colors object
+ * 
+ * @example
+ * ```typescript
+ * const roleMap = createSimpleRoleMap(colors);
+ * const vscodeColors = buildVSCodeColors(roleMap);
+ * console.log(vscodeColors['editor.background']); // '#000000'
+ * console.log(vscodeColors['terminal.ansiRed']); // '#ff0000'
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const buildVSCodeColors = (roleMap: ReturnType<typeof createSimpleRoleMap>): VSCodeThemeColors => {
   return {
@@ -409,6 +657,27 @@ export const buildVSCodeColors = (roleMap: ReturnType<typeof createSimpleRoleMap
 
 /**
  * Builds token colors for syntax highlighting
+ * 
+ * Creates comprehensive token color definitions for syntax highlighting
+ * across multiple programming languages. Includes base token colors and
+ * specialized JSON rainbow coloring for enhanced JSON file readability.
+ * 
+ * @param roleMap - Simplified color role mapping
+ * @returns Array of token color definitions for VS Code themes
+ * 
+ * @example
+ * ```typescript
+ * const tokenColors = buildTokenColors(roleMap);
+ * // Token colors include:
+ * // - Comments (italic, muted)
+ * // - Strings (green)
+ * // - Keywords (red)
+ * // - Functions (yellow)
+ * // - Classes (cyan)
+ * // - JSON-specific coloring
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const buildTokenColors = (roleMap: ReturnType<typeof createSimpleRoleMap>): TokenColor[] => {
   const baseTokens: TokenColor[] = [
@@ -450,7 +719,29 @@ export const buildTokenColors = (roleMap: ReturnType<typeof createSimpleRoleMap>
 // ============================================================================
 
 /**
- * Resolves the theme name from various sources
+ * Resolves the theme name from various sources with priority handling
+ * 
+ * Determines the theme name using a priority system:
+ * 1. Explicit name parameter (highest priority)
+ * 2. Name from theme file metadata
+ * 3. Derived from filename (lowest priority)
+ * 
+ * Applies formatting to filename-derived names by replacing separators
+ * with spaces and applying title case.
+ * 
+ * @param filePath - Path to the theme file
+ * @param explicitName - Explicitly provided theme name (optional)
+ * @param meta - Metadata extracted from theme file (optional)
+ * @returns Resolved theme name
+ * 
+ * @example
+ * ```typescript
+ * resolveThemeName('./dark_theme.txt'); // 'Dark Theme'
+ * resolveThemeName('./theme.txt', 'My Custom Theme'); // 'My Custom Theme'
+ * resolveThemeName('./theme.txt', undefined, { name: 'Meta Theme' }); // 'Meta Theme'
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const resolveThemeName = (
   filePath: string,
@@ -485,6 +776,35 @@ export const resolveThemeName = (
 
 /**
  * Builds a complete VS Code theme from parsed Ghostty data
+ * 
+ * Orchestrates the complete theme building process by combining color role mapping,
+ * workbench colors, token colors, and theme metadata into a complete VS Code theme.
+ * This is the main function for theme generation.
+ * 
+ * @param colors - Parsed Ghostty colors object
+ * @param themeName - Name for the generated theme
+ * @param filePath - Original file path for fallback naming (optional)
+ * @returns Complete VS Code theme object ready for serialization
+ * 
+ * @throws {FileProcessingError} When theme building fails
+ * 
+ * @example
+ * ```typescript
+ * const parsed = await parseThemeFile('./theme.txt');
+ * const theme = buildVSCodeTheme(
+ *   parsed.colors,
+ *   'My Dark Theme',
+ *   './theme.txt'
+ * );
+ * 
+ * // Theme ready for VS Code
+ * console.log(theme.name); // 'My Dark Theme'
+ * console.log(theme.type); // 'dark'
+ * console.log(theme.colors['editor.background']); // Background color
+ * console.log(theme.tokenColors.length); // Number of token color rules
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const buildVSCodeTheme = (
   colors: GhosttyColors,
@@ -517,6 +837,31 @@ export const buildVSCodeTheme = (
 
 /**
  * Extracts a color palette for preview purposes
+ * 
+ * Creates a structured color palette suitable for UI previews and color
+ * picker components. Organizes colors into primary colors (background,
+ * foreground, cursor) and the 16-color terminal palette with bright variants.
+ * 
+ * @param colors - Parsed Ghostty colors object
+ * @returns Structured palette with primary colors and 16-color array
+ * 
+ * @example
+ * ```typescript
+ * const palette = extractColorPalette(parsedColors);
+ * 
+ * // Primary colors for main UI elements
+ * console.log(palette.primary.background); // '#000000'
+ * console.log(palette.primary.foreground); // '#ffffff'
+ * console.log(palette.primary.cursor); // '#ffffff'
+ * 
+ * // 16-color palette for terminal and syntax highlighting
+ * palette.colors.forEach(color => {
+ *   console.log(`${color.name}: ${color.value} / ${color.bright}`);
+ * });
+ * // Output: Red: #ff0000 / #ff8080
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const extractColorPalette = (colors: GhosttyColors) => {
   const roleMap = createColorRoleMap(colors);

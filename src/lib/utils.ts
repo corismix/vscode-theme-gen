@@ -1,6 +1,21 @@
 /**
  * Utility functions for file handling, validation, and data processing
- * Converted to TypeScript with comprehensive type safety
+ * 
+ * Comprehensive utility library providing secure file operations, validation functions,
+ * and data processing utilities for the VS Code Theme Generator. All functions include
+ * proper error handling, input validation, and security measures.
+ * 
+ * Modules:
+ * - File System Utilities: Safe file/directory operations
+ * - File Validation: Ghostty theme file validation
+ * - String Utilities: Text processing and sanitization
+ * - Path Utilities: Secure path resolution and manipulation
+ * - Validation Utilities: Form and data validation
+ * - Progress Tracking: Multi-step operation tracking
+ * - Recent Files Management: Persistent recent files list
+ * 
+ * @fileoverview Comprehensive utility library with security and validation focus
+ * @since 1.0.0
  */
 
 import { existsSync, statSync, readFileSync, writeFileSync } from 'fs';
@@ -12,20 +27,21 @@ import {
   RecentFile,
   ValidationError,
   FileProcessingError,
-} from '@/utils/types';
+} from '@/types';
+import { FILE_LIMITS, SECURITY_LIMITS, UI_LIMITS, formatBytes } from '@/config';
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const RECENT_FILES_LIMIT = 10;
-const MAX_FILE_SIZE_MB = 10;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const MIN_THEME_NAME_LENGTH = 2;
-const MAX_THEME_NAME_LENGTH = 100;
-const MAX_DESCRIPTION_LENGTH = 500;
-const MIN_PUBLISHER_NAME_LENGTH = 3;
-const MAX_PUBLISHER_NAME_LENGTH = 256;
+// Configuration constants now imported from centralized config
+const RECENT_FILES_LIMIT = UI_LIMITS.MAX_RECENT_FILES;
+const MAX_FILE_SIZE_BYTES = FILE_LIMITS.STREAMING_MAX_SIZE_BYTES; // Use streaming limit for utilities
+const MIN_THEME_NAME_LENGTH = 2; // Keep as is - not configurable for UX reasons
+const MAX_THEME_NAME_LENGTH = SECURITY_LIMITS.MAX_THEME_NAME_LENGTH;
+const MAX_DESCRIPTION_LENGTH = SECURITY_LIMITS.MAX_DESCRIPTION_LENGTH;
+const MIN_PUBLISHER_NAME_LENGTH = 3; // Keep as is - not configurable for UX reasons  
+const MAX_PUBLISHER_NAME_LENGTH = SECURITY_LIMITS.MAX_PUBLISHER_LENGTH;
 const FILE_PERMISSIONS_MODE = 0o600;
 
 // Config file settings
@@ -44,7 +60,22 @@ const PUBLISHER_NAME_REGEX = /^[a-z0-9\-]+$/i;
 // ============================================================================
 
 /**
- * Checks if a file exists safely
+ * Checks if a file exists safely with error handling
+ * 
+ * Performs safe file existence check with proper error handling.
+ * Returns false for any errors or invalid inputs.
+ * 
+ * @param filePath - Path to check for file existence
+ * @returns True if file exists, false otherwise
+ * 
+ * @example
+ * ```typescript
+ * if (fileExists('./config.json')) {
+ *   console.log('Config file found');
+ * }
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const fileExists = (filePath: string): boolean => {
   try {
@@ -59,7 +90,24 @@ export const fileExists = (filePath: string): boolean => {
 };
 
 /**
- * Validates if a path points to a valid file
+ * Validates if a path points to a valid file (not directory)
+ * 
+ * Checks if the path exists and points to a file rather than a directory.
+ * Includes proper error handling for invalid paths.
+ * 
+ * @param filePath - Path to validate as a file
+ * @returns True if path points to an existing file
+ * 
+ * @example
+ * ```typescript
+ * if (isValidFilePath('./theme.txt')) {
+ *   // Process the file
+ * } else {
+ *   console.error('Not a valid file path');
+ * }
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const isValidFilePath = (filePath: string): boolean => {
   try {
@@ -75,7 +123,24 @@ export const isValidFilePath = (filePath: string): boolean => {
 };
 
 /**
- * Validates if a path points to a valid directory
+ * Validates if a path points to a valid directory (not file)
+ * 
+ * Checks if the path exists and points to a directory rather than a file.
+ * Includes proper error handling for invalid paths.
+ * 
+ * @param dirPath - Path to validate as a directory
+ * @returns True if path points to an existing directory
+ * 
+ * @example
+ * ```typescript
+ * if (isValidDirectory('./output')) {
+ *   // Directory exists, can write files
+ * } else {
+ *   console.error('Directory does not exist');
+ * }
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const isValidDirectory = (dirPath: string): boolean => {
   try {
@@ -113,7 +178,33 @@ const getSecureConfigPath = (): string => {
 // ============================================================================
 
 /**
- * Validates a Ghostty theme file
+ * Validates a Ghostty theme file with comprehensive checks
+ * 
+ * Performs complete validation of a Ghostty theme file including:
+ * - File existence and accessibility
+ * - File extension validation (.txt required)
+ * - File size limits (prevents DoS attacks)
+ * - Content structure validation
+ * - Color definition presence and format validation
+ * 
+ * @param filePath - Path to the Ghostty theme file to validate
+ * @returns Validation result with status, errors, and suggestions
+ * 
+ * @example
+ * ```typescript
+ * const validation = validateGhosttyFile('./dark-theme.txt');
+ * if (validation.isValid) {
+ *   console.log('Theme file is valid');
+ *   if (validation.warnings) {
+ *     console.warn('Warnings:', validation.warnings);
+ *   }
+ * } else {
+ *   console.error('Validation failed:', validation.error);
+ *   console.log('Suggestions:', validation.suggestions);
+ * }
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const validateGhosttyFile = (filePath: string): FileValidationResult => {
   if (typeof filePath !== 'string') {
@@ -157,7 +248,7 @@ export const validateGhosttyFile = (filePath: string): FileValidationResult => {
     if (content.length > MAX_FILE_SIZE_BYTES) {
       return { 
         isValid: false, 
-        error: `File is too large (${(content.length / 1024 / 1024).toFixed(1)}MB). Maximum size is ${MAX_FILE_SIZE_MB}MB`,
+        error: `File is too large (${formatBytes(content.length)}). Maximum size is ${formatBytes(MAX_FILE_SIZE_BYTES)}`,
         suggestions: [
           'Use a smaller file',
           'Remove unnecessary content',
@@ -237,6 +328,20 @@ export const validateGhosttyFile = (filePath: string): FileValidationResult => {
 
 /**
  * Sanitizes a theme name by removing invalid characters
+ * 
+ * Removes potentially problematic characters from theme names while
+ * preserving readability. Keeps alphanumeric characters, spaces, hyphens, and underscores.
+ * 
+ * @param name - Theme name to sanitize
+ * @returns Sanitized theme name safe for file systems and VS Code
+ * 
+ * @example
+ * ```typescript
+ * sanitizeThemeName('My @wesome Theme!'); // 'My wesome Theme'
+ * sanitizeThemeName('  Cool  Theme  '); // 'Cool Theme'
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const sanitizeThemeName = (name: string): string => {
   return name.trim()
@@ -246,7 +351,23 @@ export const sanitizeThemeName = (name: string): string => {
 };
 
 /**
- * Validates semantic version format
+ * Validates semantic version format (SemVer)
+ * 
+ * Checks if the version string follows semantic versioning format (X.Y.Z)
+ * with optional pre-release identifiers.
+ * 
+ * @param version - Version string to validate
+ * @returns True if version follows semantic versioning format
+ * 
+ * @example
+ * ```typescript
+ * isValidVersion('1.0.0'); // true
+ * isValidVersion('2.1.3-beta.1'); // true
+ * isValidVersion('1.0'); // false
+ * isValidVersion('invalid'); // false
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const isValidVersion = (version: string): boolean => {
   if (typeof version !== 'string') {
@@ -256,7 +377,25 @@ export const isValidVersion = (version: string): boolean => {
 };
 
 /**
- * Validates publisher name format
+ * Validates publisher name format for VS Code extensions
+ * 
+ * Validates that the publisher name meets VS Code extension requirements:
+ * - 3-256 characters in length
+ * - Alphanumeric characters and hyphens only
+ * - Case insensitive
+ * 
+ * @param name - Publisher name to validate
+ * @returns True if name meets VS Code publisher requirements
+ * 
+ * @example
+ * ```typescript
+ * isValidPublisherName('my-company'); // true
+ * isValidPublisherName('company123'); // true
+ * isValidPublisherName('ab'); // false (too short)
+ * isValidPublisherName('my_company'); // false (underscore not allowed)
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const isValidPublisherName = (name: string): boolean => {
   if (typeof name !== 'string') {
@@ -270,6 +409,23 @@ export const isValidPublisherName = (name: string): boolean => {
 
 /**
  * Validates hex color format
+ * 
+ * Checks if the color string is a valid hexadecimal color format.
+ * Supports both 3-digit (#RGB) and 6-digit (#RRGGBB) formats.
+ * 
+ * @param color - Color string to validate
+ * @returns True if color is valid hex format
+ * 
+ * @example
+ * ```typescript
+ * isValidHexColor('#ff0000'); // true
+ * isValidHexColor('#f00'); // true
+ * isValidHexColor('#FF0000'); // true (case insensitive)
+ * isValidHexColor('red'); // false
+ * isValidHexColor('#gg0000'); // false
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const isValidHexColor = (color: string): boolean => {
   if (typeof color !== 'string') {
@@ -345,7 +501,36 @@ export interface FormValidationResult {
 }
 
 /**
- * Validates form data comprehensively
+ * Validates form data comprehensively with detailed error reporting
+ * 
+ * Performs complete validation of theme generation form data including:
+ * - Input file validation (existence, format, content)
+ * - Theme name validation (length, characters)
+ * - Version format validation (semantic versioning)
+ * - Publisher name validation (VS Code requirements)
+ * - Description length validation
+ * 
+ * @param data - Form data object to validate
+ * @returns Validation result with field-specific errors
+ * 
+ * @example
+ * ```typescript
+ * const validation = validateFormData({
+ *   inputFile: './theme.txt',
+ *   themeName: 'My Theme',
+ *   version: '1.0.0',
+ *   publisher: 'my-company',
+ *   description: 'A beautiful theme'
+ * });
+ * 
+ * if (!validation.isValid) {
+ *   Object.entries(validation.errors).forEach(([field, error]) => {
+ *     console.error(`${field}: ${error}`);
+ *   });
+ * }
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const validateFormData = (data: FormData): FormValidationResult => {
   const errors: Record<string, string> = {};
@@ -409,6 +594,35 @@ export interface ProgressTracker {
 
 /**
  * Creates a progress tracker for multi-step operations
+ * 
+ * Provides a comprehensive progress tracking system for multi-step operations
+ * like theme generation. Tracks step status, current progress, and error states.
+ * 
+ * @returns ProgressTracker instance with methods for managing operation steps
+ * 
+ * @example
+ * ```typescript
+ * const tracker = createProgressTracker();
+ * 
+ * // Setup steps
+ * tracker.addStep('parse', 'Parsing theme file');
+ * tracker.addStep('generate', 'Generating VS Code theme');
+ * tracker.addStep('write', 'Writing extension files');
+ * 
+ * // Execute steps
+ * tracker.start(0);
+ * // ... do parsing work
+ * tracker.complete(0);
+ * 
+ * tracker.start(1);
+ * // ... do generation work
+ * tracker.complete(1);
+ * 
+ * console.log('Progress:', tracker.isComplete());
+ * console.log('Steps:', tracker.getSteps());
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const createProgressTracker = (): ProgressTracker => {
   const steps: ProgressStep[] = [];
@@ -463,6 +677,23 @@ export const createProgressTracker = (): ProgressTracker => {
 
 /**
  * Gets list of recent files, filtering out non-existent ones
+ * 
+ * Retrieves the list of recently used theme files with validation.
+ * Automatically filters out files that no longer exist and validates
+ * the structure of stored data for security.
+ * 
+ * @returns Array of valid recent files, empty array on error
+ * 
+ * @example
+ * ```typescript
+ * const recentFiles = getRecentFiles();
+ * recentFiles.forEach(file => {
+ *   console.log(`${file.name}: ${file.path}`);
+ *   console.log(`Last used: ${file.lastUsed}`);
+ * });
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const getRecentFiles = (): RecentFile[] => {
   try {
@@ -508,7 +739,32 @@ export const getRecentFiles = (): RecentFile[] => {
 };
 
 /**
- * Adds a file to the recent files list
+ * Adds a file to the recent files list with validation and deduplication
+ * 
+ * Safely adds a theme file to the recent files list with:
+ * - Input validation and sanitization
+ * - File existence verification
+ * - Automatic deduplication (moves existing entries to top)
+ * - List size limiting to prevent unbounded growth
+ * - Secure file permissions
+ * 
+ * @param filePath - Path to the theme file
+ * @param themeName - Name of the theme for display
+ * 
+ * @example
+ * ```typescript
+ * try {
+ *   addRecentFile('./my-theme.txt', 'My Dark Theme');
+ *   console.log('File added to recent list');
+ * } catch (error) {
+ *   console.error('Failed to add recent file:', error.message);
+ * }
+ * ```
+ * 
+ * @throws {ValidationError} When inputs are invalid
+ * @throws {FileProcessingError} When file doesn't exist
+ * 
+ * @since 1.0.0
  */
 export const addRecentFile = (filePath: string, themeName: string): void => {
   try {
@@ -549,7 +805,18 @@ export const addRecentFile = (filePath: string, themeName: string): void => {
 };
 
 /**
- * Clears all recent files
+ * Clears all recent files from the persistent list
+ * 
+ * Safely removes all entries from the recent files list.
+ * Fails silently if operation cannot be completed.
+ * 
+ * @example
+ * ```typescript
+ * clearRecentFiles();
+ * console.log('Recent files cleared');
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const clearRecentFiles = (): void => {
   try {
@@ -564,6 +831,19 @@ export const clearRecentFiles = (): void => {
 
 /**
  * Removes a specific file from recent files list
+ * 
+ * Safely removes a single file entry from the recent files list.
+ * Resolves the path before comparison to handle relative paths correctly.
+ * 
+ * @param filePath - Path of the file to remove from recent list
+ * 
+ * @example
+ * ```typescript
+ * removeRecentFile('./old-theme.txt');
+ * console.log('File removed from recent list');
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const removeRecentFile = (filePath: string): void => {
   try {

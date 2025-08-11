@@ -10,7 +10,7 @@ import { render } from 'ink';
 import meow from 'meow';
 import App from './components/App';
 import { fileUtils } from './lib/utils';
-import { CLIFlags, FormData } from './utils/types';
+import { CLIFlags, FormData } from '@/types';
 
 // ============================================================================
 // CLI Definition

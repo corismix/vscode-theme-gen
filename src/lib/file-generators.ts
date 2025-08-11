@@ -1,6 +1,20 @@
 /**
  * File generators for VS Code extension structure
- * Converted to TypeScript with comprehensive type safety
+ * 
+ * Comprehensive file generation system for creating complete VS Code extension
+ * packages from theme data. Generates all necessary files including manifest,
+ * documentation, configuration files, and development support files.
+ * 
+ * Features:
+ * - Complete VS Code extension structure generation
+ * - Package.json with proper metadata and contributions
+ * - README, CHANGELOG, and QUICKSTART documentation
+ * - LICENSE file generation for multiple license types
+ * - Development configuration (.vscode/launch.json)
+ * - Proper file naming and sanitization
+ * 
+ * @fileoverview VS Code extension file generation with comprehensive structure support
+ * @since 1.0.0
  */
 
 import { promises as fs } from 'fs';
@@ -11,7 +25,7 @@ import {
   GenerationResults,
   VSCodeTheme,
   GenerationError,
-} from '@/utils/types';
+} from '@/types';
 
 // ============================================================================
 // Package Name Utilities
@@ -19,6 +33,24 @@ import {
 
 /**
  * Converts theme name to package-safe identifier
+ * 
+ * Transforms a theme name into a valid npm package name by:
+ * - Converting to lowercase
+ * - Replacing invalid characters with hyphens
+ * - Removing consecutive hyphens
+ * - Trimming leading and trailing hyphens
+ * 
+ * @param name - Original theme name
+ * @returns Package-safe identifier suitable for npm/VS Code
+ * 
+ * @example
+ * ```typescript
+ * toPackageName('My Awesome Theme!'); // 'my-awesome-theme'
+ * toPackageName('Cool_Theme_v2'); // 'cool-theme-v2'
+ * toPackageName('  Spaced Theme  '); // 'spaced-theme'
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const toPackageName = (name: string): string => {
   return name.toLowerCase()
@@ -29,6 +61,20 @@ export const toPackageName = (name: string): string => {
 
 /**
  * Creates a display name from theme name
+ * 
+ * Prepares a theme name for display purposes by trimming whitespace
+ * while preserving the original formatting and capitalization.
+ * 
+ * @param name - Original theme name
+ * @returns Clean display name
+ * 
+ * @example
+ * ```typescript
+ * toDisplayName('  My Theme  '); // 'My Theme'
+ * toDisplayName('Dark Professional'); // 'Dark Professional'
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const toDisplayName = (name: string): string => {
   return name.trim();
@@ -72,6 +118,31 @@ interface ExtensionPackageJson {
 
 /**
  * Generates package.json for the VS Code extension
+ * 
+ * Creates a complete VS Code extension manifest with all required fields,
+ * theme contributions, and optional metadata. Includes proper repository
+ * links, categories, and keywords for marketplace discoverability.
+ * 
+ * @param themeName - Name of the theme
+ * @param options - Generation options with metadata
+ * @param themeFileName - Generated theme file name
+ * @returns Formatted package.json as string
+ * 
+ * @example
+ * ```typescript
+ * const packageJson = generatePackageJson(
+ *   'Dark Professional',
+ *   {
+ *     version: '1.0.0',
+ *     publisher: 'my-company',
+ *     description: 'Professional dark theme',
+ *     license: 'MIT'
+ *   },
+ *   'dark-professional-color-theme.json'
+ * );
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const generatePackageJson = (
   themeName: string,
@@ -129,7 +200,26 @@ export const generatePackageJson = (
 // ============================================================================
 
 /**
- * Generates README.md content
+ * Generates README.md content with comprehensive documentation
+ * 
+ * Creates a professional README file with installation instructions,
+ * usage guide, features list, and development information. Includes
+ * proper marketplace installation commands and repository links.
+ * 
+ * @param themeName - Name of the theme
+ * @param options - Generation options with metadata
+ * @returns Complete README.md content as string
+ * 
+ * @example
+ * ```typescript
+ * const readme = generateReadme('Dark Professional', {
+ *   description: 'Professional dark theme for coding',
+ *   publisher: 'my-company',
+ *   license: 'MIT'
+ * });
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const generateReadme = (themeName: string, options: GenerationOptions): string => {
   const packageName = toPackageName(themeName);
@@ -193,7 +283,25 @@ See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 // ============================================================================
 
 /**
- * Generates CHANGELOG.md content
+ * Generates CHANGELOG.md content following Keep a Changelog format
+ * 
+ * Creates a structured changelog following the Keep a Changelog format
+ * with semantic versioning. Includes initial release entry with
+ * features and version information.
+ * 
+ * @param themeName - Name of the theme
+ * @param options - Generation options with version info
+ * @returns Complete CHANGELOG.md content as string
+ * 
+ * @example
+ * ```typescript
+ * const changelog = generateChangelog('Dark Professional', {
+ *   version: '1.0.0',
+ *   description: 'Professional theme'
+ * });
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const generateChangelog = (themeName: string, options: GenerationOptions): string => {
   const today = new Date().toISOString().split('T')[0];
@@ -236,6 +344,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 /**
  * Generates .vscode/launch.json for extension debugging
+ * 
+ * Creates VS Code launch configuration for debugging the theme extension
+ * during development. Enables Extension Development Host debugging.
+ * 
+ * @returns VS Code launch configuration as JSON string
+ * 
+ * @example
+ * ```typescript
+ * const launchConfig = generateLaunchJson();
+ * // Creates configuration for F5 debugging in VS Code
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const generateLaunchJson = (): string => {
   return JSON.stringify({
@@ -259,7 +380,23 @@ export const generateLaunchJson = (): string => {
 // ============================================================================
 
 /**
- * Generates LICENSE file content
+ * Generates LICENSE file content for multiple license types
+ * 
+ * Creates appropriate license text based on the specified license type.
+ * Supports MIT, ISC, and custom licenses with proper copyright attribution.
+ * 
+ * @param options - Generation options with license and publisher info
+ * @returns Complete license text
+ * 
+ * @example
+ * ```typescript
+ * const license = generateLicense({
+ *   license: 'MIT',
+ *   publisher: 'my-company'
+ * });
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const generateLicense = (options: GenerationOptions): string => {
   const year = new Date().getFullYear();
@@ -321,7 +458,24 @@ All rights reserved.
 // ============================================================================
 
 /**
- * Generates QUICKSTART.md guide
+ * Generates QUICKSTART.md guide with comprehensive user instructions
+ * 
+ * Creates an extensive quick start guide with installation methods,
+ * activation instructions, customization examples, troubleshooting,
+ * and helpful tips for theme users.
+ * 
+ * @param themeName - Name of the theme
+ * @param options - Generation options with publisher info
+ * @returns Complete QUICKSTART.md content as string
+ * 
+ * @example
+ * ```typescript
+ * const quickstart = generateQuickstart('Dark Professional', {
+ *   publisher: 'my-company'
+ * });
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const generateQuickstart = (themeName: string, options: GenerationOptions): string => {
   const displayName = toDisplayName(themeName);
@@ -420,7 +574,44 @@ Enjoy coding with ${displayName}! 🎉
 // ============================================================================
 
 /**
- * Generates all extension files
+ * Generates all extension files in a complete VS Code extension structure
+ * 
+ * Orchestrates the generation of all files needed for a VS Code theme extension:
+ * - Theme JSON file with color definitions
+ * - package.json with extension manifest
+ * - README.md with usage instructions (optional)
+ * - CHANGELOG.md with version history (optional)
+ * - QUICKSTART.md with user guide (optional)
+ * - LICENSE file with legal text (optional)
+ * - .vscode/launch.json for debugging (optional)
+ * 
+ * Creates proper directory structure and tracks all generated files
+ * with size and performance metrics.
+ * 
+ * @param theme - Complete VS Code theme object
+ * @param options - Generation options controlling what files to create
+ * @returns Promise resolving to generation results with file list and metrics
+ * 
+ * @throws {GenerationError} When file generation fails
+ * 
+ * @example
+ * ```typescript
+ * const results = await generateExtensionFiles(theme, {
+ *   themeName: 'Dark Professional',
+ *   version: '1.0.0',
+ *   outputPath: './my-theme-extension',
+ *   publisher: 'my-company',
+ *   generateReadme: true,
+ *   generateChangelog: true,
+ *   generateFullExtension: true
+ * });
+ * 
+ * console.log(`Generated ${results.totalFiles} files`);
+ * console.log(`Total size: ${results.totalSize} bytes`);
+ * console.log(`Duration: ${results.duration}ms`);
+ * ```
+ * 
+ * @since 1.0.0
  */
 export const generateExtensionFiles = async (
   theme: VSCodeTheme,

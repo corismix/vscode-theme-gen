@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useInput } from 'ink';
 import { UseKeyboardOptions, UseNotificationOptions, Notification, NotificationType } from './types';
+import { UI_LIMITS } from '@/config';
 
 // ============================================================================
 // Keyboard Shortcut Hook
@@ -64,7 +65,7 @@ export const useKeyboard = (
 export const useNotifications = (options: UseNotificationOptions = {}) => {
   const {
     maxNotifications = 5,
-    defaultDuration = 5000
+    defaultDuration = UI_LIMITS.NOTIFICATION_DURATION
   } = options;
 
   const [notifications, setNotifications] = useState<Notification[]>([]);

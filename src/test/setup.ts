@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { mockFileSystem } from './mocks/filesystem.js';
 import { mockInkComponents } from './mocks/ink.js';
+import { PERFORMANCE_LIMITS } from '@/config';
 
 // Setup global mocks
 mockFileSystem();
@@ -31,7 +32,7 @@ vi.mock('child_process', () => ({
   spawn: vi.fn(),
 }));
 
-// Set test timeout
+// Set test timeout using centralized config
 vi.setConfig({
-  testTimeout: 10000,
+  testTimeout: PERFORMANCE_LIMITS.TEST_TIMEOUT,
 });

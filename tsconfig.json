@@ -41,7 +41,10 @@
       "@/utils/*": ["utils/*"],
       "@/lib/*": ["lib/*"],
       "@/context/*": ["context/*"],
-      "@/types": ["utils/types"]
+      "@/config": ["config"],
+      "@/config/*": ["config/*"],
+      "@/types": ["types"],
+      "@/types/*": ["types/*"]
     }
   },
   "include": [

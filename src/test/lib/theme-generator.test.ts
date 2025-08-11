@@ -8,6 +8,24 @@ vi.mock('fs', () => ({
   statSync: vi.fn(() => ({ mtime: new Date() })),
 }));
 
+// Mock fs/promises for async operations
+vi.mock('fs/promises', () => ({
+  readFile: vi.fn(async (filePath: string) => {
+    // Use the same mock data as readFileSync
+    const mockedReadFileSync = vi.mocked(readFileSync);
+    return mockedReadFileSync(filePath, 'utf8');
+  }),
+  stat: vi.fn(async () => ({
+    size: 1024,
+    mtime: new Date(),
+    birthtime: new Date(),
+    atime: new Date(),
+    isFile: () => true,
+    isDirectory: () => false,
+    mode: 0o644,
+  })),
+}));
+
 describe('theme-generator', () => {
   const mockThemeContent = `background=#1a1a1a
 foreground=#e0e0e0
@@ -38,10 +56,10 @@ selection_foreground=#ffffff`;
   });
 
   describe('parseThemeFile', () => {
-    it('should parse a valid Ghostty theme file', () => {
+    it('should parse a valid Ghostty theme file', async () => {
       (readFileSync as any).mockReturnValue(mockThemeContent);
       
-      const result = parseThemeFile(mockFilePath);
+      const result = await parseThemeFile(mockFilePath);
       
       expect(result).toHaveProperty('colors');
       expect(result.colors).toHaveProperty('background', '#1a1a1a');
@@ -52,16 +70,16 @@ selection_foreground=#ffffff`;
       expect(result.colors).toHaveProperty('selection_background', '#404040');
     });
 
-    it('should handle empty content gracefully', () => {
+    it('should handle empty content gracefully', async () => {
       (readFileSync as any).mockReturnValue('');
       
-      const result = parseThemeFile(mockFilePath);
+      const result = await parseThemeFile(mockFilePath);
       
       expect(result).toHaveProperty('colors');
       expect(Object.keys(result.colors)).toHaveLength(0);
     });
 
-    it('should ignore invalid lines', () => {
+    it('should ignore invalid lines', async () => {
       const content = `background=#1a1a1a
 invalid line without equals
 foreground=#e0e0e0
@@ -70,7 +88,7 @@ foreground=#e0e0e0
 key_without_value=`;
       
       (readFileSync as any).mockReturnValue(content);
-      const result = parseThemeFile(mockFilePath);
+      const result = await parseThemeFile(mockFilePath);
       
       expect(result.colors).toHaveProperty('background', '#1a1a1a');
       expect(result.colors).toHaveProperty('foreground', '#e0e0e0');
@@ -78,12 +96,12 @@ key_without_value=`;
       expect(result.colors).not.toHaveProperty('key_without_value');
     });
 
-    it('should handle hex colors without # prefix', () => {
+    it('should handle hex colors without # prefix', async () => {
       const content = `background=1a1a1a
 foreground=e0e0e0`;
       
       (readFileSync as any).mockReturnValue(content);
-      const result = parseThemeFile(mockFilePath);
+      const result = await parseThemeFile(mockFilePath);
       
       expect(result.colors).toHaveProperty('background', '#1a1a1a');
       expect(result.colors).toHaveProperty('foreground', '#e0e0e0');
@@ -134,9 +152,9 @@ foreground=e0e0e0`;
     let mockColors: any;
     let themeName: string;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       (readFileSync as any).mockReturnValue(mockThemeContent);
-      const parsedResult = parseThemeFile(mockFilePath);
+      const parsedResult = await parseThemeFile(mockFilePath);
       mockColors = parsedResult.colors;
       themeName = 'Test Theme';
     });
