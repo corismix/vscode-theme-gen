@@ -2,18 +2,26 @@
   "name": "vscode-theme-generator-cli",
   "version": "1.0.0",
   "description": "Interactive CLI tool for generating VS Code themes from Ghostty terminal color files",
-  "main": "theme-generator-cli.js",
+  "main": "dist/index.js",
   "bin": {
-    "theme-generator": "./theme-generator-cli.js"
+    "theme-generator": "./dist/index.js"
   },
   "scripts": {
-    "start": "node --loader babel-register-esm theme-generator-cli.js",
-    "dev": "node --loader babel-register-esm theme-generator-cli.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "echo \"Lint not configured\" && exit 0",
-    "format": "echo \"Format not configured\" && exit 0",
-    "build": "echo \"Build not required for this project\" && exit 0",
-    "test:coverage": "echo \"Coverage not configured\" && exit 0"
+    "start": "npm run build && node dist/index.js",
+    "dev": "npm run build:dev && node dist/index.js",
+    "build": "tsc && vite build",
+    "build:dev": "tsc && vite build --mode development",
+    "build:watch": "tsc --watch & vite build --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist .tsbuildinfo",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
     "vscode",
@@ -22,11 +30,17 @@
     "interactive",
     "ghostty",
     "terminal",
-    "colors"
+    "colors",
+    "typescript"
   ],
   "author": "VS Code Theme Generator",
   "license": "MIT",
   "type": "module",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "chalk": "^5.5.0",
     "figures": "^6.1.0",
@@ -43,14 +57,23 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.0",
-    "@babel/plugin-transform-react-jsx": "^7.27.1",
-    "@babel/preset-react": "^7.27.1",
-    "@babel/register": "^7.27.1",
-    "@babel/standalone": "^7.28.2",
-    "babel-register-esm": "^1.2.5",
-    "esbuild": "^0.25.8",
-    "esbuild-register": "^3.6.0",
-    "prop-types": "^15.8.1"
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/jest-dom": "^6.2.0",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.48",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^1.2.1",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jsdom": "^23.2.0",
+    "prettier": "^3.2.4",
+    "rollup-plugin-node-externals": "^7.0.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.12",
+    "vitest": "^1.2.1"
   }
 }
