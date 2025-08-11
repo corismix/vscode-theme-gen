@@ -217,3 +217,7 @@ playwright-report/
 
 # Documentation
 docs/build/
+
+# Claude Code
+.claude/
+CLAUDE.md
