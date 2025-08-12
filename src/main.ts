@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Main entry point for VS Code Theme Generator CLI
  * Converted to TypeScript with modern architecture
@@ -9,14 +7,15 @@ import React from 'react';
 import { render } from 'ink';
 import meow from 'meow';
 import App from './components/App';
-import { fileUtils } from './lib/utils';
-import { CLIFlags, FormData } from '@/types';
+import { fileUtils } from './lib/utils-simple';
+import { CLIFlags, FormData } from './types';
 
 // ============================================================================
 // CLI Definition
 // ============================================================================
 
-const cli = meow(`
+const cli = meow(
+  `
 	Usage
 	  $ theme-generator [options]
 
@@ -38,53 +37,55 @@ const cli = meow(`
 	  $ theme-generator
 	  $ theme-generator --input my-theme.txt --output ./my-theme
 	  $ theme-generator -i theme.txt -n "My Theme" -p my-publisher
-`, {
-  importMeta: import.meta,
-  flags: {
-    input: {
-      type: 'string',
-      shortFlag: 'i',
+`,
+  {
+    importMeta: import.meta,
+    flags: {
+      input: {
+        type: 'string',
+        shortFlag: 'i',
+      },
+      output: {
+        type: 'string',
+        shortFlag: 'o',
+      },
+      name: {
+        type: 'string',
+        shortFlag: 'n',
+      },
+      description: {
+        type: 'string',
+        shortFlag: 'd',
+      },
+      publisher: {
+        type: 'string',
+        shortFlag: 'p',
+      },
+      version: {
+        type: 'string',
+        shortFlag: 'v',
+        default: '0.0.1',
+      },
+      license: {
+        type: 'string',
+        shortFlag: 'l',
+        default: 'MIT',
+      },
+      readme: {
+        type: 'boolean',
+        default: true,
+      },
+      changelog: {
+        type: 'boolean',
+        default: true,
+      },
+      quickstart: {
+        type: 'boolean',
+        default: true,
+      },
     },
-    output: {
-      type: 'string',
-      shortFlag: 'o',
-    },
-    name: {
-      type: 'string',
-      shortFlag: 'n',
-    },
-    description: {
-      type: 'string',
-      shortFlag: 'd',
-    },
-    publisher: {
-      type: 'string',
-      shortFlag: 'p',
-    },
-    version: {
-      type: 'string',
-      shortFlag: 'v',
-      default: '0.0.1',
-    },
-    license: {
-      type: 'string',
-      shortFlag: 'l',
-      default: 'MIT',
-    },
-    readme: {
-      type: 'boolean',
-      default: true,
-    },
-    changelog: {
-      type: 'boolean',
-      default: true,
-    },
-    quickstart: {
-      type: 'boolean',
-      default: true,
-    },
-  },
-});
+  }
+);
 
 // ============================================================================
 // Validation Functions
@@ -93,7 +94,7 @@ const cli = meow(`
 interface ValidationError {
   field: string;
   message: string;
-  suggestion?: string;
+  suggestion?: string | undefined;
 }
 
 /**
@@ -133,10 +134,11 @@ const validateFlags = (flags: CLIFlags): ValidationError[] => {
 
   // Validate publisher name
   if (flags.publisher) {
-    if (!/^[a-z0-9\-]+$/i.test(flags.publisher) || flags.publisher.length < 3) {
+    if (!/^[a-z0-9-]+$/i.test(flags.publisher) || flags.publisher.length < 3) {
       errors.push({
         field: 'publisher',
-        message: 'Publisher name must be at least 3 characters and contain only letters, numbers, and hyphens',
+        message:
+          'Publisher name must be at least 3 characters and contain only letters, numbers, and hyphens',
         suggestion: 'Use only alphanumeric characters and hyphens',
       });
     }
@@ -207,13 +209,13 @@ const main = (): void => {
   // Create initial data from CLI flags
   const initialData = createInitialData(cli.flags as CLIFlags);
   const skipToStep = determineSkipStep(cli.flags as CLIFlags);
-  
+
   if (skipToStep) {
     initialData.skipToStep = skipToStep;
   }
 
   // Start the interactive CLI
-  const { clear, unmount } = render(React.createElement(App));
+  const { clear, unmount } = render(React.createElement(App, { initialData }));
 
   // Handle process termination
   const cleanup = () => {

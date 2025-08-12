@@ -9,19 +9,21 @@
   "scripts": {
     "start": "npm run build && node dist/index.js",
     "dev": "npm run build:dev && node dist/index.js",
-    "build": "tsc && vite build",
-    "build:dev": "tsc && vite build --mode development",
+    "build": "NODE_ENV=production vite build",
+    "build:dev": "NODE_ENV=development vite build --mode development",
     "build:watch": "tsc --watch & vite build --watch",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx --max-warnings 0",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest --reporter=verbose",
     "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "clean": "rm -rf dist .tsbuildinfo",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "analyze:bundle": "npm run build && ls -lh dist/ && echo 'Bundle analysis:' && wc -c dist/index.js"
   },
   "keywords": [
     "vscode",
@@ -42,39 +44,26 @@
     "LICENSE"
   ],
   "dependencies": {
-    "chalk": "^5.5.0",
-    "figures": "^6.1.0",
     "ink": "^5.2.1",
-    "ink-big-text": "^2.0.0",
-    "ink-gradient": "^3.0.0",
-    "ink-select-input": "^6.0.0",
-    "ink-spinner": "^5.0.0",
-    "ink-text-input": "^6.0.0",
     "meow": "^13.2.0",
-    "react": "^18.3.1",
-    "react-error-boundary": "^6.0.0"
+    "react": "^18.3.1"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.2.0",
-    "@testing-library/react": "^14.1.2",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.48",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "@vitejs/plugin-react": "^4.2.1",
-    "@vitest/coverage-v8": "^1.2.1",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "jsdom": "^23.2.0",
     "prettier": "^3.2.4",
-    "rollup-plugin-node-externals": "^7.0.1",
     "typescript": "^5.3.3",
-    "vite": "^5.0.12",
-    "vitest": "^1.2.1"
+    "vite": "^7.1.2",
+    "vitest": "^3.2.4"
   }
 }

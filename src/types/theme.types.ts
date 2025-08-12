@@ -24,7 +24,7 @@ export interface GhosttyColors {
   selection_foreground?: string;
   /** Selected text background color */
   selection_background?: string;
-  
+
   // Terminal color palette (color0-color15)
   /** Black (ANSI color 0) */
   color0?: string;
@@ -58,7 +58,7 @@ export interface GhosttyColors {
   color14?: string;
   /** Bright white (ANSI color 15) */
   color15?: string;
-  
+
   /** Additional custom colors */
   [key: string]: string | undefined;
 }
@@ -115,7 +115,7 @@ export interface VSCodeThemeColors {
   'editor.hoverHighlightBackground': string;
   'editor.lineHighlightBorder': string;
   'editor.rangeHighlightBackground': string;
-  
+
   // Workbench colors
   'workbench.colorTheme': string;
   'activityBar.background': string;
@@ -126,7 +126,7 @@ export interface VSCodeThemeColors {
   'statusBar.foreground': string;
   'titleBar.activeBackground': string;
   'titleBar.activeForeground': string;
-  
+
   // Terminal colors
   'terminal.background': string;
   'terminal.foreground': string;
@@ -146,7 +146,7 @@ export interface VSCodeThemeColors {
   'terminal.ansiBrightMagenta': string;
   'terminal.ansiBrightCyan': string;
   'terminal.ansiBrightWhite': string;
-  
+
   /** Additional VS Code color keys */
   [key: string]: string | undefined;
 }

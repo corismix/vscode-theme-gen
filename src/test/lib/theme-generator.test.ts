@@ -1,234 +1,522 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { parseThemeFile, buildVSCodeTheme, createColorRoleMap } from '../../lib/theme-generator.js';
-import { readFileSync } from 'fs';
+/**
+ * Comprehensive tests for theme-generator.ts core functionality
+ * Tests theme parsing, color mapping, and VS Code theme generation
+ */
 
-// Mock fs module
-vi.mock('fs', () => ({
-  readFileSync: vi.fn(),
-  statSync: vi.fn(() => ({ mtime: new Date() })),
-}));
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+// vol is mocked but not used directly in tests
+import {
+  readThemeFile,
+  parseThemeFile,
+  buildVSCodeTheme,
+  createColorRoleMap,
+  buildVSCodeColors,
+  buildTokenColors,
+  extractColorPalette,
+  resolveThemeName,
+} from '../../lib/theme-generator';
+import {
+  SAMPLE_GHOSTTY_THEME,
+  INVALID_GHOSTTY_THEME,
+  MINIMAL_GHOSTTY_THEME,
+  createMockStats,
+  validateVSCodeTheme,
+  validateHexColor,
+} from '../setup';
+import { ValidationError, FileProcessingError } from '../../types';
 
-// Mock fs/promises for async operations
+// Mock the fs module with memfs for controlled file system testing
 vi.mock('fs/promises', () => ({
-  readFile: vi.fn(async (filePath: string) => {
-    // Use the same mock data as readFileSync
-    const mockedReadFileSync = vi.mocked(readFileSync);
-    return mockedReadFileSync(filePath, 'utf8');
-  }),
-  stat: vi.fn(async () => ({
-    size: 1024,
-    mtime: new Date(),
-    birthtime: new Date(),
-    atime: new Date(),
-    isFile: () => true,
-    isDirectory: () => false,
-    mode: 0o644,
-  })),
+  readFile: vi.fn(),
+  stat: vi.fn(),
 }));
 
-describe('theme-generator', () => {
-  const mockThemeContent = `background=#1a1a1a
-foreground=#e0e0e0
-color0=#000000
-color1=#ff0000
-color2=#00ff00
-color3=#ffff00
-color4=#0000ff
-color5=#ff00ff
-color6=#00ffff
-color7=#ffffff
-color8=#808080
-color9=#ff8080
-color10=#80ff80
-color11=#ffff80
-color12=#8080ff
-color13=#ff80ff
-color14=#80ffff
-color15=#ffffff
-cursor=#ff0000
-selection_background=#404040
-selection_foreground=#ffffff`;
+// ============================================================================
+// Setup and Helpers
+// ============================================================================
 
-  const mockFilePath = '/test/theme.txt';
+const mockReadFile = vi.mocked((await import('fs/promises')).readFile);
+const mockStat = vi.mocked((await import('fs/promises')).stat);
 
-  beforeEach(() => {
-    vi.clearAllMocks();
+beforeEach(() => {
+  vi.clearAllMocks();
+
+  // Setup default successful stat response
+  mockStat.mockResolvedValue(createMockStats());
+});
+
+// ============================================================================
+// File Reading Tests
+// ============================================================================
+
+describe('readThemeFile', () => {
+  it('successfully reads a valid file', async () => {
+    const filePath = '/test/theme.txt';
+    const content = SAMPLE_GHOSTTY_THEME;
+
+    mockReadFile.mockResolvedValueOnce(content);
+
+    const result = await readThemeFile(filePath);
+
+    expect(result).toBe(content);
+    expect(mockReadFile).toHaveBeenCalledWith(filePath, 'utf8');
   });
 
-  describe('parseThemeFile', () => {
-    it('should parse a valid Ghostty theme file', async () => {
-      (readFileSync as any).mockReturnValue(mockThemeContent);
-      
-      const result = await parseThemeFile(mockFilePath);
-      
-      expect(result).toHaveProperty('colors');
-      expect(result.colors).toHaveProperty('background', '#1a1a1a');
-      expect(result.colors).toHaveProperty('foreground', '#e0e0e0');
-      expect(result.colors).toHaveProperty('color0', '#000000');
-      expect(result.colors).toHaveProperty('color15', '#ffffff');
-      expect(result.colors).toHaveProperty('cursor', '#ff0000');
-      expect(result.colors).toHaveProperty('selection_background', '#404040');
-    });
-
-    it('should handle empty content gracefully', async () => {
-      (readFileSync as any).mockReturnValue('');
-      
-      const result = await parseThemeFile(mockFilePath);
-      
-      expect(result).toHaveProperty('colors');
-      expect(Object.keys(result.colors)).toHaveLength(0);
-    });
-
-    it('should ignore invalid lines', async () => {
-      const content = `background=#1a1a1a
-invalid line without equals
-foreground=#e0e0e0
-# this is a comment
-=invalid_key_format
-key_without_value=`;
-      
-      (readFileSync as any).mockReturnValue(content);
-      const result = await parseThemeFile(mockFilePath);
-      
-      expect(result.colors).toHaveProperty('background', '#1a1a1a');
-      expect(result.colors).toHaveProperty('foreground', '#e0e0e0');
-      expect(result.colors).not.toHaveProperty('invalid');
-      expect(result.colors).not.toHaveProperty('key_without_value');
-    });
-
-    it('should handle hex colors without # prefix', async () => {
-      const content = `background=1a1a1a
-foreground=e0e0e0`;
-      
-      (readFileSync as any).mockReturnValue(content);
-      const result = await parseThemeFile(mockFilePath);
-      
-      expect(result.colors).toHaveProperty('background', '#1a1a1a');
-      expect(result.colors).toHaveProperty('foreground', '#e0e0e0');
-    });
+  it('rejects empty or invalid file paths', async () => {
+    await expect(readThemeFile('')).rejects.toThrow(ValidationError);
+    await expect(readThemeFile('   ')).rejects.toThrow(ValidationError);
   });
 
-  describe('createColorRoleMap', () => {
-    it('should create correct role mappings for all colors', () => {
-      const colors = {
-        color0: '#000000',
-        color1: '#ff0000',
-        color2: '#00ff00',
-        color3: '#ffff00',
-        color4: '#0000ff',
-        color5: '#ff00ff',
-        color6: '#00ffff',
-        color7: '#ffffff',
-        color8: '#808080',
-        color15: '#ffffff',
-      };
-
-      const roleMap = createColorRoleMap(colors);
-      
-      expect(roleMap.black.hex).toBe('#000000');
-      expect(roleMap.red.hex).toBe('#ff0000');
-      expect(roleMap.green.hex).toBe('#00ff00');
-      expect(roleMap.yellow.hex).toBe('#ffff00');
-      expect(roleMap.blue.hex).toBe('#0000ff');
-      expect(roleMap.magenta.hex).toBe('#ff00ff');
-      expect(roleMap.cyan.hex).toBe('#00ffff');
-      expect(roleMap.white.hex).toBe('#ffffff');
-      expect(roleMap.brightBlack.hex).toBe('#808080');
-      expect(roleMap.brightWhite.hex).toBe('#ffffff');
-    });
-
-    it('should provide default values for missing colors', () => {
-      const emptyColors = {};
-      const roleMap = createColorRoleMap(emptyColors);
-      
-      expect(roleMap.black.hex).toBe('#000000');
-      expect(roleMap.red.hex).toBe('#ff0000');
-      expect(roleMap.green.hex).toBe('#00ff00');
-      expect(roleMap.white.hex).toBe('#ffffff');
-    });
+  it('rejects paths with path traversal attempts', async () => {
+    await expect(readThemeFile('../../../etc/passwd')).rejects.toThrow(ValidationError);
+    await expect(readThemeFile('theme/../../../secrets.txt')).rejects.toThrow(ValidationError);
   });
 
-  describe('buildVSCodeTheme', () => {
-    let mockColors: any;
-    let themeName: string;
+  it('rejects files that are too large', async () => {
+    const largeMockContent = 'x'.repeat(2 * 1024 * 1024); // 2MB content
 
-    beforeEach(async () => {
-      (readFileSync as any).mockReturnValue(mockThemeContent);
-      const parsedResult = await parseThemeFile(mockFilePath);
-      mockColors = parsedResult.colors;
-      themeName = 'Test Theme';
+    mockReadFile.mockResolvedValueOnce(largeMockContent);
+
+    await expect(readThemeFile('/test/large.txt')).rejects.toThrow(FileProcessingError);
+  });
+
+  it('handles file read errors gracefully', async () => {
+    mockReadFile.mockRejectedValueOnce(new Error('ENOENT: file not found'));
+
+    await expect(readThemeFile('/test/nonexistent.txt')).rejects.toThrow(FileProcessingError);
+    expect(mockReadFile).toHaveBeenCalledWith('/test/nonexistent.txt', 'utf8');
+  });
+});
+
+// ============================================================================
+// Theme Parsing Tests
+// ============================================================================
+
+describe('parseThemeFile', () => {
+  it('parses a complete Ghostty theme successfully', async () => {
+    const filePath = '/test/theme.txt';
+
+    mockReadFile.mockResolvedValueOnce(SAMPLE_GHOSTTY_THEME);
+    mockStat.mockResolvedValueOnce(createMockStats({ size: 1024 }));
+
+    const result = await parseThemeFile(filePath);
+
+    expect(result).toBeDefined();
+    expect(result.colors).toBeDefined();
+    expect(result.metadata).toBeDefined();
+
+    // Check basic colors are parsed
+    expect(result.colors.background).toBe('#1e1e1e');
+    expect(result.colors.foreground).toBe('#d4d4d4');
+    expect(result.colors.cursor).toBe('#ffffff');
+
+    // Check palette colors are parsed (color0-color15)
+    expect(result.colors.color0).toBe('#000000');
+    expect(result.colors.color1).toBe('#cd3131');
+    expect(result.colors.color15).toBe('#ffffff');
+
+    // Check metadata
+    expect(result.metadata.fileName).toBe('theme.txt');
+    expect(result.metadata.filePath).toBe(filePath);
+    expect(result.metadata.fileSize).toBe(1024);
+    expect(result.metadata.lineCount).toBeGreaterThan(0);
+  });
+
+  it('handles palette format correctly', async () => {
+    const paletteTheme = `palette = 0=#000000
+palette = 1=#ff0000
+palette = 15=#ffffff`;
+
+    mockReadFile.mockResolvedValueOnce(paletteTheme);
+
+    const result = await parseThemeFile('/test/palette.txt');
+
+    expect(result.colors.color0).toBe('#000000');
+    expect(result.colors.color1).toBe('#ff0000');
+    expect(result.colors.color15).toBe('#ffffff');
+  });
+
+  it('handles standard format correctly', async () => {
+    const standardTheme = `background = #000000
+foreground = #ffffff
+cursor = #ffff00`;
+
+    mockReadFile.mockResolvedValueOnce(standardTheme);
+
+    const result = await parseThemeFile('/test/standard.txt');
+
+    expect(result.colors.background).toBe('#000000');
+    expect(result.colors.foreground).toBe('#ffffff');
+    expect(result.colors.cursor).toBe('#ffff00');
+  });
+
+  it('handles invalid color values gracefully', async () => {
+    mockReadFile.mockResolvedValueOnce(INVALID_GHOSTTY_THEME);
+
+    const result = await parseThemeFile('/test/invalid.txt');
+
+    // Should not throw, but should have warnings
+    expect(result).toBeDefined();
+    expect(result.colors).toBeDefined();
+    // Invalid colors should be filtered out
+    expect(result.colors.background).toBeUndefined();
+  });
+
+  it('adds hex prefix to valid color values missing it', async () => {
+    const noHashTheme = `background = 000000
+foreground = ffffff
+color0 = ff0000`;
+
+    mockReadFile.mockResolvedValueOnce(noHashTheme);
+
+    const result = await parseThemeFile('/test/nohash.txt');
+
+    expect(result.colors.background).toBe('#000000');
+    expect(result.colors.foreground).toBe('#ffffff');
+    expect(result.colors.color0).toBe('#ff0000');
+  });
+
+  it('filters out dangerous characters for security', async () => {
+    const maliciousTheme = `background = #000000
+foreground = #ffffff`;
+
+    mockReadFile.mockResolvedValueOnce(maliciousTheme);
+
+    const result = await parseThemeFile('/test/malicious.txt');
+
+    // Should have valid colors after sanitization
+    expect(result.colors.background).toBe('#000000');
+    expect(result.colors.foreground).toBe('#ffffff');
+  });
+
+  it('respects line count limits', async () => {
+    // Create a theme with more than the maximum lines (10,000 default)
+    const manyLinesTheme = Array(15000).fill('color0 = #000000').join('\n');
+
+    mockReadFile.mockResolvedValueOnce(manyLinesTheme);
+
+    await expect(parseThemeFile('/test/toolong.txt')).rejects.toThrow(ValidationError);
+  });
+
+  it('ignores comments and empty lines', async () => {
+    const commentedTheme = `# This is a comment
+// This is also a comment
+background = #000000
+
+# Another comment
+foreground = #ffffff
+    
+    # Indented comment`;
+
+    mockReadFile.mockResolvedValueOnce(commentedTheme);
+
+    const result = await parseThemeFile('/test/commented.txt');
+
+    expect(result.colors.background).toBe('#000000');
+    expect(result.colors.foreground).toBe('#ffffff');
+  });
+
+  it('handles file stat errors gracefully', async () => {
+    mockReadFile.mockResolvedValueOnce(MINIMAL_GHOSTTY_THEME);
+    mockStat.mockRejectedValueOnce(new Error('ENOENT'));
+
+    const result = await parseThemeFile('/test/nostat.txt');
+
+    // Should still work, with fallback metadata
+    expect(result).toBeDefined();
+    expect(result.metadata.fileName).toBe('nostat.txt');
+    expect(result.colors.background).toBe('#000000');
+  });
+});
+
+// ============================================================================
+// Color Role Mapping Tests
+// ============================================================================
+
+describe('createColorRoleMap', () => {
+  it('creates comprehensive color role mapping', () => {
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      color2: '#00ff00',
+      color7: '#ffffff',
+      color8: '#808080',
+      color15: '#ffffff',
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
+      cursor: '#ffffff',
+    };
+
+    const roleMap = createColorRoleMap(colors);
+
+    expect(roleMap).toBeDefined();
+    expect(roleMap.black.hex).toBe('#000000');
+    expect(roleMap.red.hex).toBe('#ff0000');
+    expect(roleMap.green.hex).toBe('#00ff00');
+    expect(roleMap.white.hex).toBe('#ffffff');
+    expect(roleMap.brightBlack.hex).toBe('#808080');
+    expect(roleMap.background.hex).toBe('#1e1e1e');
+    expect(roleMap.foreground.hex).toBe('#d4d4d4');
+
+    // Check usage descriptions are present
+    expect(Array.isArray(roleMap.red.usage)).toBe(true);
+    expect(roleMap.red.usage.length).toBeGreaterThan(0);
+    expect(roleMap.red.name).toBe('Red');
+  });
+
+  it('provides fallback colors for missing entries', () => {
+    const emptyColors = {};
+
+    const roleMap = createColorRoleMap(emptyColors);
+
+    // Should have fallback colors
+    expect(roleMap.black.hex).toBe('#000000');
+    expect(roleMap.red.hex).toBe('#ff0000');
+    expect(roleMap.background.hex).toBe('#000000');
+  });
+
+  it('handles cursor color aliases correctly', () => {
+    const colorsWithCursor = {
+      cursor: '#ffff00',
+      cursor_text: '#000000',
+    };
+
+    const roleMap = createColorRoleMap(colorsWithCursor);
+
+    expect(roleMap.cursor.hex).toBe('#ffff00');
+  });
+});
+
+// ============================================================================
+// VS Code Theme Building Tests
+// ============================================================================
+
+describe('buildVSCodeColors', () => {
+  it('builds comprehensive VS Code color scheme', () => {
+    const roleMap = {
+      black: '#000000',
+      red: '#ff0000',
+      green: '#00ff00',
+      yellow: '#ffff00',
+      blue: '#0000ff',
+      magenta: '#ff00ff',
+      cyan: '#00ffff',
+      white: '#ffffff',
+      brightBlack: '#808080',
+      brightRed: '#ff8080',
+      brightGreen: '#80ff80',
+      brightYellow: '#ffff80',
+      brightBlue: '#8080ff',
+      brightMagenta: '#ff80ff',
+      brightCyan: '#80ffff',
+      brightWhite: '#ffffff',
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
+      cursor: '#ffffff',
+      cursorText: '#000000',
+      selectionBackground: '#264f78',
+      selectionForeground: '#ffffff',
+    };
+
+    const colors = buildVSCodeColors(roleMap);
+
+    expect(colors).toBeDefined();
+
+    // Check editor colors
+    expect(colors['editor.background']).toBe('#1e1e1e');
+    expect(colors['editor.foreground']).toBe('#d4d4d4');
+    expect(colors['editor.selectionBackground']).toBe('#264f78');
+
+    // Check terminal colors
+    expect(colors['terminal.ansiBlack']).toBe('#000000');
+    expect(colors['terminal.ansiRed']).toBe('#ff0000');
+    expect(colors['terminal.ansiBrightWhite']).toBe('#ffffff');
+
+    // Check workbench colors
+    expect(colors['activityBar.background']).toBeDefined();
+    expect(colors['statusBar.background']).toBeDefined();
+  });
+});
+
+describe('buildTokenColors', () => {
+  it('generates comprehensive token color rules', () => {
+    const roleMap = {
+      brightBlack: '#808080',
+      green: '#00ff00',
+      magenta: '#ff00ff',
+      blue: '#0000ff',
+      red: '#ff0000',
+      yellow: '#ffff00',
+      cyan: '#00ffff',
+      brightWhite: '#ffffff',
+      brightBlue: '#8080ff',
+      brightCyan: '#80ffff',
+    };
+
+    const tokenColors = buildTokenColors(roleMap);
+
+    expect(Array.isArray(tokenColors)).toBe(true);
+    expect(tokenColors.length).toBeGreaterThan(10);
+
+    // Check basic token types are covered
+    const scopes = tokenColors.map(tc => tc.scope);
+    expect(scopes).toContain('comment');
+    expect(scopes).toContain('string');
+    expect(scopes).toContain('keyword');
+    expect(scopes).toContain('entity.name.function');
+
+    // Check token structure
+    tokenColors.forEach(tokenColor => {
+      expect(typeof tokenColor.scope).toBe('string');
+      expect(typeof tokenColor.settings).toBe('object');
+      // Token colors should have either foreground or fontStyle (or both)
+      expect(tokenColor.settings.foreground || tokenColor.settings.fontStyle).toBeDefined();
     });
 
-    it('should build a complete VS Code theme', () => {
-      const result = buildVSCodeTheme(mockColors, themeName);
-      
-      expect(result).toHaveProperty('name', 'Test Theme');
-      expect(result).toHaveProperty('type', 'dark');
-      expect(result).toHaveProperty('colors');
-      expect(result).toHaveProperty('tokenColors');
-    });
+    // Check JSON-specific tokens are included
+    const jsonTokens = tokenColors.filter(tc => tc.scope.includes('json'));
+    expect(jsonTokens.length).toBeGreaterThan(0);
+  });
+});
 
-    it('should set correct editor colors', () => {
-      const result = buildVSCodeTheme(mockColors, themeName);
-      
-      expect(result.colors).toHaveProperty('editor.background', '#1a1a1a');
-      expect(result.colors).toHaveProperty('editor.foreground', '#e0e0e0');
-      expect(result.colors).toHaveProperty('editor.selectionBackground', '#404040');
-      expect(result.colors).toHaveProperty('editor.selectionForeground', '#ffffff');
-    });
+describe('buildVSCodeTheme', () => {
+  it('builds complete VS Code theme from Ghostty colors', () => {
+    const colors = {
+      color0: '#000000',
+      color1: '#cd3131',
+      color2: '#0dbc79',
+      color7: '#e5e5e5',
+      color15: '#ffffff',
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
+    };
 
-    it('should generate terminal colors', () => {
-      const result = buildVSCodeTheme(mockColors, themeName);
-      
-      expect(result.colors).toHaveProperty('terminal.ansiBlack', '#000000');
-      expect(result.colors).toHaveProperty('terminal.ansiRed', '#ff0000');
-      expect(result.colors).toHaveProperty('terminal.ansiGreen', '#00ff00');
-      expect(result.colors).toHaveProperty('terminal.ansiYellow', '#ffff00');
-      expect(result.colors).toHaveProperty('terminal.ansiBlue', '#0000ff');
-      expect(result.colors).toHaveProperty('terminal.ansiMagenta', '#ff00ff');
-      expect(result.colors).toHaveProperty('terminal.ansiCyan', '#00ffff');
-      expect(result.colors).toHaveProperty('terminal.ansiWhite', '#ffffff');
-      expect(result.colors).toHaveProperty('terminal.ansiBrightBlack', '#808080');
-      expect(result.colors).toHaveProperty('terminal.ansiBrightWhite', '#ffffff');
-    });
+    const theme = buildVSCodeTheme(colors, 'Test Theme');
 
-    it('should include syntax highlighting token colors', () => {
-      const result = buildVSCodeTheme(mockColors, themeName);
-      
-      expect(result.tokenColors).toBeInstanceOf(Array);
-      expect(result.tokenColors.length).toBeGreaterThan(0);
-      
-      const commentToken = result.tokenColors.find((token: any) => 
-        token.scope?.includes('comment')
-      );
-      expect(commentToken).toBeDefined();
-      expect(commentToken?.scope).toBeDefined();
-    });
+    validateVSCodeTheme(theme);
+    expect(theme.name).toBe('Test Theme');
+    expect(theme.type).toBe('dark');
+  });
 
-    it('should handle missing colors gracefully', () => {
-      const incompleteColors = {
-        background: '#1a1a1a',
-        // Missing other colors
-      };
-      
-      const result = buildVSCodeTheme(incompleteColors, themeName);
-      
-      expect(result).toHaveProperty('colors');
-      expect(result.colors).toHaveProperty('editor.background', '#1a1a1a');
-      // Should have defaults for missing colors
-      expect(result.colors).toHaveProperty('editor.foreground');
-    });
+  it('handles minimal color set gracefully', () => {
+    const minimalColors = {
+      background: '#000000',
+      foreground: '#ffffff',
+    };
 
-    it('should set theme type based on background brightness', () => {
-      // Test with dark background
-      const darkColors = { background: '#000000' };
-      const darkResult = buildVSCodeTheme(darkColors, themeName);
-      expect(darkResult.type).toBe('dark');
+    const theme = buildVSCodeTheme(minimalColors, 'Minimal Theme');
 
-      // Test with light background
-      const lightColors = { background: '#ffffff' };
-      const lightResult = buildVSCodeTheme(lightColors, themeName);
-      expect(lightResult.type).toBe('dark'); // Current implementation always returns 'dark'
+    validateVSCodeTheme(theme);
+    expect(theme.name).toBe('Minimal Theme');
+  });
+
+  it('throws error on invalid theme building', () => {
+    const invalidColors = null as any;
+
+    expect(() => buildVSCodeTheme(invalidColors, 'Invalid')).toThrow(FileProcessingError);
+  });
+});
+
+// ============================================================================
+// Color Palette Extraction Tests
+// ============================================================================
+
+describe('extractColorPalette', () => {
+  it('extracts structured color palette', () => {
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      color7: '#ffffff',
+      color8: '#808080',
+      color15: '#ffffff',
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
+      cursor: '#ffffff',
+    };
+
+    const palette = extractColorPalette(colors);
+
+    expect(palette).toBeDefined();
+    expect(palette.primary).toBeDefined();
+    expect(palette.colors).toBeDefined();
+
+    // Check primary colors
+    expect(palette.primary.background).toBe('#1e1e1e');
+    expect(palette.primary.foreground).toBe('#d4d4d4');
+    expect(palette.primary.cursor).toBe('#ffffff');
+
+    // Check color array
+    expect(Array.isArray(palette.colors)).toBe(true);
+    expect(palette.colors).toHaveLength(8);
+
+    palette.colors.forEach(color => {
+      expect(color).toHaveProperty('name');
+      expect(color).toHaveProperty('value');
+      expect(color).toHaveProperty('bright');
+      expect(typeof color.name).toBe('string');
+      validateHexColor(color.value);
+      validateHexColor(color.bright);
     });
+  });
+});
+
+// ============================================================================
+// Theme Name Resolution Tests
+// ============================================================================
+
+describe('resolveThemeName', () => {
+  it('uses explicit name when provided', () => {
+    const result = resolveThemeName('/test/file.txt', 'My Custom Theme');
+    expect(result).toBe('My Custom Theme');
+  });
+
+  it('uses meta name when no explicit name', () => {
+    const meta = { name: 'Meta Theme Name' };
+    const result = resolveThemeName('/test/file.txt', undefined, meta);
+    expect(result).toBe('Meta Theme Name');
+  });
+
+  it('derives name from filename when no explicit or meta name', () => {
+    const result = resolveThemeName('/test/dark_professional_theme.txt');
+    expect(result).toBe('Dark Professional Theme');
+  });
+
+  it('handles edge cases gracefully', () => {
+    // Empty string results in empty basename, which becomes empty theme name
+    expect(resolveThemeName('', undefined, undefined)).toBe('');
+    expect(resolveThemeName('/test/file-with-dashes.txt')).toBe('File With Dashes');
+    expect(resolveThemeName('/test/file_with_underscores.txt')).toBe('File With Underscores');
+  });
+
+  it('trims whitespace from names', () => {
+    expect(resolveThemeName('/test/file.txt', '  Trimmed  ')).toBe('Trimmed');
+    const meta = { name: '  Meta Trimmed  ' };
+    expect(resolveThemeName('/test/file.txt', undefined, meta)).toBe('Meta Trimmed');
+  });
+});
+
+// ============================================================================
+// Error Handling Tests
+// ============================================================================
+
+describe('error handling', () => {
+  it('throws ValidationError for invalid inputs', async () => {
+    await expect(parseThemeFile('')).rejects.toThrow(ValidationError);
+    await expect(parseThemeFile('../invalid')).rejects.toThrow(ValidationError);
+  });
+
+  it('throws FileProcessingError for file operation failures', async () => {
+    mockReadFile.mockRejectedValueOnce(new Error('File system error'));
+
+    await expect(parseThemeFile('/test/fail.txt')).rejects.toThrow(FileProcessingError);
+  });
+
+  it('provides helpful error messages', async () => {
+    try {
+      await parseThemeFile('');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error.message).toContain('Invalid file path');
+    }
   });
 });

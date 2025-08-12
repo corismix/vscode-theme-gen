@@ -1,10 +1,10 @@
 /**
  * Centralized configuration limits for the VS Code Theme Generator
- * 
+ *
  * Comprehensive configuration system that consolidates all limits, thresholds,
  * and default values into environment-variable-configurable constants. Provides
  * secure defaults with validation, range checking, and human-readable documentation.
- * 
+ *
  * Features:
  * - Environment variable overrides with fallbacks
  * - Range validation with min/max constraints
@@ -12,7 +12,7 @@
  * - File size parsing with K/M/G suffixes
  * - Type-safe configuration exports
  * - Helper functions for validation and formatting
- * 
+ *
  * Configuration Categories:
  * - FILE_LIMITS: File operation size and count limits
  * - SECURITY_LIMITS: Input validation and sanitization rules
@@ -20,7 +20,7 @@
  * - PERFORMANCE_LIMITS: Timeout and response time thresholds
  * - UI_LIMITS: User interface behavior and display limits
  * - DEFAULT_VALUES: Default configuration values
- * 
+ *
  * @fileoverview Centralized configuration system with environment variable support
  * @since 1.0.0
  */
@@ -31,19 +31,19 @@
 
 /**
  * Parse environment variable as number with fallback
- * 
+ *
  * Safely parses an environment variable as an integer with fallback to default value.
  * Returns the fallback if the environment variable is undefined or not a valid number.
- * 
+ *
  * @param envVar - Environment variable value (may be undefined)
  * @param fallback - Default value to use if parsing fails
  * @returns Parsed number or fallback value
- * 
+ *
  * @example
  * ```typescript
  * const maxSize = parseEnvNumber(process.env.MAX_SIZE, 1024);
  * ```
- * 
+ *
  * @since 1.0.0
  */
 const parseEnvNumber = (envVar: string | undefined, fallback: number): number => {
@@ -54,32 +54,32 @@ const parseEnvNumber = (envVar: string | undefined, fallback: number): number =>
 
 /**
  * Parse environment variable as bytes with suffix support (K, M, G)
- * 
+ *
  * Parses environment variables with size suffixes (K/KB, M/MB, G/GB) into byte values.
  * Supports decimal values and provides fallback for invalid input.
- * 
+ *
  * @param envVar - Environment variable value with optional suffix
  * @param fallback - Default byte value to use if parsing fails
  * @returns Parsed byte value or fallback
- * 
+ *
  * @example
  * ```typescript
  * parseEnvBytes('1.5M', 1024); // Returns 1572864 (1.5 * 1024 * 1024)
  * parseEnvBytes('512K', 1024); // Returns 524288 (512 * 1024)
  * parseEnvBytes('invalid', 1024); // Returns 1024
  * ```
- * 
+ *
  * @since 1.0.0
  */
 const parseEnvBytes = (envVar: string | undefined, fallback: number): number => {
   if (!envVar) return fallback;
-  
+
   const match = envVar.match(/^(\d+(?:\.\d+)?)\s*([KMG]B?)?$/i);
   if (!match) return fallback;
-  
-  const value = parseFloat(match[1]);
+
+  const value = parseFloat(match[1]!);
   const unit = match[2]?.toUpperCase() || '';
-  
+
   switch (unit) {
     case 'K':
     case 'KB':
@@ -315,7 +315,9 @@ export const SECURITY_LIMITS = {
    */
   ALLOWED_FILE_EXTENSIONS: (
     process.env.THEME_ALLOWED_EXTENSIONS || '.txt,.theme,.conf,.json,.config'
-  ).split(',').map(ext => ext.trim()),
+  )
+    .split(',')
+    .map(ext => ext.trim()),
 
   /**
    * Regular expression pattern for dangerous characters
@@ -528,17 +530,17 @@ export const DEFAULT_VALUES = {
    * Default theme keywords
    * Environment: THEME_DEFAULT_KEYWORDS (comma-separated)
    */
-  THEME_KEYWORDS: (
-    process.env.THEME_DEFAULT_KEYWORDS || 'theme,color-theme,vscode,ghostty'
-  ).split(',').map(k => k.trim()),
+  THEME_KEYWORDS: (process.env.THEME_DEFAULT_KEYWORDS || 'theme,color-theme,vscode,ghostty')
+    .split(',')
+    .map(k => k.trim()),
 
   /**
    * Default VS Code categories
    * Environment: THEME_DEFAULT_CATEGORIES (comma-separated)
    */
-  VSCODE_CATEGORIES: (
-    process.env.THEME_DEFAULT_CATEGORIES || 'Themes'
-  ).split(',').map(c => c.trim()),
+  VSCODE_CATEGORIES: (process.env.THEME_DEFAULT_CATEGORIES || 'Themes')
+    .split(',')
+    .map(c => c.trim()),
 } as const;
 
 // ============================================================================
@@ -575,62 +577,53 @@ export type CompleteConfig = typeof CONFIG;
 
 /**
  * Validate that a number is within the specified range
- * 
+ *
  * Throws an error if the value is outside the specified min/max range.
  * Used for validating configuration values and user inputs.
- * 
+ *
  * @param value - Number to validate
  * @param min - Minimum allowed value (inclusive)
  * @param max - Maximum allowed value (inclusive)
  * @param name - Descriptive name for error messages
- * 
+ *
  * @throws {Error} When value is outside the specified range
- * 
+ *
  * @example
  * ```typescript
  * validateRange(50, 1, 100, 'file count'); // OK
  * validateRange(150, 1, 100, 'file count'); // Throws error
  * ```
- * 
+ *
  * @since 1.0.0
  */
-export const validateRange = (
-  value: number,
-  min: number,
-  max: number,
-  name: string
-): void => {
+export const validateRange = (value: number, min: number, max: number, name: string): void => {
   if (value < min || value > max) {
-    throw new Error(
-      `${name} must be between ${min} and ${max}, got ${value}`
-    );
+    throw new Error(`${name} must be between ${min} and ${max}, got ${value}`);
   }
 };
 
 /**
  * Validate file size against configured limits
- * 
+ *
  * Validates file size against either standard or streaming limits.
  * Provides informative error messages with human-readable sizes.
- * 
+ *
  * @param size - File size in bytes to validate
  * @param useStreaming - Whether to use streaming limits (higher threshold)
- * 
+ *
  * @throws {Error} When file size exceeds the configured limit
- * 
+ *
  * @example
  * ```typescript
  * validateFileSize(1024 * 1024, false); // OK for 1MB file
  * validateFileSize(100 * 1024 * 1024, false); // May throw if over limit
  * ```
- * 
+ *
  * @since 1.0.0
  */
 export const validateFileSize = (size: number, useStreaming = false): void => {
-  const maxSize = useStreaming 
-    ? FILE_LIMITS.STREAMING_MAX_SIZE_BYTES 
-    : FILE_LIMITS.MAX_SIZE_BYTES;
-  
+  const maxSize = useStreaming ? FILE_LIMITS.STREAMING_MAX_SIZE_BYTES : FILE_LIMITS.MAX_SIZE_BYTES;
+
   if (size > maxSize) {
     const maxSizeMB = (maxSize / (1024 * 1024)).toFixed(1);
     const actualSizeMB = (size / (1024 * 1024)).toFixed(1);
@@ -644,29 +637,25 @@ export const validateFileSize = (size: number, useStreaming = false): void => {
 
 /**
  * Validate string length against security limits
- * 
+ *
  * Validates string length against maximum allowed length for security.
  * Used to prevent buffer overflow and DoS attacks through overly long inputs.
- * 
+ *
  * @param value - String to validate
  * @param maxLength - Maximum allowed length in characters
  * @param fieldName - Field name for error messages
- * 
+ *
  * @throws {Error} When string length exceeds the maximum
- * 
+ *
  * @example
  * ```typescript
  * validateStringLength('short', 100, 'theme name'); // OK
  * validateStringLength('very'.repeat(100), 10, 'theme name'); // Throws
  * ```
- * 
+ *
  * @since 1.0.0
  */
-export const validateStringLength = (
-  value: string,
-  maxLength: number,
-  fieldName: string
-): void => {
+export const validateStringLength = (value: string, maxLength: number, fieldName: string): void => {
   if (value.length > maxLength) {
     throw new Error(
       `${fieldName} length ${value.length} exceeds maximum of ${maxLength} characters`
@@ -676,28 +665,28 @@ export const validateStringLength = (
 
 /**
  * Get human-readable size string from byte count
- * 
+ *
  * Converts byte counts to human-readable format with appropriate units
  * (Bytes, KB, MB, GB). Uses decimal precision for fractional values.
- * 
+ *
  * @param bytes - Number of bytes to format
  * @returns Human-readable size string
- * 
+ *
  * @example
  * ```typescript
  * formatBytes(1024); // '1.0 KB'
  * formatBytes(1536); // '1.5 KB'
  * formatBytes(1048576); // '1.0 MB'
  * ```
- * 
+ *
  * @since 1.0.0
  */
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };

@@ -6,16 +6,23 @@ export default defineConfig({
   plugins: [
     react({
       jsxRuntime: 'automatic'
-    })
+    }),
+    {
+      name: 'add-shebang',
+      generateBundle(_options, bundle) {
+        const indexFile = bundle['index.js'];
+        if (indexFile && indexFile.type === 'chunk') {
+          indexFile.code = '#!/usr/bin/env node\n' + indexFile.code;
+        }
+      }
+    }
   ],
 
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
       '@/components': resolve(__dirname, 'src/components'),
-      '@/utils': resolve(__dirname, 'src/utils'),
       '@/lib': resolve(__dirname, 'src/lib'),
-      '@/context': resolve(__dirname, 'src/context'),
       '@/config': resolve(__dirname, 'src/config'),
       '@/types': resolve(__dirname, 'src/types')
     }
@@ -31,32 +38,37 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
+        // Runtime dependencies that should remain external
         'react',
-        'ink',
+        'ink', 
         'meow',
-        'chalk',
-        'figures',
-        'ink-big-text',
-        'ink-gradient', 
-        'ink-select-input',
-        'ink-spinner',
-        'ink-text-input',
+        // Node.js built-ins
         'fs',
         'fs/promises',
         'path',
         'os',
         'util',
-        'process'
+        'process',
+        'child_process',
+        'stream',
+        'events'
       ],
       output: {
         entryFileNames: 'index.js',
         format: 'es',
-        preserveModules: false
+        preserveModules: false,
+        // Optimize bundle size
+        generatedCode: {
+          constBindings: true
+        }
       }
     },
-    minify: false,
-    sourcemap: true,
-    emptyOutDir: true
+    // Enable production optimizations
+    minify: 'esbuild',
+    sourcemap: process.env.NODE_ENV === 'development',
+    emptyOutDir: true,
+    // Optimize for production
+    reportCompressedSize: true
   },
 
   define: {
@@ -65,6 +77,11 @@ export default defineConfig({
 
   esbuild: {
     target: 'es2020',
-    format: 'esm'
+    format: 'esm',
+    // Production optimizations
+    treeShaking: true,
+    minifyIdentifiers: true,
+    minifySyntax: true,
+    minifyWhitespace: true
   }
 });

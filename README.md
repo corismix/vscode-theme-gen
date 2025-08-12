@@ -1,20 +1,19 @@
 # VS Code Theme Generator CLI
 
-A professional-grade TypeScript CLI tool for converting Ghostty terminal color themes into complete VS Code extensions. Built with modern React architecture and TweakCC-quality design patterns.
+A modern TypeScript CLI tool for converting Ghostty terminal color themes into complete VS Code extensions. Features a clean, modular architecture with comprehensive testing and optimized performance.
 
 ![Theme Generator Demo](https://via.placeholder.com/800x400/1a1a1a/ffffff?text=VS+Code+Theme+Generator+CLI)
 
 ## Features
 
-- 🎨 **Interactive Split-Pane UI**: Professional wizard with real-time theme preview
-- 🌈 **Live Color Preview**: Advanced color visualization with syntax highlighting
-- 📦 **Complete Extension Generation**: Full VS Code extension structure with TypeScript support
-- ⚡ **TypeScript Architecture**: Type-safe development with modern React patterns
-- 🔄 **Smart State Management**: React Context API with persistent configuration
-- 🎯 **Professional CLI Experience**: Keyboard-first navigation with accessibility support
-- 🛡️ **Comprehensive Error Handling**: Graceful error recovery with helpful messages
-- 📊 **Advanced Validation**: Real-time input validation with detailed feedback
-- 🎪 **Notification System**: Professional toast notifications and status updates
+- 🎨 **Interactive Terminal UI**: Step-by-step wizard built with React and Ink
+- 📦 **Complete Extension Generation**: Full VS Code extension structure with proper manifest
+- ⚡ **Optimized Performance**: 50.11 kB bundle size with fast startup
+- 🔧 **TypeScript First**: Strict mode enabled with comprehensive type safety
+- 🧪 **Comprehensive Testing**: 98 tests with full coverage of core functionality
+- 🛡️ **Robust Error Handling**: Custom error classes with helpful messages
+- 📊 **Theme Validation**: Real-time validation of Ghostty theme files
+- 🎯 **Developer Experience**: Modern build system with Vite and ESM support
 
 ## Installation
 
@@ -44,14 +43,13 @@ npm start
 npm run dev
 ```
 
-The interactive CLI features a sophisticated multi-step wizard:
+The interactive CLI features a clean multi-step workflow:
 
-1. **Welcome Screen**: Recent files management with quick access
-2. **File Selector**: Advanced file picker with validation and preview
-3. **Theme Configurator**: Split-pane configuration with live preview
-4. **Extension Options**: Professional output configuration
-5. **Progress Indicator**: Real-time generation progress with status updates
-6. **Success Screen**: Completion summary with next steps
+1. **File Selection**: Choose your Ghostty theme file with validation
+2. **Theme Configuration**: Set theme name and display preferences
+3. **Extension Options**: Configure output directory and metadata
+4. **Processing**: Real-time generation with progress feedback
+5. **Success**: Completion summary with installation instructions
 
 ### Command Line Mode
 ```bash
@@ -147,72 +145,74 @@ npm run clean && npm run build
 The tool accepts Ghostty terminal theme files in `.txt` format with color definitions:
 
 ```
-# Example theme file
-background=#1a1a1a
-foreground=#e0e0e0
-cursor=#ffffff
+# Example Ghostty theme file
+palette = 0=#1e1113
+palette = 1=#ff3e71
+palette = 2=#7ee044
+palette = 3=#f5b649
+palette = 4=#4583d6
+palette = 5=#c061cb
+palette = 6=#44c9b1
+palette = 7=#ccc1c3
+palette = 8=#696969
+palette = 9=#ff5588
+palette = 10=#8fcc22
+palette = 11=#ffcc44
+palette = 12=#6699ff
+palette = 13=#d67bd6
+palette = 14=#77eedd
+palette = 15=#f2e7e5
 
-# Standard 16-color palette
-color0=#000000
-color1=#ff0000
-color2=#00ff00
-color3=#ffff00
-color4=#0000ff
-color5=#ff00ff
-color6=#00ffff
-color7=#ffffff
-color8=#808080
-color9=#ff8080
-color10=#80ff80
-color11=#ffff80
-color12=#8080ff
-color13=#ff80ff
-color14=#80ffff
-color15=#ffffff
+background = #180c0f
+foreground = #f2e7e5
+cursor-color = #f2e7e5
 ```
 
 ## Project Architecture
 
-### TypeScript Structure
+### Clean Modular Structure
 ```
 src/
-├── components/               # React UI components
-│   ├── App.tsx              # Main application component
-│   ├── Welcome.tsx          # Welcome screen with recent files
-│   ├── FileSelector.tsx     # Advanced file picker
-│   ├── ThemeConfigurator.tsx # Split-pane theme configuration
-│   ├── ExtensionOptions.tsx # Output configuration
-│   ├── ProgressIndicator.tsx # Real-time progress display
-│   ├── SuccessScreen.tsx    # Completion summary
-│   └── shared/              # Reusable UI components
-│       ├── SplitPane.tsx    # Responsive layout component
-│       ├── ThemePreview.tsx # Live color preview
-│       ├── SelectInput.tsx  # Professional dropdown component
-│       ├── NotificationSystem.tsx # Toast notifications
-│       ├── ErrorBoundary.tsx # Error recovery
-│       └── KeyboardShortcuts.tsx # Accessibility support
-├── context/                 # React Context providers
-│   ├── AppContext.tsx       # Global application state
-│   └── NotificationContext.tsx # Notification management
-├── hooks/                   # Custom React hooks
-│   └── useNotifications.ts  # Notification system hook
-├── lib/                     # Core business logic
-│   ├── theme-generator.ts   # Theme conversion engine
-│   ├── file-generators.ts   # Extension file generation
-│   └── utils.ts             # File operations and utilities
-├── utils/                   # Shared utilities
-│   ├── types.ts             # TypeScript type definitions
-│   ├── config.ts            # Configuration management
-│   └── error-handling.ts    # Error processing
-└── main.ts                  # CLI entry point with meow
+├── components/              # React UI components (2 main + 6 steps)
+│   ├── App.tsx             # Main application orchestrator
+│   ├── ThemeGenerator.tsx  # Core workflow controller (177 lines)
+│   ├── types.ts            # Shared component interfaces
+│   ├── steps/              # Step-based components
+│   │   ├── FileStep.tsx    # File selection with validation
+│   │   ├── ThemeStep.tsx   # Theme name configuration
+│   │   ├── OptionsStep.tsx # Extension metadata setup
+│   │   ├── ProcessStep.tsx # Generation progress display
+│   │   ├── SuccessStep.tsx # Completion summary
+│   │   └── ErrorDisplay.tsx # Error handling UI
+│   └── ui/                 # Reusable UI components
+│       ├── Header.tsx      # Consistent header component
+│       └── TextInput.tsx   # Validated text input
+├── hooks/                  # Custom React hooks
+│   └── useTextInput.tsx    # Input validation hook
+├── lib/                    # Core business logic
+│   ├── theme-generator.ts  # Ghostty to VS Code conversion
+│   ├── file-generators.ts  # Extension file generation
+│   └── utils-simple.ts     # File utilities
+├── types/                  # TypeScript definitions
+│   ├── theme.types.ts      # Theme-related types
+│   ├── error.types.ts      # Error handling types
+│   └── simplified.ts       # Application data types
+├── config/                 # Configuration
+│   └── limits.ts           # File size and validation limits
+├── test/                   # Comprehensive test suite (98 tests)
+│   ├── lib/                # Core logic tests
+│   ├── hooks/              # Hook testing
+│   └── integration/        # Integration tests
+└── main.ts                 # CLI entry point
 ```
 
-### Build System
-- **TypeScript**: Full type safety with strict mode
-- **Vite**: Modern build system with HMR support
-- **Vitest**: Fast testing framework with TypeScript support
-- **ESLint + Prettier**: Code quality and formatting
-- **React**: Modern hooks-based architecture
+### Build System & Performance
+- **TypeScript**: Strict mode with comprehensive type coverage
+- **Vite**: Modern build system producing 50.11 kB optimized bundle
+- **Vitest**: 98 tests with full coverage of core functionality
+- **ESLint + Prettier**: Code quality enforcement
+- **React 18 + Ink**: Terminal UI with modern hooks patterns
+- **ES Modules**: Modern ESM support with Node.js 18+
 
 ## Generated Extension Structure
 
@@ -266,59 +266,41 @@ my-theme/
 
 ## Advanced Features
 
-### TweakCC-Quality User Experience
+### Quality & Testing
 
-#### Split-Pane Interface
-- **Real-time preview**: Live theme visualization as you configure
-- **Responsive design**: Adapts to terminal size and preferences
-- **Professional layout**: Side-by-side configuration and preview
+#### Comprehensive Test Coverage
+- **98 Tests**: Full coverage of core functionality
+- **Unit Tests**: Business logic validation
+- **Integration Tests**: End-to-end workflows
+- **Hook Tests**: React hook behavior validation
 
-#### Intelligent State Management
-- **React Context API**: Centralized state with type safety
-- **Persistent configuration**: Settings saved between sessions
-- **Recent files management**: Quick access to frequently used themes
-- **Undo/redo support**: Non-destructive editing workflow
+#### Performance Optimization
+- **Bundle Size**: 50.11 kB optimized production build
+- **Fast Startup**: Minimal dependencies for quick loading
+- **Memory Efficient**: Clean component lifecycle management
+- **File Size Limits**: 1MB theme file limit for security
 
-#### Advanced Validation System
-- **Real-time feedback**: Instant validation as you type
-- **Comprehensive checks**: Theme format, semantic versioning, file paths
-- **Context-aware suggestions**: Intelligent autocomplete and recommendations
-- **Error recovery**: Graceful handling with actionable error messages
+#### Developer Experience
+- **TypeScript Strict**: Complete type safety
+- **Modern Tooling**: Vite, Vitest, ESLint, Prettier
+- **ES Modules**: Native ESM with proper imports
+- **Error Handling**: Custom error classes with context
 
-#### Professional Notifications
-- **Toast notifications**: Non-intrusive status updates
-- **Progress indicators**: Real-time generation progress
-- **Success confirmations**: Clear completion feedback
-- **Error alerts**: Detailed error information with recovery steps
+### Theme Processing
+- **Ghostty Format Support**: Full palette and standard color formats
+- **Color Validation**: Hex color format validation with error messages
+- **Theme Name Resolution**: Smart name extraction from files or metadata
+- **VS Code Mapping**: Complete workbench and syntax token color mapping
 
-#### Accessibility & Keyboard Navigation
-- **Keyboard-first design**: Full functionality without mouse
-- **Screen reader support**: Semantic markup and ARIA labels
-- **Focus management**: Logical tab order and focus indicators
-- **High contrast support**: Accessible color schemes
-
-### Color Intelligence
-- **Advanced color parsing**: Support for various color formats
-- **Color relationships**: Automatic color harmony detection
-- **Contrast analysis**: Accessibility compliance checking
-- **Theme validation**: Ensures color combinations work well together
-
-## Keyboard Shortcuts
+## Navigation
 
 | Key Combination | Action | Context |
 |----------------|--------|---------|
-| `Enter` | Continue to next step / Confirm selection | Global |
-| `Tab` | Navigate between form fields | Forms |
-| `Shift+Tab` | Navigate backwards | Forms |
-| `Escape` | Go back to previous step | Global |
+| `Enter` | Continue to next step | Global |
+| `Tab` | Navigate form fields | Forms |
+| `Escape` | Go back or exit | Global |
 | `Ctrl+C` | Exit application | Global |
-| `↑↓` | Navigate menu items | Menus |
-| `←→` | Navigate split-pane focus | Split-pane |
-| `Space` | Select/toggle item | Selections |
-| `1-9` | Quick select menu items | Numbered menus |
-| `Ctrl+R` | Refresh preview | Theme preview |
-| `Ctrl+Z` | Undo last change | Configuration |
-| `F1` | Show help | Global |
+| `q` | Quit from any step | Global |
 
 ## Contributing
 
@@ -337,12 +319,12 @@ We welcome contributions! Here's how to get started:
 git checkout -b feature/your-feature-name
 
 # Make changes with TypeScript
-npm run type-check  # Validate types
+npm run type-check  # Validate types (strict mode)
 npm run lint        # Check code style
-npm test           # Run test suite
+npm test           # Run 98 tests
 
 # Build and test
-npm run build
+npm run build      # Creates 50.11 kB bundle
 npm start -- --input test-theme.txt
 
 # Submit pull request
@@ -356,14 +338,13 @@ npm start -- --input test-theme.txt
 
 ## Technology Stack
 
-- **Runtime**: Node.js 18+ with ES modules
-- **Language**: TypeScript with strict mode
-- **UI Framework**: React 18 with hooks
-- **CLI Framework**: Ink for terminal UI
-- **Build System**: Vite + TypeScript compiler
-- **Testing**: Vitest + React Testing Library
-- **Code Quality**: ESLint + Prettier + TypeScript strict mode
-- **Package Manager**: npm with lockfile
+- **Runtime**: Node.js 18+ with native ES modules
+- **Language**: TypeScript 5.3+ with strict mode enabled
+- **UI Framework**: React 18 with Ink for terminal UI
+- **Build System**: Vite 7.1+ with optimized bundling
+- **Testing**: Vitest 3.2+ with 98 comprehensive tests
+- **Code Quality**: ESLint + Prettier with strict rules
+- **Dependencies**: Minimal (3 runtime: ink, meow, react)
 
 ## Requirements
 
@@ -408,12 +389,11 @@ MIT License - see LICENSE file for details.
 ## Support & Community
 
 - 📚 **Documentation**: Comprehensive inline docs and TypeScript definitions
-- 🐛 **Issues**: [GitHub Issues](https://github.com/your-repo/issues) for bugs and features
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions) for questions
+- 🐛 **Issues**: [GitHub Issues](https://github.com/corismer/vscode-theme-generator/issues) for bugs and features
 - 🎯 **Examples**: Sample theme files in repository
 - ⚡ **Performance**: Optimized for professional development workflows
 
 ---
 
-**Built with TypeScript, React, and professional CLI patterns**  
-*Made with ❤️ for VS Code theme creators*
+**Clean Architecture • TypeScript • Comprehensive Testing**  
+*50.11 kB bundle • 98 tests • Modern ESM*

@@ -1,6 +1,6 @@
 /**
  * Configuration module for VS Code Theme Generator
- * 
+ *
  * This module provides centralized configuration management with environment
  * variable support, validation, and type safety.
  */
@@ -17,7 +17,7 @@ export {
   PERFORMANCE_LIMITS,
   UI_LIMITS,
   DEFAULT_VALUES,
-  
+
   // Validation helpers
   validateFileSize,
   validateStringLength,

@@ -7,7 +7,7 @@
   },
   "extends": [
     "eslint:recommended",
-    "@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended",
     "plugin:react/recommended",
     "plugin:react-hooks/recommended",
     "prettier"
@@ -18,8 +18,7 @@
       "jsx": true
     },
     "ecmaVersion": "latest",
-    "sourceType": "module",
-    "project": "./tsconfig.json"
+    "sourceType": "module"
   },
   "plugins": [
     "react",
@@ -33,7 +32,6 @@
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/no-non-null-assertion": "warn",
-    "@typescript-eslint/prefer-const": "error",
     "@typescript-eslint/no-var-requires": "off",
     
     // React specific
@@ -58,7 +56,7 @@
     "comma-dangle": ["error", "always-multiline"],
     "semi": ["error", "always"],
     "quotes": ["error", "single", { "avoidEscape": true, "allowTemplateLiterals": true }],
-    "indent": ["error", 2, { "SwitchCase": 1 }],
+    "indent": "off",
     "max-len": ["error", { "code": 120, "ignoreUrls": true, "ignoreStrings": true }],
     "eol-last": "error",
     "no-trailing-spaces": "error",

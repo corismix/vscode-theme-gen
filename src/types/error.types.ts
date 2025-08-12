@@ -30,12 +30,16 @@ export class ValidationError extends Error implements ThemeGeneratorError {
   readonly code = 'VALIDATION_ERROR';
   context?: Record<string, unknown>;
   suggestions?: string[];
-  
+
   constructor(message: string, context?: Record<string, unknown>, suggestions?: string[]) {
     super(message);
     this.name = 'ValidationError';
-    this.context = context;
-    this.suggestions = suggestions;
+    if (context !== undefined) {
+      this.context = context;
+    }
+    if (suggestions !== undefined) {
+      this.suggestions = suggestions;
+    }
   }
 }
 
@@ -46,12 +50,16 @@ export class FileProcessingError extends Error implements ThemeGeneratorError {
   readonly code = 'FILE_PROCESSING_ERROR';
   context?: Record<string, unknown>;
   suggestions?: string[];
-  
+
   constructor(message: string, context?: Record<string, unknown>, suggestions?: string[]) {
     super(message);
     this.name = 'FileProcessingError';
-    this.context = context;
-    this.suggestions = suggestions;
+    if (context !== undefined) {
+      this.context = context;
+    }
+    if (suggestions !== undefined) {
+      this.suggestions = suggestions;
+    }
   }
 }
 
@@ -62,12 +70,16 @@ export class GenerationError extends Error implements ThemeGeneratorError {
   readonly code = 'GENERATION_ERROR';
   context?: Record<string, unknown>;
   suggestions?: string[];
-  
+
   constructor(message: string, context?: Record<string, unknown>, suggestions?: string[]) {
     super(message);
     this.name = 'GenerationError';
-    this.context = context;
-    this.suggestions = suggestions;
+    if (context !== undefined) {
+      this.context = context;
+    }
+    if (suggestions !== undefined) {
+      this.suggestions = suggestions;
+    }
   }
 }
 
@@ -78,12 +90,16 @@ export class ConfigurationError extends Error implements ThemeGeneratorError {
   readonly code = 'CONFIGURATION_ERROR';
   context?: Record<string, unknown>;
   suggestions?: string[];
-  
+
   constructor(message: string, context?: Record<string, unknown>, suggestions?: string[]) {
     super(message);
     this.name = 'ConfigurationError';
-    this.context = context;
-    this.suggestions = suggestions;
+    if (context !== undefined) {
+      this.context = context;
+    }
+    if (suggestions !== undefined) {
+      this.suggestions = suggestions;
+    }
   }
 }
 
@@ -94,12 +110,16 @@ export class SecurityError extends Error implements ThemeGeneratorError {
   readonly code = 'SECURITY_ERROR';
   context?: Record<string, unknown>;
   suggestions?: string[];
-  
+
   constructor(message: string, context?: Record<string, unknown>, suggestions?: string[]) {
     super(message);
     this.name = 'SecurityError';
-    this.context = context;
-    this.suggestions = suggestions;
+    if (context !== undefined) {
+      this.context = context;
+    }
+    if (suggestions !== undefined) {
+      this.suggestions = suggestions;
+    }
   }
 }
 
@@ -321,7 +341,7 @@ export const createErrorReport = (
     name: error.name,
     message: error.message,
     code: error.code,
-    stack: error.stack,
+    ...(error.stack !== undefined && { stack: error.stack }),
   },
   context: {
     version: process.env.npm_package_version || 'unknown',
@@ -341,15 +361,15 @@ export const createErrorReport = (
  */
 export const sanitizeErrorContext = (context: Record<string, unknown>): Record<string, unknown> => {
   const sanitized = { ...context };
-  
+
   // Remove sensitive information
   const sensitiveKeys = ['password', 'token', 'key', 'secret', 'auth'];
-  
+
   Object.keys(sanitized).forEach(key => {
     if (sensitiveKeys.some(sensitive => key.toLowerCase().includes(sensitive))) {
       sanitized[key] = '[REDACTED]';
     }
   });
-  
+
   return sanitized;
 };
