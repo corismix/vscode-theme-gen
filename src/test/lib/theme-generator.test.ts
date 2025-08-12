@@ -411,7 +411,7 @@ describe('buildVSCodeTheme', () => {
   });
 
   it('throws error on invalid theme building', () => {
-    const invalidColors = null as any;
+    const invalidColors = null as unknown as GhosttyColors;
 
     expect(() => buildVSCodeTheme(invalidColors, 'Invalid')).toThrow(FileProcessingError);
   });

@@ -2,6 +2,8 @@
  * Shared types for ThemeGenerator components
  */
 
+import type { GhosttyColors, VSCodeTheme } from '@/types';
+
 export interface FormData {
   inputFile: string;
   themeName: string;
@@ -15,8 +17,8 @@ export interface FormData {
 }
 
 export interface ThemeData {
-  colors: any;
-  theme: any;
+  colors: GhosttyColors;
+  theme: VSCodeTheme;
 }
 
 export type Step = 'file' | 'theme' | 'options' | 'process' | 'success' | 'error';

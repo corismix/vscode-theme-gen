@@ -293,7 +293,11 @@ export interface ErrorReport {
  * Type guard to check if an error is a ThemeGeneratorError
  */
 export const isThemeGeneratorError = (error: unknown): error is ThemeGeneratorError => {
-  return error instanceof Error && 'code' in error && typeof (error as any).code === 'string';
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    typeof (error as Error & { code: unknown }).code === 'string'
+  );
 };
 
 /**
@@ -333,7 +337,7 @@ export const isSecurityError = (error: unknown): error is SecurityError => {
  */
 export const createErrorReport = (
   error: ThemeGeneratorError,
-  context: Record<string, unknown> = {}
+  context: Record<string, unknown> = {},
 ): ErrorReport => ({
   id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
   timestamp: new Date().toISOString(),

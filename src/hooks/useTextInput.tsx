@@ -1,6 +1,22 @@
 import { useState, useCallback, useRef } from 'react';
 import { Text } from 'ink';
 
+interface KeyEvent {
+  return?: boolean;
+  escape?: boolean;
+  leftArrow?: boolean;
+  rightArrow?: boolean;
+  backspace?: boolean;
+  delete?: boolean;
+  ctrl?: boolean;
+  meta?: boolean;
+  alt?: boolean;
+  upArrow?: boolean;
+  downArrow?: boolean;
+  tab?: boolean;
+  shift?: boolean;
+}
+
 /**
  * Custom hook for text input with cursor navigation
  * Handles keyboard input, cursor positioning, and text rendering
@@ -15,7 +31,7 @@ export const useTextInput = (initialValue: string = '') => {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const handleInput = useCallback((input: string, key: any) => {
+  const handleInput = useCallback((input: string, key: KeyEvent) => {
     // Always work with the current state from the ref
     const currentState = stateRef.current;
     const { value, cursorPos } = currentState;

@@ -151,7 +151,7 @@ export const EXPECTED_COLOR_KEYS = [
 /**
  * Validates that a VS Code theme has the correct structure
  */
-export const validateVSCodeTheme = (theme: any): void => {
+export const validateVSCodeTheme = (theme: unknown): void => {
   expect(theme).toBeDefined();
   expect(typeof theme).toBe('object');
 
@@ -181,7 +181,7 @@ export const validateVSCodeTheme = (theme: any): void => {
   expect(theme.tokenColors.length).toBeGreaterThan(0);
 
   // Validate tokenColor structure
-  theme.tokenColors.forEach((tokenColor: any, _index: number) => {
+  theme.tokenColors.forEach((tokenColor: unknown, _index: number) => {
     expect(tokenColor).toHaveProperty('scope');
     expect(tokenColor).toHaveProperty('settings');
     expect(typeof tokenColor.scope).toBe('string');
@@ -204,6 +204,7 @@ export const validateHexColor = (color: string): void => {
 
 // Store original console methods
 const originalConsole = {
+  // eslint-disable-next-line no-console
   log: console.log,
   warn: console.warn,
   error: console.error,
@@ -211,12 +212,14 @@ const originalConsole = {
 
 // Mock console methods to reduce noise during tests
 export const mockConsole = () => {
+  // eslint-disable-next-line no-console
   console.log = vi.fn();
   console.warn = vi.fn();
   console.error = vi.fn();
 };
 
 export const restoreConsole = () => {
+  // eslint-disable-next-line no-console
   console.log = originalConsole.log;
   console.warn = originalConsole.warn;
   console.error = originalConsole.error;

@@ -84,7 +84,9 @@ const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
  */
 const isValidGhosttyColorKey = (key: string): boolean => {
   return (
-    VALID_COLOR_KEYS.includes(key as any) || COLOR_KEY_REGEX.test(key) || key.startsWith('color')
+    (VALID_COLOR_KEYS as readonly string[]).includes(key) ||
+    COLOR_KEY_REGEX.test(key) ||
+    key.startsWith('color')
   );
 };
 
@@ -262,7 +264,7 @@ export const readThemeFile = async (filePath: string): Promise<string> => {
         [
           'Choose a smaller file',
           `File must be under ${(MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(1)}MB`,
-        ]
+        ],
       );
     }
 
@@ -275,7 +277,7 @@ export const readThemeFile = async (filePath: string): Promise<string> => {
     throw new FileProcessingError(
       `Failed to read file: ${(error as Error).message}`,
       { filePath },
-      ['Check that the file exists', 'Verify file permissions', 'Ensure file is readable']
+      ['Check that the file exists', 'Verify file permissions', 'Ensure file is readable'],
     );
   }
 };
@@ -376,7 +378,7 @@ export const parseThemeFile = async (filePath: string): Promise<ParsedThemeFile>
         // Validate key length
         if (trimmedKey.length > MAX_KEY_LENGTH) {
           validation.warnings?.push(
-            `Skipping line with overly long key: ${trimmedKey.substring(0, 20)}...`
+            `Skipping line with overly long key: ${trimmedKey.substring(0, 20)}...`,
           );
           continue;
         }
@@ -388,7 +390,7 @@ export const parseThemeFile = async (filePath: string): Promise<ParsedThemeFile>
           } else {
             validation.warnings?.push(`Invalid color value for ${trimmedKey}: ${trimmedValue}`);
           }
-        } else if (VALID_COLOR_KEYS.includes(trimmedKey as any)) {
+        } else if ((VALID_COLOR_KEYS as readonly string[]).includes(trimmedKey)) {
           const sanitizedColor = sanitizeColorValue(trimmedValue, trimmedKey);
           if (sanitizedColor) {
             // Normalize key names (convert hyphens to underscores for consistency)
@@ -633,7 +635,7 @@ const createSimpleRoleMap = (colors: GhosttyColors) => {
  * @since 1.0.0
  */
 export const buildVSCodeColors = (
-  roleMap: ReturnType<typeof createSimpleRoleMap>
+  roleMap: ReturnType<typeof createSimpleRoleMap>,
 ): VSCodeThemeColors => {
   return {
     // Editor colors
@@ -778,7 +780,7 @@ export const buildTokenColors = (roleMap: ReturnType<typeof createSimpleRoleMap>
 export const resolveThemeName = (
   filePath: string,
   explicitName?: string,
-  meta?: Record<string, string>
+  meta?: Record<string, string>,
 ): string => {
   // Priority: explicit name > meta name > filename
   if (explicitName && typeof explicitName === 'string' && explicitName.trim()) {
@@ -840,7 +842,7 @@ export const resolveThemeName = (
 export const buildVSCodeTheme = (
   colors: GhosttyColors,
   themeName: string,
-  filePath?: string
+  filePath?: string,
 ): VSCodeTheme => {
   try {
     const roleMap = createSimpleRoleMap(colors);

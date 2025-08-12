@@ -148,7 +148,7 @@ interface ExtensionPackageJson {
 export const generatePackageJson = (
   themeName: string,
   options: GenerationOptions,
-  themeFileName: string
+  themeFileName: string,
 ): string => {
   const packageName = toPackageName(themeName);
   const displayName = toDisplayName(themeName);
@@ -377,7 +377,7 @@ export const generateLaunchJson = (): string => {
       ],
     },
     null,
-    2
+    2,
   );
 };
 
@@ -621,7 +621,7 @@ Enjoy coding with ${displayName}! 🎉
  */
 export const generateExtensionFiles = async (
   theme: VSCodeTheme,
-  options: GenerationOptions
+  options: GenerationOptions,
 ): Promise<GenerationResults> => {
   const startTime = Date.now();
   const generatedFiles: GeneratedFile[] = [];
@@ -739,8 +739,9 @@ export const generateExtensionFiles = async (
 
     // Log generation statistics for debugging
     if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
       console.log(
-        `✅ Generated ${generatedFiles.length} files in ${duration}ms (${totalSize} bytes total)`
+        `✅ Generated ${generatedFiles.length} files in ${duration}ms (${totalSize} bytes total)`,
       );
     }
 
@@ -752,7 +753,7 @@ export const generateExtensionFiles = async (
   } catch (error) {
     throw new GenerationError(
       `Failed to generate extension files: ${(error as Error).message}`,
-      'generateExtensionFiles'
+      'generateExtensionFiles',
     );
   }
 };

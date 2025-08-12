@@ -124,7 +124,7 @@ export class ValidationError extends Error {
   constructor(
     message: string,
     public field?: string,
-    public suggestions?: string[]
+    public suggestions?: string[],
   ) {
     super(message);
     this.name = 'ValidationError';
@@ -135,7 +135,7 @@ export class FileProcessingError extends Error {
   constructor(
     message: string,
     public filePath?: string,
-    public lineNumber?: number
+    public lineNumber?: number,
   ) {
     super(message);
     this.name = 'FileProcessingError';
@@ -145,7 +145,7 @@ export class FileProcessingError extends Error {
 export class GenerationError extends Error {
   constructor(
     message: string,
-    public operation?: string
+    public operation?: string,
   ) {
     super(message);
     this.name = 'GenerationError';
@@ -155,7 +155,7 @@ export class GenerationError extends Error {
 export class SecurityError extends Error {
   constructor(
     message: string,
-    public operation?: string
+    public operation?: string,
   ) {
     super(message);
     this.name = 'SecurityError';

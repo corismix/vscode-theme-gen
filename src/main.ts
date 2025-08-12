@@ -84,7 +84,7 @@ const cli = meow(
         default: true,
       },
     },
-  }
+  },
 );
 
 // ============================================================================
@@ -186,9 +186,13 @@ const determineSkipStep = (flags: CLIFlags): string | undefined => {
 
 const main = (): void => {
   // Show header
+  // eslint-disable-next-line no-console
   console.log('');
+  // eslint-disable-next-line no-console
   console.log('🎨 VS Code Theme Generator');
+  // eslint-disable-next-line no-console
   console.log('Convert Ghostty terminal themes to VS Code extensions');
+  // eslint-disable-next-line no-console
   console.log('');
 
   // Validate command line flags

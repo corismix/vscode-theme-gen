@@ -77,7 +77,7 @@ const parseEnvBytes = (envVar: string | undefined, fallback: number): number => 
   const match = envVar.match(/^(\d+(?:\.\d+)?)\s*([KMG]B?)?$/i);
   if (!match) return fallback;
 
-  const value = parseFloat(match[1]!);
+  const value = parseFloat(match[1] ?? '0');
   const unit = match[2]?.toUpperCase() || '';
 
   switch (unit) {
@@ -113,8 +113,8 @@ export const FILE_LIMITS = {
     1024, // Minimum 1KB
     Math.min(
       100 * 1024 * 1024, // Maximum 100MB
-      parseEnvBytes(process.env.THEME_MAX_FILE_SIZE, 1024 * 1024)
-    )
+      parseEnvBytes(process.env.THEME_MAX_FILE_SIZE, 1024 * 1024),
+    ),
   ),
 
   /**
@@ -127,8 +127,8 @@ export const FILE_LIMITS = {
     1024 * 1024, // Minimum 1MB
     Math.min(
       1024 * 1024 * 1024, // Maximum 1GB
-      parseEnvBytes(process.env.THEME_STREAMING_SIZE, 10 * 1024 * 1024)
-    )
+      parseEnvBytes(process.env.THEME_STREAMING_SIZE, 10 * 1024 * 1024),
+    ),
   ),
 
   /**
@@ -141,8 +141,8 @@ export const FILE_LIMITS = {
     1024 * 1024, // Minimum 1MB
     Math.min(
       100 * 1024 * 1024, // Maximum 100MB
-      parseEnvBytes(process.env.THEME_STREAMING_THRESHOLD, 10 * 1024 * 1024)
-    )
+      parseEnvBytes(process.env.THEME_STREAMING_THRESHOLD, 10 * 1024 * 1024),
+    ),
   ),
 
   /**
@@ -155,8 +155,8 @@ export const FILE_LIMITS = {
     100, // Minimum 100 lines
     Math.min(
       1000000, // Maximum 1M lines
-      parseEnvNumber(process.env.THEME_MAX_LINES, 10000)
-    )
+      parseEnvNumber(process.env.THEME_MAX_LINES, 10000),
+    ),
   ),
 
   /**
@@ -169,8 +169,8 @@ export const FILE_LIMITS = {
     10, // Minimum 10 lines
     Math.min(
       10000, // Maximum 10K lines
-      parseEnvNumber(process.env.THEME_MAX_CONFIG_LINES, 1000)
-    )
+      parseEnvNumber(process.env.THEME_MAX_CONFIG_LINES, 1000),
+    ),
   ),
 
   /**
@@ -183,8 +183,8 @@ export const FILE_LIMITS = {
     1024, // Minimum 1KB
     Math.min(
       1024 * 1024, // Maximum 1MB
-      parseEnvBytes(process.env.THEME_STREAM_CHUNK_SIZE, 64 * 1024)
-    )
+      parseEnvBytes(process.env.THEME_STREAM_CHUNK_SIZE, 64 * 1024),
+    ),
   ),
 
   /**
@@ -197,8 +197,8 @@ export const FILE_LIMITS = {
     64 * 1024, // Minimum 64KB
     Math.min(
       10 * 1024 * 1024, // Maximum 10MB
-      parseEnvBytes(process.env.THEME_PROGRESS_INTERVAL, 1024 * 1024)
-    )
+      parseEnvBytes(process.env.THEME_PROGRESS_INTERVAL, 1024 * 1024),
+    ),
   ),
 } as const;
 
@@ -220,8 +220,8 @@ export const SECURITY_LIMITS = {
     10, // Minimum 10 characters
     Math.min(
       10000, // Maximum 10K characters
-      parseEnvNumber(process.env.THEME_MAX_INPUT_LENGTH, 1000)
-    )
+      parseEnvNumber(process.env.THEME_MAX_INPUT_LENGTH, 1000),
+    ),
   ),
 
   /**
@@ -234,8 +234,8 @@ export const SECURITY_LIMITS = {
     5, // Minimum 5 characters
     Math.min(
       500, // Maximum 500 characters
-      parseEnvNumber(process.env.THEME_MAX_KEY_LENGTH, 100)
-    )
+      parseEnvNumber(process.env.THEME_MAX_KEY_LENGTH, 100),
+    ),
   ),
 
   /**
@@ -248,8 +248,8 @@ export const SECURITY_LIMITS = {
     5, // Minimum 5 characters
     Math.min(
       2000, // Maximum 2000 characters
-      parseEnvNumber(process.env.THEME_MAX_VALUE_LENGTH, 500)
-    )
+      parseEnvNumber(process.env.THEME_MAX_VALUE_LENGTH, 500),
+    ),
   ),
 
   /**
@@ -262,8 +262,8 @@ export const SECURITY_LIMITS = {
     5, // Minimum 5 characters
     Math.min(
       200, // Maximum 200 characters
-      parseEnvNumber(process.env.THEME_MAX_NAME_LENGTH, 100)
-    )
+      parseEnvNumber(process.env.THEME_MAX_NAME_LENGTH, 100),
+    ),
   ),
 
   /**
@@ -276,8 +276,8 @@ export const SECURITY_LIMITS = {
     10, // Minimum 10 characters
     Math.min(
       2000, // Maximum 2000 characters
-      parseEnvNumber(process.env.THEME_MAX_DESCRIPTION_LENGTH, 500)
-    )
+      parseEnvNumber(process.env.THEME_MAX_DESCRIPTION_LENGTH, 500),
+    ),
   ),
 
   /**
@@ -290,8 +290,8 @@ export const SECURITY_LIMITS = {
     3, // Minimum 3 characters
     Math.min(
       200, // Maximum 200 characters
-      parseEnvNumber(process.env.THEME_MAX_PUBLISHER_LENGTH, 100)
-    )
+      parseEnvNumber(process.env.THEME_MAX_PUBLISHER_LENGTH, 100),
+    ),
   ),
 
   /**
@@ -304,8 +304,8 @@ export const SECURITY_LIMITS = {
     50, // Minimum 50 characters
     Math.min(
       4096, // Maximum 4KB path
-      parseEnvNumber(process.env.THEME_MAX_PATH_LENGTH, 500)
-    )
+      parseEnvNumber(process.env.THEME_MAX_PATH_LENGTH, 500),
+    ),
   ),
 
   /**
@@ -344,8 +344,8 @@ export const RESOURCE_LIMITS = {
     1, // Minimum 1 operation
     Math.min(
       100, // Maximum 100 operations
-      parseEnvNumber(process.env.THEME_MAX_CONCURRENT_OPS, 10)
-    )
+      parseEnvNumber(process.env.THEME_MAX_CONCURRENT_OPS, 10),
+    ),
   ),
 
   /**
@@ -358,8 +358,8 @@ export const RESOURCE_LIMITS = {
     10, // Minimum 10 operations
     Math.min(
       1000, // Maximum 1000 operations
-      parseEnvNumber(process.env.THEME_MAX_FILE_READS, 100)
-    )
+      parseEnvNumber(process.env.THEME_MAX_FILE_READS, 100),
+    ),
   ),
 
   /**
@@ -372,8 +372,8 @@ export const RESOURCE_LIMITS = {
     5, // Minimum 5 operations
     Math.min(
       500, // Maximum 500 operations
-      parseEnvNumber(process.env.THEME_MAX_FILE_WRITES, 50)
-    )
+      parseEnvNumber(process.env.THEME_MAX_FILE_WRITES, 50),
+    ),
   ),
 
   /**
@@ -386,8 +386,8 @@ export const RESOURCE_LIMITS = {
     300000, // Minimum 5 minutes
     Math.min(
       86400000, // Maximum 24 hours
-      parseEnvNumber(process.env.THEME_RESOURCE_RESET_INTERVAL, 3600000)
-    )
+      parseEnvNumber(process.env.THEME_RESOURCE_RESET_INTERVAL, 3600000),
+    ),
   ),
 } as const;
 
@@ -409,8 +409,8 @@ export const PERFORMANCE_LIMITS = {
     5000, // Minimum 5 seconds
     Math.min(
       300000, // Maximum 5 minutes
-      parseEnvNumber(process.env.THEME_OPERATION_TIMEOUT, 30000)
-    )
+      parseEnvNumber(process.env.THEME_OPERATION_TIMEOUT, 30000),
+    ),
   ),
 
   /**
@@ -423,8 +423,8 @@ export const PERFORMANCE_LIMITS = {
     10000, // Minimum 10 seconds
     Math.min(
       600000, // Maximum 10 minutes
-      parseEnvNumber(process.env.THEME_EXTENDED_TIMEOUT, 60000)
-    )
+      parseEnvNumber(process.env.THEME_EXTENDED_TIMEOUT, 60000),
+    ),
   ),
 
   /**
@@ -437,8 +437,8 @@ export const PERFORMANCE_LIMITS = {
     1000, // Minimum 1 second
     Math.min(
       60000, // Maximum 1 minute
-      parseEnvNumber(process.env.THEME_TEST_TIMEOUT, 10000)
-    )
+      parseEnvNumber(process.env.THEME_TEST_TIMEOUT, 10000),
+    ),
   ),
 } as const;
 
@@ -460,8 +460,8 @@ export const UI_LIMITS = {
     1000, // Minimum 1 second
     Math.min(
       30000, // Maximum 30 seconds
-      parseEnvNumber(process.env.THEME_NOTIFICATION_DURATION, 5000)
-    )
+      parseEnvNumber(process.env.THEME_NOTIFICATION_DURATION, 5000),
+    ),
   ),
 
   /**
@@ -474,8 +474,8 @@ export const UI_LIMITS = {
     3, // Minimum 3 files
     Math.min(
       50, // Maximum 50 files
-      parseEnvNumber(process.env.THEME_MAX_RECENT_FILES, 10)
-    )
+      parseEnvNumber(process.env.THEME_MAX_RECENT_FILES, 10),
+    ),
   ),
 
   /**
@@ -495,8 +495,8 @@ export const UI_LIMITS = {
     1, // Minimum 1 day
     Math.min(
       365, // Maximum 1 year
-      parseEnvNumber(process.env.THEME_CLEANUP_THRESHOLD_DAYS, 30)
-    )
+      parseEnvNumber(process.env.THEME_CLEANUP_THRESHOLD_DAYS, 30),
+    ),
   ),
 } as const;
 
@@ -630,7 +630,7 @@ export const validateFileSize = (size: number, useStreaming = false): void => {
     throw new Error(
       `File size ${actualSizeMB}MB exceeds maximum allowed size of ${maxSizeMB}MB${
         useStreaming ? ' (streaming mode)' : ''
-      }`
+      }`,
     );
   }
 };
@@ -658,7 +658,7 @@ export const validateFileSize = (size: number, useStreaming = false): void => {
 export const validateStringLength = (value: string, maxLength: number, fieldName: string): void => {
   if (value.length > maxLength) {
     throw new Error(
-      `${fieldName} length ${value.length} exceeds maximum of ${maxLength} characters`
+      `${fieldName} length ${value.length} exceeds maximum of ${maxLength} characters`,
     );
   }
 };

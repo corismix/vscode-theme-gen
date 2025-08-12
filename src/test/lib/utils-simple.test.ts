@@ -169,8 +169,8 @@ describe('validateGhosttyFile', () => {
 
   it('handles edge cases gracefully', () => {
     // Test null/undefined inputs
-    expect(validateGhosttyFile(null as any).isValid).toBe(false);
-    expect(validateGhosttyFile(undefined as any).isValid).toBe(false);
+    expect(validateGhosttyFile(null as unknown as string).isValid).toBe(false);
+    expect(validateGhosttyFile(undefined as unknown as string).isValid).toBe(false);
 
     // Test very long paths
     const longPath = `/test/${'a'.repeat(500)}.txt`;

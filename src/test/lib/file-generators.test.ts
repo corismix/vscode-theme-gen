@@ -65,8 +65,8 @@ const mockOptions: GenerationOptions = {
 };
 
 // Get the mock functions after dynamic import
-let mockWriteFile: any;
-let mockMkdir: any;
+let mockWriteFile: vi.MockedFunction<typeof import('fs/promises').writeFile>;
+let mockMkdir: vi.MockedFunction<typeof import('fs/promises').mkdir>;
 
 beforeEach(async () => {
   vi.clearAllMocks();
@@ -463,7 +463,7 @@ describe('generateExtensionFiles', () => {
 
     // Find the theme file write call
     const themeFileCall = mockWriteFile.mock.calls.find(
-      call => call[0].includes('themes/') && call[0].endsWith('.json')
+      call => call[0].includes('themes/') && call[0].endsWith('.json'),
     );
 
     expect(themeFileCall).toBeDefined();
@@ -479,7 +479,7 @@ describe('generateExtensionFiles', () => {
     mockWriteFile.mockRejectedValueOnce(new Error('Write failed'));
 
     await expect(generateExtensionFiles(mockVSCodeTheme, mockOptions)).rejects.toThrow(
-      'Failed to generate extension files'
+      'Failed to generate extension files',
     );
   });
 
@@ -487,7 +487,7 @@ describe('generateExtensionFiles', () => {
     mockMkdir.mockRejectedValueOnce(new Error('Mkdir failed'));
 
     await expect(generateExtensionFiles(mockVSCodeTheme, mockOptions)).rejects.toThrow(
-      'Failed to generate extension files'
+      'Failed to generate extension files',
     );
   });
 
@@ -500,7 +500,7 @@ describe('generateExtensionFiles', () => {
     await generateExtensionFiles(mockVSCodeTheme, customOptions);
 
     const themeFileCall = mockWriteFile.mock.calls.find(
-      call => call[0].includes('themes/') && call[0].endsWith('.json')
+      call => call[0].includes('themes/') && call[0].endsWith('.json'),
     );
 
     expect(themeFileCall[0]).toContain('my-awesome-theme-color-theme.json');
