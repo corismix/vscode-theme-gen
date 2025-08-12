@@ -40,7 +40,29 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       </Box>
 
       <Box borderStyle='single' padding={1} marginBottom={1}>
-        <Text>📁 {textInput.renderWithCursor()}</Text>
+        <Text>📁 {(() => {
+          const { value, cursorPos } = textInput;
+          
+          if (value.length === 0) {
+            return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
+          }
+
+          if (cursorPos >= value.length) {
+            return <Text>{value}<Text backgroundColor='cyan' color='black'> </Text></Text>;
+          }
+
+          const before = value.slice(0, cursorPos);
+          const cursorChar = value.slice(cursorPos, cursorPos + 1);
+          const after = value.slice(cursorPos + 1);
+
+          return (
+            <Text>
+              {before}
+              <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
+              {after}
+            </Text>
+          );
+        })()}</Text>
       </Box>
 
       {error && (
@@ -52,7 +74,7 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       <Box flexDirection='column'>
         <Text color='gray'>Type the file path and press Enter</Text>
         <Text color='gray' dimColor>
-          Navigation: ←→ move cursor, Backspace/Delete to remove text
+          Navigation: ←→ arrow keys, Backspace/Delete, Ctrl+A (home), Ctrl+E (end)
         </Text>
       </Box>
     </Box>

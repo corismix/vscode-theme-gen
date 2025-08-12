@@ -11,11 +11,11 @@ interface TextInputProps {
 }
 
 /**
- * Reusable text input component with cursor navigation
+ * Text input component with proper cursor positioning
  */
 export const TextInput: React.FC<TextInputProps> = ({
   initialValue = '',
-  placeholder: _placeholder = '',
+  placeholder = '',
   onSubmit: _onSubmit,
   onUpdate,
   icon = '📝',
@@ -29,13 +29,43 @@ export const TextInput: React.FC<TextInputProps> = ({
     }
   }, [textInput.value, onUpdate]);
 
-  // Removed unused handleInput function to satisfy strict mode
+  const renderWithCursor = () => {
+    const { value, cursorPos } = textInput;
+    
+    if (value.length === 0) {
+      return (
+        <Text>
+          <Text backgroundColor='cyan' color='black'> </Text>
+          {placeholder && <Text color='gray' dimColor> ({placeholder})</Text>}
+        </Text>
+      );
+    }
+
+    if (cursorPos >= value.length) {
+      return (
+        <Text>
+          {value}
+          <Text backgroundColor='cyan' color='black'> </Text>
+        </Text>
+      );
+    }
+
+    const before = value.slice(0, cursorPos);
+    const cursorChar = value.slice(cursorPos, cursorPos + 1);
+    const after = value.slice(cursorPos + 1);
+
+    return (
+      <Text>
+        {before}
+        <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
+        {after}
+      </Text>
+    );
+  };
 
   return (
     <Box borderStyle='single' padding={1} marginBottom={1}>
-      <Text>
-        {icon} {textInput.renderWithCursor()}
-      </Text>
+      <Text>{icon} {renderWithCursor()}</Text>
     </Box>
   );
 };

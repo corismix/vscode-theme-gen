@@ -1,150 +1,102 @@
-import { useState, useCallback, useRef } from 'react';
-import { Text } from 'ink';
-
-interface KeyEvent {
-  return?: boolean;
-  escape?: boolean;
-  leftArrow?: boolean;
-  rightArrow?: boolean;
-  backspace?: boolean;
-  delete?: boolean;
-  ctrl?: boolean;
-  meta?: boolean;
-  alt?: boolean;
-  upArrow?: boolean;
-  downArrow?: boolean;
-  tab?: boolean;
-  shift?: boolean;
-}
+import { useState, useCallback } from 'react';
 
 /**
- * Custom hook for text input with cursor navigation
- * Handles keyboard input, cursor positioning, and text rendering
+ * Terminal text input hook with proper cursor navigation
+ * Handles all standard terminal input behaviors
  */
 export const useTextInput = (initialValue: string = '') => {
-  const [state, setState] = useState({
-    value: initialValue,
-    cursorPos: initialValue.length,
-  });
+  const [value, setValue] = useState(initialValue);
+  const [cursorOffset, setCursorOffset] = useState(0);
 
-  // Use ref to get the most current state during input handling
-  const stateRef = useRef(state);
-  stateRef.current = state;
-
-  const handleInput = useCallback((input: string, key: KeyEvent) => {
-    // Always work with the current state from the ref
-    const currentState = stateRef.current;
-    const { value, cursorPos } = currentState;
-
+  const handleInput = useCallback((input: string, key: any) => {
     if (key.return) {
-      return { shouldSubmit: true, value: value.trim(), cursorPos };
+      return { shouldSubmit: true, value: value.trim() };
     }
 
-    let newValue = value;
-    let newCursorPos = cursorPos;
-
-    // Ensure cursor position is within bounds
-    const safeCursorPos = Math.max(0, Math.min(cursorPos, value.length));
-
+    // Handle navigation and editing operations
     if (key.leftArrow) {
-      // Move cursor left one character
-      newCursorPos = Math.max(0, safeCursorPos - 1);
-    } else if (key.rightArrow) {
-      // Move cursor right one character
-      newCursorPos = Math.min(value.length, safeCursorPos + 1);
-    } else if (key.backspace && safeCursorPos > 0) {
-      // Delete character before cursor (Backspace behavior)
-      newValue = value.slice(0, safeCursorPos - 1) + value.slice(safeCursorPos);
-      newCursorPos = safeCursorPos - 1;
-    } else if (key.delete && safeCursorPos < value.length) {
-      // Delete character at cursor position (Delete key behavior)
-      newValue = value.slice(0, safeCursorPos) + value.slice(safeCursorPos + 1);
-      newCursorPos = safeCursorPos; // Cursor stays in same position
-    } else if (
-      input &&
-      !key.ctrl &&
-      !key.meta &&
-      !key.alt &&
-      !key.upArrow &&
-      !key.downArrow &&
-      input.length > 0
-    ) {
-      // Insert regular character at cursor position
-      newValue = value.slice(0, safeCursorPos) + input + value.slice(safeCursorPos);
-      newCursorPos = safeCursorPos + input.length;
-    } else {
-      // No changes - return current state without updating
-      return { shouldSubmit: false, value, cursorPos: safeCursorPos };
+      setCursorOffset(Math.min(cursorOffset + 1, value.length));
+      return { shouldSubmit: false, value };
+    }
+    
+    if (key.rightArrow) {
+      setCursorOffset(Math.max(cursorOffset - 1, 0));
+      return { shouldSubmit: false, value };
     }
 
-    // Update state atomically with the new values
-    const newState = { value: newValue, cursorPos: newCursorPos };
-    setState(newState);
-
-    return { shouldSubmit: false, value: newValue, cursorPos: newCursorPos };
-  }, []);
-
-  const renderWithCursor = useCallback(() => {
-    const { value, cursorPos } = stateRef.current;
-    const safeCursorPos = Math.max(0, Math.min(cursorPos, value.length));
-
-    if (value.length === 0) {
-      // Empty string - show cursor at beginning
-      return (
-        <Text>
-          <Text color='black' backgroundColor='cyan'>
-            {' '}
-          </Text>
-        </Text>
-      );
+    // Home key - move to beginning
+    if (key.ctrl && input === 'a') {
+      setCursorOffset(value.length);
+      return { shouldSubmit: false, value };
+    }
+    
+    // End key - move to end  
+    if (key.ctrl && input === 'e') {
+      setCursorOffset(0);
+      return { shouldSubmit: false, value };
     }
 
-    if (safeCursorPos >= value.length) {
-      // Cursor at end - show space cursor after text
-      return (
-        <Text>
-          {value}
-          <Text color='black' backgroundColor='cyan'>
-            {' '}
-          </Text>
-        </Text>
-      );
+    // Handle text modification operations
+    const cursorPos = value.length - cursorOffset;
+    
+    // Handle backward delete (Backspace key, or Delete key on macOS)
+    if (key.backspace && cursorPos > 0) {
+      const newValue = value.slice(0, cursorPos - 1) + value.slice(cursorPos);
+      setValue(newValue);
+      // After deleting character before cursor, cursor effectively moves left
+      // but since string is shorter, we maintain the same offset
+      setCursorOffset(Math.max(0, cursorOffset));
+      return { shouldSubmit: false, value: newValue };
     }
+    
+    // Handle forward delete (Fn+Delete on macOS, Delete on other systems)
+    if (key.delete && cursorPos < value.length) {
+      const newValue = value.slice(0, cursorPos) + value.slice(cursorPos + 1);
+      setValue(newValue);
+      // Cursor stays at same position, but offset may need adjustment for shorter string
+      setCursorOffset(Math.min(cursorOffset, newValue.length));
+      return { shouldSubmit: false, value: newValue };
+    }
+    
+    // On macOS, the physical Delete key might be mapped to key.delete but should behave as backspace
+    // This handles the case where macOS Delete key is detected as key.delete instead of key.backspace
+    if (key.delete && cursorPos >= value.length && cursorPos > 0) {
+      // Treat as backspace when Delete is pressed at end of line (common macOS behavior)
+      const newValue = value.slice(0, cursorPos - 1) + value.slice(cursorPos);
+      setValue(newValue);
+      setCursorOffset(Math.max(0, cursorOffset));
+      return { shouldSubmit: false, value: newValue };
+    }
+    
+    // Regular character input
+    if (input && !key.ctrl && !key.meta && !key.alt && input.length === 1 && input.charCodeAt(0) >= 32) {
+      const newValue = value.slice(0, cursorPos) + input + value.slice(cursorPos);
+      setValue(newValue);
+      // Cursor moves right after character insertion, so offset stays the same
+      return { shouldSubmit: false, value: newValue };
+    }
+    
+    return { shouldSubmit: false, value };
+  }, [value, cursorOffset]);
 
-    // Cursor in middle - highlight the character at cursor position
-    const before = value.slice(0, safeCursorPos);
-    const cursorChar = value.slice(safeCursorPos, safeCursorPos + 1);
-    const after = value.slice(safeCursorPos + 1);
-
-    return (
-      <Text>
-        {before}
-        <Text color='black' backgroundColor='cyan'>
-          {cursorChar}
-        </Text>
-        {after}
-      </Text>
-    );
+  const clear = useCallback(() => {
+    setValue('');
+    setCursorOffset(0);
   }, []);
 
-  const setValue = useCallback((newValue: string) => {
-    const newCursorPos = Math.min(stateRef.current.cursorPos, newValue.length);
-    const newState = { value: newValue, cursorPos: newCursorPos };
-    setState(newState);
-  }, []);
-
-  const setCursorPos = useCallback((newPos: number) => {
-    const { value } = stateRef.current;
-    const clampedPos = Math.max(0, Math.min(newPos, value.length));
-    setState(prevState => ({ ...prevState, cursorPos: clampedPos }));
-  }, []);
+  const getCurrentCursorPos = useCallback(() => {
+    return value.length - cursorOffset;
+  }, [value.length, cursorOffset]);
 
   return {
-    value: state.value,
-    cursorPos: state.cursorPos,
-    setValue,
-    setCursorPos,
+    value,
+    setValue: (newValue: string) => {
+      setValue(newValue);
+      setCursorOffset(0);
+    },
     handleInput,
-    renderWithCursor,
+    clear,
+    cursorOffset,
+    cursorPos: getCurrentCursorPos(),
   };
 };

@@ -79,7 +79,29 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
 
       {isEditingName ? (
         <Box borderStyle='single' padding={1} marginBottom={1}>
-          {nameInput.renderWithCursor()}
+          <Text>{(() => {
+            const { value, cursorPos } = nameInput;
+            
+            if (value.length === 0) {
+              return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
+            }
+
+            if (cursorPos >= value.length) {
+              return <Text>{value}<Text backgroundColor='cyan' color='black'> </Text></Text>;
+            }
+
+            const before = value.slice(0, cursorPos);
+            const cursorChar = value.slice(cursorPos, cursorPos + 1);
+            const after = value.slice(cursorPos + 1);
+
+            return (
+              <Text>
+                {before}
+                <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
+                {after}
+              </Text>
+            );
+          })()}</Text>
         </Box>
       ) : (
         <Box padding={1} marginBottom={1}>
@@ -94,7 +116,29 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
           </Box>
 
           <Box borderStyle='single' padding={1} marginBottom={1}>
-            {descInput.renderWithCursor()}
+            <Text>{(() => {
+              const { value, cursorPos } = descInput;
+              
+              if (value.length === 0) {
+                return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
+              }
+
+              if (cursorPos >= value.length) {
+                return <Text>{value}<Text backgroundColor='cyan' color='black'> </Text></Text>;
+              }
+
+              const before = value.slice(0, cursorPos);
+              const cursorChar = value.slice(cursorPos, cursorPos + 1);
+              const after = value.slice(cursorPos + 1);
+
+              return (
+                <Text>
+                  {before}
+                  <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
+                  {after}
+                </Text>
+              );
+            })()}</Text>
           </Box>
         </>
       )}
@@ -112,7 +156,7 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
             : 'Enter description and press Enter/Tab to continue, Esc to go back'}
         </Text>
         <Text color='gray' dimColor>
-          Navigation: ←→ move cursor, Backspace/Delete to remove text
+          Navigation: ←→ arrow keys, Backspace/Delete, Ctrl+A (home), Ctrl+E (end)
         </Text>
       </Box>
     </Box>
