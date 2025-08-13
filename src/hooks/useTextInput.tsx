@@ -1,14 +1,15 @@
 import { useState, useCallback } from 'react';
+import { InkKeyEvent, InputHandlerResult, TextInputHook } from '../types/ink.types';
 
 /**
  * Terminal text input hook with proper cursor navigation
- * Handles all standard terminal input behaviors
+ * Handles all standard terminal input behaviors including paste functionality
  */
-export const useTextInput = (initialValue: string = '') => {
+export const useTextInput = (initialValue: string = ''): TextInputHook => {
   const [value, setValue] = useState(initialValue);
   const [cursorOffset, setCursorOffset] = useState(0);
 
-  const handleInput = useCallback((input: string, key: any) => {
+  const handleInput = useCallback((input: string, key: InkKeyEvent): InputHandlerResult => {
     if (key.return) {
       return { shouldSubmit: true, value: value.trim() };
     }
@@ -68,12 +69,28 @@ export const useTextInput = (initialValue: string = '') => {
       return { shouldSubmit: false, value: newValue };
     }
 
-    // Regular character input
-    if (input && !key.ctrl && !key.meta && !key.alt && input.length === 1 && input.charCodeAt(0) >= 32) {
-      const newValue = value.slice(0, cursorPos) + input + value.slice(cursorPos);
-      setValue(newValue);
-      // Cursor moves right after character insertion, so offset stays the same
-      return { shouldSubmit: false, value: newValue };
+    // Handle paste operations (Ctrl+V or Cmd+V)
+    if (key.ctrl && input === 'v') {
+      // This will be handled by the terminal/Ink automatically - just indicate we handled it
+      return { shouldSubmit: false, value };
+    }
+    if (key.meta && input === 'v') {
+      // This will be handled by the terminal/Ink automatically - just indicate we handled it  
+      return { shouldSubmit: false, value };
+    }
+
+    // Regular character input - FIXED: removed input.length === 1 restriction to allow paste
+    if (input && !key.ctrl && !key.meta && !key.alt && input.length > 0) {
+      // Filter out non-printable characters but allow multi-character input (paste)
+      const sanitizedInput = input.split('').filter(char => char.charCodeAt(0) >= 32).join('');
+      
+      if (sanitizedInput.length > 0) {
+        const newValue = value.slice(0, cursorPos) + sanitizedInput + value.slice(cursorPos);
+        setValue(newValue);
+        // Cursor moves right after text insertion, offset adjusts for multi-character input
+        setCursorOffset(Math.max(0, cursorOffset - sanitizedInput.length));
+        return { shouldSubmit: false, value: newValue };
+      }
     }
 
     return { shouldSubmit: false, value };

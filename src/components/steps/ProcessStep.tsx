@@ -43,6 +43,14 @@ export const ProcessStep: React.FC<ProcessStepProps> = ({
           outputPath: formData.outputPath,
           generateReadme: formData.generateReadme,
           generateChangelog: formData.generateChangelog,
+          generateFullExtension: formData.generateFullExtension,
+          generateQuickstart: formData.generateQuickstart,
+          preserveSourceTheme: formData.preserveSourceTheme,
+          sourcePath: formData.inputFile,
+          generateGitIgnore: formData.generateGitIgnore,
+          generateVSCodeIgnore: formData.generateVSCodeIgnore,
+          // Derive gallery banner color from theme background or use default
+          galleryBannerColor: themeData.colors.color0 || themeData.colors.background || '#1e1e1e',
         };
 
         await generateExtensionFiles(vsCodeTheme, generationOptions);

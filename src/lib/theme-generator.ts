@@ -702,6 +702,7 @@ const generateBackgroundVariants = (colors: GhosttyColors) => {
     editor: editorBg,                                   // #171a1d (editor background - palette 0)
     widget: lighten(editorBg, 0.02),                    // #1a1d20 (widgets, panels)
     input: lighten(editorBg, 0.04),                     // #1f2225 (inputs, dropdowns)
+    raised: lighten(editorBg, 0.06),                    // #212428 (elevated surfaces, dropdowns, modals)
     hover: lighten(base, 0.03),                         // Hover states
     border: lighten(base, 0.08),                        // Subtle borders
   };
@@ -754,6 +755,9 @@ const createEnhancedRoleMap = (colors: GhosttyColors) => {
     // Accent colors - Cyan and Magenta
     accent1: baseRoleMap.brightCyan,         // #4ae0cb - cyan accent
     accent2: baseRoleMap.brightMagenta,      // #c89ef0 - magenta accent
+    
+    // Focus and interaction states
+    focus: baseRoleMap.brightCyan,           // #4ae0cb - focus indicators, active states
     
     // UI chrome colors
     border: baseRoleMap.brightBlack,         // #565b62 - borders, comments
@@ -1023,6 +1027,11 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'tab.unfocusedHoverBackground': backgroundVariants.widget,
     'tab.unfocusedHoverForeground': foregroundVariants.base,
 
+    // Editor Group Header (Tab Container)
+    'editorGroupHeader.tabsBackground': backgroundVariants.base,
+    'editorGroupHeader.tabsBorder': '#00000000',
+    'editorGroupHeader.noTabsBackground': backgroundVariants.base,
+
     // ========================================================================
     // Terminal Colors
     // ========================================================================
@@ -1048,6 +1057,168 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'terminal.selectionForeground': foregroundVariants.base,
     'terminalCursor.foreground': semanticColors.error,
     'terminalCursor.background': backgroundVariants.editor,
+
+    // ========================================================================
+    // Notebook Colors
+    // ========================================================================
+    'notebook.cellBorderColor': roleMap.withOpacity(semanticColors.border, 0.25),
+    'notebook.cellHoverBackground': roleMap.withOpacity(semanticColors.border, 0.08),
+    'notebook.cellInsertionIndicator': semanticColors.error,
+    'notebook.cellStatusBarItemHoverBackground': roleMap.withOpacity(semanticColors.border, 0.13),
+    'notebook.cellToolbarSeparator': roleMap.withOpacity(semanticColors.border, 0.25),
+    'notebook.cellEditorBackground': backgroundVariants.widget,
+    'notebook.editorBackground': backgroundVariants.editor,
+    'notebook.focusedCellBackground': backgroundVariants.widget,
+    'notebook.focusedCellBorder': semanticColors.error,
+    'notebook.focusedEditorBorder': semanticColors.error,
+    'notebook.inactiveFocusedCellBorder': roleMap.withOpacity(semanticColors.error, 0.38),
+    'notebook.inactiveSelectedCellBorder': roleMap.withOpacity(semanticColors.border, 0.25),
+    'notebook.outputContainerBackgroundColor': backgroundVariants.widget,
+    'notebook.outputContainerBorderColor': roleMap.withOpacity(semanticColors.border, 0.25),
+    'notebook.selectedCellBackground': roleMap.withOpacity(semanticColors.error, 0.06),
+    'notebook.selectedCellBorder': roleMap.withOpacity(semanticColors.border, 0.25),
+    'notebook.symbolHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.13),
+    'notebookScrollbarSlider.activeBackground': roleMap.withOpacity(semanticColors.border, 0.38),
+    'notebookScrollbarSlider.background': roleMap.withOpacity(semanticColors.border, 0.13),
+    'notebookScrollbarSlider.hoverBackground': roleMap.withOpacity(semanticColors.border, 0.25),
+    'notebookStatusErrorIcon.foreground': semanticColors.error,
+    'notebookStatusRunningIcon.foreground': semanticColors.info,
+    'notebookStatusSuccessIcon.foreground': semanticColors.success,
+
+    // ========================================================================
+    // Debug Icon Colors
+    // ========================================================================
+    'debugIcon.breakpointForeground': semanticColors.error,
+    'debugIcon.breakpointDisabledForeground': roleMap.withOpacity(semanticColors.border, 0.50),
+    'debugIcon.breakpointUnverifiedForeground': semanticColors.warning,
+    'debugIcon.breakpointCurrentStackframeForeground': semanticColors.success,
+    'debugIcon.breakpointStackframeForeground': semanticColors.info,
+    'debugIcon.startForeground': semanticColors.success,
+    'debugIcon.pauseForeground': semanticColors.info,
+    'debugIcon.stopForeground': semanticColors.error,
+    'debugIcon.disconnectForeground': semanticColors.error,
+    'debugIcon.restartForeground': semanticColors.success,
+    'debugIcon.stepOverForeground': semanticColors.info,
+    'debugIcon.stepIntoForeground': semanticColors.info,
+    'debugIcon.stepOutForeground': semanticColors.info,
+    'debugIcon.continueForeground': semanticColors.success,
+    'debugIcon.stepBackForeground': semanticColors.info,
+
+    // ========================================================================
+    // Debug Console Colors
+    // ========================================================================
+    'debugConsole.infoForeground': semanticColors.info,
+    'debugConsole.warningForeground': semanticColors.warning,
+    'debugConsole.errorForeground': semanticColors.error,
+    'debugConsole.sourceForeground': foregroundVariants.base,
+    'debugConsoleInputIcon.foreground': foregroundVariants.base,
+
+    // ========================================================================
+    // Testing Colors
+    // ========================================================================
+    'testing.iconFailed': semanticColors.error,
+    'testing.iconErrored': semanticColors.error,
+    'testing.iconPassed': semanticColors.success,
+    'testing.runAction': semanticColors.success,
+    'testing.iconQueued': semanticColors.warning,
+    'testing.iconUnset': roleMap.withOpacity(semanticColors.border, 0.50),
+    'testing.iconSkipped': roleMap.withOpacity(semanticColors.border, 0.50),
+    'testing.peekBorder': semanticColors.error,
+    'testing.peekHeaderBackground': roleMap.withOpacity(semanticColors.error, 0.13),
+    'testing.message.error.lineBackground': roleMap.withOpacity(semanticColors.error, 0.13),
+    'testing.message.info.lineBackground': roleMap.withOpacity(semanticColors.info, 0.13),
+
+    // ========================================================================
+    // Welcome Page Colors
+    // ========================================================================
+    'welcomePage.background': backgroundVariants.editor,
+    'welcomePage.progress.background': roleMap.withOpacity(semanticColors.border, 0.13),
+    'welcomePage.progress.foreground': semanticColors.error,
+    'welcomePage.tileBackground': backgroundVariants.widget,
+    'welcomePage.tileHoverBackground': backgroundVariants.input,
+    'welcomePage.tileBorder': roleMap.withOpacity(semanticColors.border, 0.25),
+    'walkThrough.embeddedEditorBackground': backgroundVariants.widget,
+    'walkthrough.stepTitle.foreground': foregroundVariants.muted,
+
+    // ========================================================================
+    // Git Decoration Colors
+    // ========================================================================
+    'gitDecoration.addedResourceForeground': semanticColors.success,
+    'gitDecoration.modifiedResourceForeground': semanticColors.warning,
+    'gitDecoration.deletedResourceForeground': semanticColors.error,
+    'gitDecoration.renamedResourceForeground': semanticColors.info,
+    'gitDecoration.stageModifiedResourceForeground': semanticColors.warning,
+    'gitDecoration.stageDeletedResourceForeground': semanticColors.error,
+    'gitDecoration.untrackedResourceForeground': semanticColors.success,
+    'gitDecoration.ignoredResourceForeground': roleMap.withOpacity(semanticColors.border, 0.38),
+    'gitDecoration.conflictingResourceForeground': roleMap.brightMagenta,
+    'gitDecoration.submoduleResourceForeground': semanticColors.info,
+
+    // ========================================================================
+    // Settings Editor Colors
+    // ========================================================================
+    'settings.headerForeground': foregroundVariants.base,
+    'settings.modifiedItemIndicator': semanticColors.warning,
+    'settings.dropdownBackground': backgroundVariants.raised,
+    'settings.dropdownForeground': foregroundVariants.base,
+    'settings.dropdownBorder': roleMap.withOpacity(semanticColors.border, 0.25),
+    'settings.dropdownListBorder': roleMap.withOpacity(semanticColors.border, 0.25),
+    'settings.checkboxBackground': backgroundVariants.raised,
+    'settings.checkboxForeground': foregroundVariants.base,
+    'settings.checkboxBorder': roleMap.withOpacity(semanticColors.border, 0.25),
+    'settings.textInputBackground': backgroundVariants.raised,
+    'settings.textInputForeground': foregroundVariants.base,
+    'settings.textInputBorder': roleMap.withOpacity(semanticColors.border, 0.25),
+    'settings.numberInputBackground': backgroundVariants.raised,
+    'settings.numberInputForeground': foregroundVariants.base,
+    'settings.numberInputBorder': roleMap.withOpacity(semanticColors.border, 0.25),
+    'settings.focusedRowBackground': roleMap.withOpacity(semanticColors.focus, 0.08),
+    'settings.rowHoverBackground': roleMap.withOpacity(foregroundVariants.base, 0.05),
+
+    // ========================================================================
+    // Peek View Colors
+    // ========================================================================
+    'peekView.border': semanticColors.focus,
+    'peekViewEditor.background': backgroundVariants.raised,
+    'peekViewEditorGutter.background': backgroundVariants.raised,
+    'peekViewResult.background': backgroundVariants.raised,
+    'peekViewResult.fileForeground': foregroundVariants.base,
+    'peekViewResult.lineForeground': foregroundVariants.muted,
+    'peekViewResult.matchHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.25),
+    'peekViewResult.selectionBackground': roleMap.withOpacity(semanticColors.focus, 0.15),
+    'peekViewResult.selectionForeground': foregroundVariants.base,
+    'peekViewTitle.background': backgroundVariants.base,
+    'peekViewTitleDescription.foreground': foregroundVariants.muted,
+    'peekViewTitleLabel.foreground': foregroundVariants.base,
+    'peekViewEditor.matchHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.25),
+
+    // ========================================================================
+    // Chart Colors
+    // ========================================================================
+    'charts.foreground': foregroundVariants.base,
+    'charts.lines': roleMap.withOpacity(foregroundVariants.base, 0.5),
+    'charts.red': semanticColors.error,
+    'charts.blue': roleMap.blue,
+    'charts.yellow': semanticColors.warning,
+    'charts.orange': roleMap.brightYellow,
+    'charts.green': semanticColors.success,
+    'charts.purple': roleMap.magenta,
+
+    // ========================================================================
+    // Miscellaneous UI Colors
+    // ========================================================================
+    'keybindingLabel.background': roleMap.withOpacity(semanticColors.focus, 0.15),
+    'keybindingLabel.foreground': foregroundVariants.base,
+    'keybindingLabel.border': roleMap.withOpacity(semanticColors.focus, 0.3),
+    'keybindingLabel.bottomBorder': roleMap.withOpacity(semanticColors.focus, 0.4),
+    'commandCenter.foreground': foregroundVariants.muted,
+    'commandCenter.activeForeground': foregroundVariants.base,
+    'commandCenter.background': backgroundVariants.base,
+    'commandCenter.activeBackground': roleMap.withOpacity(semanticColors.focus, 0.1),
+    'commandCenter.border': roleMap.withOpacity(semanticColors.border, 0.25),
+    'commandCenter.inactiveForeground': roleMap.withOpacity(foregroundVariants.base, 0.4),
+    'commandCenter.activeBorder': semanticColors.focus,
+    'commandCenter.debuggingBackground': roleMap.withOpacity(semanticColors.warning, 0.15),
 
     // ========================================================================
     // Additional Essential UI Elements
@@ -1505,7 +1676,279 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     }
   ];
 
-  return [...baseTokens, ...jsonTokens];
+  // Additional comprehensive token colors to match professional themes
+  const advancedTokens: TokenColor[] = [
+    // ========================================================================
+    // Language-specific: JavaScript/TypeScript
+    // ========================================================================
+    {
+      name: 'JS/TS This',
+      scope: ['variable.language.this'],
+      settings: { foreground: semanticColors.error }
+    },
+    {
+      name: 'JS/TS Super',
+      scope: ['variable.language.super'],
+      settings: { foreground: semanticColors.error }
+    },
+    {
+      name: 'JS/TS Import/Export',
+      scope: ['keyword.control.import', 'keyword.control.export', 'keyword.control.from'],
+      settings: { foreground: roleMap.magenta }
+    },
+    {
+      name: 'JS/TS Type Keywords',
+      scope: ['storage.type.type', 'storage.type.interface', 'storage.type.enum'],
+      settings: { foreground: roleMap.blue }
+    },
+    {
+      name: 'JS/TS Decorators',
+      scope: ['punctuation.decorator', 'meta.decorator'],
+      settings: { foreground: semanticColors.warning }
+    },
+
+    // ========================================================================
+    // Language-specific: CSS/SCSS/LESS
+    // ========================================================================
+    {
+      name: 'CSS Property Values',
+      scope: ['support.constant.property-value.css', 'constant.other.color.rgb-value.css'],
+      settings: { foreground: roleMap.cyan }
+    },
+    {
+      name: 'CSS Units',
+      scope: ['keyword.other.unit.css', 'keyword.other.unit.scss'],
+      settings: { foreground: roleMap.magenta }
+    },
+    {
+      name: 'CSS Selectors',
+      scope: ['entity.name.tag.css', 'entity.other.attribute-name.class.css'],
+      settings: { foreground: semanticColors.warning }
+    },
+    {
+      name: 'CSS ID Selectors',
+      scope: ['entity.other.attribute-name.id.css'],
+      settings: { foreground: semanticColors.success }
+    },
+    {
+      name: 'CSS Pseudo Classes',
+      scope: ['entity.other.attribute-name.pseudo-class.css', 'entity.other.attribute-name.pseudo-element.css'],
+      settings: { foreground: roleMap.blue }
+    },
+
+    // ========================================================================
+    // Language-specific: HTML
+    // ========================================================================
+    {
+      name: 'HTML Doctype',
+      scope: ['meta.tag.sgml.doctype.html'],
+      settings: { foreground: semanticColors.border, fontStyle: 'italic' }
+    },
+    {
+      name: 'HTML Tag Names',
+      scope: ['entity.name.tag.html', 'entity.name.tag.block.any.html'],
+      settings: { foreground: semanticColors.error }
+    },
+    {
+      name: 'HTML Attribute Names',
+      scope: ['entity.other.attribute-name.html'],
+      settings: { foreground: semanticColors.warning }
+    },
+    {
+      name: 'HTML Attribute Values',
+      scope: ['string.quoted.double.html', 'string.quoted.single.html'],
+      settings: { foreground: semanticColors.success }
+    },
+
+    // ========================================================================
+    // Language-specific: Python
+    // ========================================================================
+    {
+      name: 'Python Self',
+      scope: ['variable.language.self.python'],
+      settings: { foreground: semanticColors.error, fontStyle: 'italic' }
+    },
+    {
+      name: 'Python Decorators',
+      scope: ['entity.name.function.decorator.python'],
+      settings: { foreground: semanticColors.warning }
+    },
+    {
+      name: 'Python Magic Methods',
+      scope: ['support.function.magic.python'],
+      settings: { foreground: roleMap.magenta }
+    },
+    {
+      name: 'Python String Formatting',
+      scope: ['constant.character.format.placeholder.other.python'],
+      settings: { foreground: roleMap.cyan }
+    },
+
+    // ========================================================================
+    // Language-specific: Markdown
+    // ========================================================================
+    {
+      name: 'Markdown Headers',
+      scope: ['markup.heading.markdown', 'entity.name.section.markdown'],
+      settings: { foreground: semanticColors.error, fontStyle: 'bold' }
+    },
+    {
+      name: 'Markdown Bold',
+      scope: ['markup.bold.markdown'],
+      settings: { foreground: foregroundVariants.base, fontStyle: 'bold' }
+    },
+    {
+      name: 'Markdown Italic',
+      scope: ['markup.italic.markdown'],
+      settings: { foreground: foregroundVariants.base, fontStyle: 'italic' }
+    },
+    {
+      name: 'Markdown Code',
+      scope: ['markup.inline.raw.markdown', 'markup.fenced_code.block.markdown'],
+      settings: { foreground: roleMap.magenta }
+    },
+    {
+      name: 'Markdown Links',
+      scope: ['markup.underline.link.markdown', 'string.other.link.title.markdown'],
+      settings: { foreground: semanticColors.info }
+    },
+    {
+      name: 'Markdown Lists',
+      scope: ['markup.list.numbered.markdown', 'markup.list.unnumbered.markdown'],
+      settings: { foreground: semanticColors.warning }
+    },
+
+    // ========================================================================
+    // Language-specific: YAML
+    // ========================================================================
+    {
+      name: 'YAML Keys',
+      scope: ['entity.name.tag.yaml'],
+      settings: { foreground: semanticColors.info }
+    },
+    {
+      name: 'YAML Anchors',
+      scope: ['punctuation.definition.anchor.yaml', 'variable.other.alias.yaml'],
+      settings: { foreground: semanticColors.warning }
+    },
+
+    // ========================================================================
+    // Language-specific: SQL
+    // ========================================================================
+    {
+      name: 'SQL Keywords',
+      scope: ['keyword.other.DML.sql', 'keyword.other.DDL.create.II.sql'],
+      settings: { foreground: roleMap.blue }
+    },
+    {
+      name: 'SQL Functions',
+      scope: ['support.function.aggregate.sql', 'support.function.scalar.sql'],
+      settings: { foreground: semanticColors.warning }
+    },
+
+    // ========================================================================
+    // Language-specific: Shell/Bash
+    // ========================================================================
+    {
+      name: 'Shell Variables',
+      scope: ['variable.other.normal.shell', 'variable.other.special.shell'],
+      settings: { foreground: roleMap.cyan }
+    },
+    {
+      name: 'Shell Commands',
+      scope: ['support.function.builtin.shell'],
+      settings: { foreground: semanticColors.warning }
+    },
+
+    // ========================================================================
+    // Language-specific: XML
+    // ========================================================================
+    {
+      name: 'XML Tags',
+      scope: ['entity.name.tag.xml', 'entity.name.tag.namespace.xml'],
+      settings: { foreground: semanticColors.error }
+    },
+    {
+      name: 'XML Attributes',
+      scope: ['entity.other.attribute-name.xml', 'entity.other.attribute-name.namespace.xml'],
+      settings: { foreground: semanticColors.warning }
+    },
+
+    // ========================================================================
+    // Version Control (Git)
+    // ========================================================================
+    {
+      name: 'Git Added',
+      scope: ['markup.inserted.git_gutter'],
+      settings: { foreground: semanticColors.success }
+    },
+    {
+      name: 'Git Modified',
+      scope: ['markup.changed.git_gutter'],
+      settings: { foreground: semanticColors.warning }
+    },
+    {
+      name: 'Git Deleted',
+      scope: ['markup.deleted.git_gutter'],
+      settings: { foreground: semanticColors.error }
+    },
+
+    // ========================================================================
+    // Advanced Constructs
+    // ========================================================================
+    {
+      name: 'Annotations',
+      scope: ['storage.type.annotation', 'punctuation.definition.annotation'],
+      settings: { foreground: semanticColors.warning }
+    },
+    {
+      name: 'Type Parameters',
+      scope: ['entity.name.type.parameter'],
+      settings: { foreground: roleMap.cyan }
+    },
+    {
+      name: 'Generic Types',
+      scope: ['meta.type.parameters', 'punctuation.definition.typeparameters'],
+      settings: { foreground: roleMap.cyan }
+    },
+    {
+      name: 'Module Names',
+      scope: ['entity.name.namespace', 'entity.name.module'],
+      settings: { foreground: semanticColors.info }
+    },
+    {
+      name: 'Interface Names',
+      scope: ['entity.name.type.interface'],
+      settings: { foreground: semanticColors.info }
+    },
+    {
+      name: 'Enum Names',
+      scope: ['entity.name.type.enum'],
+      settings: { foreground: roleMap.blue }
+    },
+    {
+      name: 'Constant Names',
+      scope: ['entity.name.constant'],
+      settings: { foreground: roleMap.magenta }
+    },
+    {
+      name: 'Property Access',
+      scope: ['meta.property.object', 'variable.other.property'],
+      settings: { foreground: foregroundVariants.base }
+    },
+    {
+      name: 'Method Calls',
+      scope: ['meta.method-call', 'meta.function-call.method'],
+      settings: { foreground: semanticColors.warning }
+    },
+    {
+      name: 'Constructor Calls',
+      scope: ['meta.instance.constructor', 'entity.name.function.constructor'],
+      settings: { foreground: roleMap.blue }
+    }
+  ];
+
+  return [...baseTokens, ...jsonTokens, ...advancedTokens];
 };
 
 // ============================================================================

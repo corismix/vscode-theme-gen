@@ -14,6 +14,11 @@ export interface FormData {
   outputPath: string;
   generateReadme: boolean;
   generateChangelog: boolean;
+  generateFullExtension: boolean;
+  generateQuickstart: boolean;
+  preserveSourceTheme: boolean;
+  generateGitIgnore: boolean;
+  generateVSCodeIgnore: boolean;
 }
 
 export interface ThemeData {
@@ -21,4 +26,4 @@ export interface ThemeData {
   theme: VSCodeTheme;
 }
 
-export type Step = 'file' | 'theme' | 'options' | 'process' | 'success' | 'error';
+export type Step = 'file' | 'theme' | 'options' | 'advanced' | 'process' | 'success' | 'error';

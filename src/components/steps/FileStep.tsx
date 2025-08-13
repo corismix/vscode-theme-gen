@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Header, useTextInput } from '../ui';
 import { FormData } from '../types';
+import { fileUtils } from '../../lib/utils-simple';
+import { FileValidationResult } from '../../types/error.types';
 
 interface FileStepProps {
   formData: FormData;
@@ -16,9 +18,51 @@ interface FileStepProps {
  */
 export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNext, error }) => {
   const textInput = useTextInput(formData.inputFile);
+  const [validation, setValidation] = useState<FileValidationResult>({ isValid: true });
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Real-time path validation with debouncing
+  useEffect(() => {
+    const validatePath = async () => {
+      const currentPath = textInput.value.trim();
+      
+      if (!currentPath) {
+        setValidation({ isValid: true });
+        setIsValidating(false);
+        return;
+      }
+
+      setIsValidating(true);
+      
+      try {
+        // Use enhanced path validation
+        const pathValidation = fileUtils.validateFilePath(currentPath);
+        
+        if (pathValidation.isValid) {
+          // If path format is valid, check if it's a valid Ghostty file
+          const fileValidation = fileUtils.validateGhosttyFile(currentPath);
+          setValidation(fileValidation);
+        } else {
+          setValidation(pathValidation);
+        }
+      } catch (err) {
+        setValidation({
+          isValid: false,
+          error: 'Path validation failed',
+          suggestions: ['Check that the path is formatted correctly']
+        });
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    // Debounce validation to avoid excessive checks while typing
+    const timeoutId = setTimeout(validatePath, 300);
+    return () => clearTimeout(timeoutId);
+  }, [textInput.value]);
 
   // Sync form data when the input value changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (textInput.value !== formData.inputFile) {
       setFormData({ ...formData, inputFile: textInput.value });
     }
@@ -36,34 +80,74 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       <Header title='🎨 VS Code Theme Generator - File Selection' />
 
       <Box marginBottom={1}>
-        <Text>Select your Ghostty theme file (.txt):</Text>
+        <Text>Select your Ghostty theme file:</Text>
       </Box>
 
+      {/* Input field with validation indicator */}
       <Box borderStyle='single' padding={1} marginBottom={1}>
-        <Text>📁 {(() => {
-          const { value, cursorPos } = textInput;
+        <Box>
+          <Text>📁 </Text>
+          {(() => {
+            const { value, cursorPos } = textInput;
 
-          if (value.length === 0) {
-            return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
-          }
+            if (value.length === 0) {
+              return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
+            }
 
-          if (cursorPos >= value.length) {
-            return <Text>{value}<Text backgroundColor='cyan' color='black'> </Text></Text>;
-          }
+            if (cursorPos >= value.length) {
+              return (
+                <Text>
+                  {value}
+                  <Text backgroundColor='cyan' color='black'> </Text>
+                </Text>
+              );
+            }
 
-          const before = value.slice(0, cursorPos);
-          const cursorChar = value.slice(cursorPos, cursorPos + 1);
-          const after = value.slice(cursorPos + 1);
+            const before = value.slice(0, cursorPos);
+            const cursorChar = value.slice(cursorPos, cursorPos + 1);
+            const after = value.slice(cursorPos + 1);
 
-          return (
-            <Text>
-              {before}
-              <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
-              {after}
-            </Text>
-          );
-        })()}</Text>
+            return (
+              <Text>
+                {before}
+                <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
+                {after}
+              </Text>
+            );
+          })()}
+          
+          {/* Validation indicator */}
+          <Text> {
+            textInput.value.trim() === '' ? '' :
+            isValidating ? '⏳' :
+            validation.isValid ? '✅' : '❌'
+          }</Text>
+        </Box>
       </Box>
+
+      {/* Normalized path preview (when different from input) */}
+      {validation.normalizedPath && validation.normalizedPath !== textInput.value.trim() && (
+        <Box marginBottom={1} paddingLeft={1}>
+          <Text color='cyan'>→ Resolved: {validation.normalizedPath}</Text>
+        </Box>
+      )}
+
+      {/* Real-time validation feedback */}
+      {textInput.value.trim() && !validation.isValid && validation.error && (
+        <Box marginBottom={1}>
+          <Text color='red'>❌ {validation.error}</Text>
+          {validation.suggestions && validation.suggestions.map((suggestion, index) => (
+            <Text key={index} color='yellow'>  💡 {suggestion}</Text>
+          ))}
+        </Box>
+      )}
+
+      {/* Success feedback */}
+      {textInput.value.trim() && validation.isValid && !isValidating && (
+        <Box marginBottom={1}>
+          <Text color='green'>✅ Valid theme file path</Text>
+        </Box>
+      )}
 
       {error && (
         <Box marginBottom={1}>
@@ -72,9 +156,15 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       )}
 
       <Box flexDirection='column'>
-        <Text color='gray'>Type the file path and press Enter</Text>
+        <Text color='gray'>Type or paste the file path and press Enter</Text>
         <Text color='gray' dimColor>
-          Navigation: ←→ arrow keys, Backspace/Delete, Ctrl+A (home), Ctrl+E (end)
+          💡 Paste: Ctrl+V (Windows/Linux) or Cmd+V (macOS)
+        </Text>
+        <Text color='gray' dimColor>
+          📁 Supports: ~/home paths, .txt/.toml/.conf files
+        </Text>
+        <Text color='gray' dimColor>
+          ⌨️  Navigate: ←→ arrows, Backspace/Delete, Ctrl+A/E
         </Text>
       </Box>
     </Box>

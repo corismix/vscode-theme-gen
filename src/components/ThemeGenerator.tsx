@@ -6,13 +6,13 @@
  */
 
 import React, { useState } from 'react';
-import { Box } from 'ink';
+import { Box, Text, useInput } from 'ink';
 
 // Import core business logic
 import { parseThemeFile, buildVSCodeTheme } from '../lib/theme-generator';
 
 // Import step components and shared types
-import { FileStep, ThemeStep, OptionsStep, ProcessStep, SuccessStep, ErrorDisplay } from './steps';
+import { FileStep, ThemeStep, OptionsStep, AdvancedOptionsStep, ProcessStep, SuccessStep, ErrorDisplay } from './steps';
 import { FormData, ThemeData, Step } from './types';
 
 /**
@@ -34,10 +34,16 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
     outputPath: '',
     generateReadme: true,
     generateChangelog: true,
+    generateFullExtension: true,
+    generateQuickstart: true,
+    preserveSourceTheme: true,
+    generateGitIgnore: true,
+    generateVSCodeIgnore: true,
     ...initialData,
   });
   const [themeData, setThemeData] = useState<ThemeData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Navigation handlers
   const goToNext = async () => {
@@ -55,6 +61,8 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
     } else if (currentStep === 'theme') {
       setCurrentStep('options');
     } else if (currentStep === 'options') {
+      setCurrentStep('advanced');
+    } else if (currentStep === 'advanced') {
       setCurrentStep('process');
     }
   };
@@ -66,6 +74,8 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
       setCurrentStep('file');
     } else if (currentStep === 'options') {
       setCurrentStep('theme');
+    } else if (currentStep === 'advanced') {
+      setCurrentStep('options');
     } else if (currentStep === 'error') {
       setCurrentStep('file');
     }
@@ -91,12 +101,65 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
       outputPath: '',
       generateReadme: true,
       generateChangelog: true,
+      generateFullExtension: true,
+      generateQuickstart: true,
+      preserveSourceTheme: true,
+      generateGitIgnore: true,
+      generateVSCodeIgnore: true,
     });
     setThemeData(null);
     setError(null);
   };
 
   const exit = () => process.exit(0);
+
+  // Global keyboard navigation
+  useInput((input, key) => {
+    // ESC key for back navigation (except on first step and terminal states)
+    if (key.escape && currentStep !== 'file' && currentStep !== 'success' && currentStep !== 'process') {
+      goToBack();
+      return;
+    }
+
+    // F1 key for help
+    if (key.f1) {
+      setShowHelp(!showHelp);
+      return;
+    }
+
+    // Ctrl+C for graceful exit
+    if (key.ctrl && input === 'c') {
+      exit();
+      return;
+    }
+  });
+
+  // Step information helpers
+  const getStepInfo = () => {
+    const steps = ['file', 'theme', 'options', 'advanced', 'process'] as const;
+    const currentIndex = steps.indexOf(currentStep as any);
+    const totalSteps = steps.length;
+    
+    return {
+      currentIndex: currentIndex + 1,
+      totalSteps,
+      stepName: currentStep,
+      canGoBack: currentStep !== 'file' && currentStep !== 'success' && currentStep !== 'process'
+    };
+  };
+
+  const getStepTitle = (step: string) => {
+    const titles = {
+      file: 'File Selection',
+      theme: 'Theme Configuration', 
+      options: 'Extension Options',
+      advanced: 'Advanced Settings',
+      process: 'Generating Theme',
+      success: 'Generation Complete',
+      error: 'Error Recovery'
+    };
+    return titles[step as keyof typeof titles] || step;
+  };
 
   // Step rendering logic
   const renderCurrentStep = () => {
@@ -117,6 +180,9 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
 
       case 'options':
         return <OptionsStep {...commonProps} onNext={goToNext} onBack={goToBack} />;
+
+      case 'advanced':
+        return <AdvancedOptionsStep {...commonProps} onNext={goToNext} onBack={goToBack} />;
 
       case 'process':
         return themeData ? (
@@ -145,9 +211,72 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
     }
   };
 
+  const stepInfo = getStepInfo();
+
   return (
-    <Box width='100%' minHeight={20} padding={1}>
-      {renderCurrentStep()}
+    <Box width='100%' minHeight={20} padding={1} flexDirection='column'>
+      {/* Progress indicator - only show for main workflow steps */}
+      {['file', 'theme', 'options', 'advanced', 'process'].includes(currentStep) && (
+        <Box marginBottom={1} paddingX={1} borderStyle='round' borderColor='gray'>
+          <Box width='100%' justifyContent='space-between'>
+            <Text color='cyan'>
+              Step {stepInfo.currentIndex} of {stepInfo.totalSteps}: {getStepTitle(currentStep)}
+            </Text>
+            <Text color='gray'>
+              Progress: {'█'.repeat(stepInfo.currentIndex)}{'░'.repeat(stepInfo.totalSteps - stepInfo.currentIndex)}
+            </Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Main step content */}
+      <Box flexGrow={1}>
+        {renderCurrentStep()}
+      </Box>
+
+      {/* Global navigation hints */}
+      {!['success', 'process'].includes(currentStep) && (
+        <Box marginTop={1} borderStyle='single' borderColor='gray' padding={1}>
+          <Box flexDirection='column'>
+            <Text color='gray' dimColor>
+              🌟 Global shortcuts: {stepInfo.canGoBack ? 'ESC (back) • ' : ''}F1 (help) • Ctrl+C (exit)
+            </Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Help overlay */}
+      {showHelp && (
+        <Box 
+          position='absolute' 
+          top={2} 
+          left={2} 
+          right={2} 
+          borderStyle='double' 
+          borderColor='yellow' 
+          backgroundColor='black' 
+          padding={1}
+        >
+          <Box flexDirection='column'>
+            <Text color='yellow' bold>🆘 Help - VS Code Theme Generator</Text>
+            <Text> </Text>
+            <Text color='white'>📋 <Text bold>Current Step:</Text> {getStepTitle(currentStep)}</Text>
+            <Text> </Text>
+            <Text color='cyan'>⌨️  <Text bold>Keyboard Shortcuts:</Text></Text>
+            <Text>   • <Text color='green'>Enter:</Text> Submit/Next step</Text>
+            {stepInfo.canGoBack && <Text>   • <Text color='green'>ESC:</Text> Go back to previous step</Text>}
+            <Text>   • <Text color='green'>F1:</Text> Toggle this help</Text>
+            <Text>   • <Text color='green'>Ctrl+C:</Text> Exit application</Text>
+            <Text> </Text>
+            <Text color='cyan'>📁 <Text bold>File Input:</Text></Text>
+            <Text>   • <Text color='green'>Paste:</Text> Ctrl+V (Win/Linux) or Cmd+V (Mac)</Text>
+            <Text>   • <Text color='green'>Navigate:</Text> Arrow keys, Home/End</Text>
+            <Text>   • <Text color='green'>Supports:</Text> ~/paths, .txt/.toml/.conf files</Text>
+            <Text> </Text>
+            <Text color='gray' dimColor>Press F1 again to close this help</Text>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };

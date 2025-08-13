@@ -139,6 +139,8 @@ export interface FileValidationResult {
   suggestions?: string[];
   /** Non-blocking warnings */
   warnings?: string[];
+  /** Normalized and resolved file path */
+  normalizedPath?: string;
   /** Additional validation details */
   details?: {
     /** File size in bytes */
