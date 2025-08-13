@@ -31,7 +31,7 @@ export const TextInput: React.FC<TextInputProps> = ({
 
   const renderWithCursor = () => {
     const { value, cursorPos } = textInput;
-    
+
     if (value.length === 0) {
       return (
         <Text>

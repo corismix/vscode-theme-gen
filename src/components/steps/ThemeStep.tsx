@@ -81,7 +81,7 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
         <Box borderStyle='single' padding={1} marginBottom={1}>
           <Text>{(() => {
             const { value, cursorPos } = nameInput;
-            
+
             if (value.length === 0) {
               return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
             }
@@ -118,7 +118,7 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
           <Box borderStyle='single' padding={1} marginBottom={1}>
             <Text>{(() => {
               const { value, cursorPos } = descInput;
-              
+
               if (value.length === 0) {
                 return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
               }

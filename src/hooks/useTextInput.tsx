@@ -18,7 +18,7 @@ export const useTextInput = (initialValue: string = '') => {
       setCursorOffset(Math.min(cursorOffset + 1, value.length));
       return { shouldSubmit: false, value };
     }
-    
+
     if (key.rightArrow) {
       setCursorOffset(Math.max(cursorOffset - 1, 0));
       return { shouldSubmit: false, value };
@@ -29,8 +29,8 @@ export const useTextInput = (initialValue: string = '') => {
       setCursorOffset(value.length);
       return { shouldSubmit: false, value };
     }
-    
-    // End key - move to end  
+
+    // End key - move to end
     if (key.ctrl && input === 'e') {
       setCursorOffset(0);
       return { shouldSubmit: false, value };
@@ -38,7 +38,7 @@ export const useTextInput = (initialValue: string = '') => {
 
     // Handle text modification operations
     const cursorPos = value.length - cursorOffset;
-    
+
     // Handle backward delete (Backspace key, or Delete key on macOS)
     if (key.backspace && cursorPos > 0) {
       const newValue = value.slice(0, cursorPos - 1) + value.slice(cursorPos);
@@ -48,7 +48,7 @@ export const useTextInput = (initialValue: string = '') => {
       setCursorOffset(Math.max(0, cursorOffset));
       return { shouldSubmit: false, value: newValue };
     }
-    
+
     // Handle forward delete (Fn+Delete on macOS, Delete on other systems)
     if (key.delete && cursorPos < value.length) {
       const newValue = value.slice(0, cursorPos) + value.slice(cursorPos + 1);
@@ -57,7 +57,7 @@ export const useTextInput = (initialValue: string = '') => {
       setCursorOffset(Math.min(cursorOffset, newValue.length));
       return { shouldSubmit: false, value: newValue };
     }
-    
+
     // On macOS, the physical Delete key might be mapped to key.delete but should behave as backspace
     // This handles the case where macOS Delete key is detected as key.delete instead of key.backspace
     if (key.delete && cursorPos >= value.length && cursorPos > 0) {
@@ -67,7 +67,7 @@ export const useTextInput = (initialValue: string = '') => {
       setCursorOffset(Math.max(0, cursorOffset));
       return { shouldSubmit: false, value: newValue };
     }
-    
+
     // Regular character input
     if (input && !key.ctrl && !key.meta && !key.alt && input.length === 1 && input.charCodeAt(0) >= 32) {
       const newValue = value.slice(0, cursorPos) + input + value.slice(cursorPos);
@@ -75,7 +75,7 @@ export const useTextInput = (initialValue: string = '') => {
       // Cursor moves right after character insertion, so offset stays the same
       return { shouldSubmit: false, value: newValue };
     }
-    
+
     return { shouldSubmit: false, value };
   }, [value, cursorOffset]);
 

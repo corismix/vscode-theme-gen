@@ -73,7 +73,7 @@ export const OptionsStep: React.FC<OptionsStepProps> = ({
         <Box borderStyle='single' padding={1} marginBottom={1}>
           <Text>{(() => {
             const { value, cursorPos } = publisherInput;
-            
+
             if (value.length === 0) {
               return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
             }
@@ -110,7 +110,7 @@ export const OptionsStep: React.FC<OptionsStepProps> = ({
           <Box borderStyle='single' padding={1} marginBottom={1}>
             <Text>{(() => {
               const { value, cursorPos } = outputInput;
-              
+
               if (value.length === 0) {
                 return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
               }

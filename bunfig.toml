@@ -1,0 +1,23 @@
+# Bun configuration for VS Code Theme Generator
+
+[install]
+# Equivalent to npm ci for deterministic installs
+exact = true
+# Faster installs with aggressive caching
+cache = "force"
+# Respect package.json engines field
+engine-strict = true
+
+[run]
+# Use system shell for script execution compatibility
+shell = "system"
+
+[test]
+# Test configuration for Vitest compatibility
+# Ensure test setup is loaded
+preload = ["./src/test/setup.ts"]
+
+[build]
+# Build configuration
+target = "node"
+format = "esm"

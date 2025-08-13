@@ -42,7 +42,7 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       <Box borderStyle='single' padding={1} marginBottom={1}>
         <Text>📁 {(() => {
           const { value, cursorPos } = textInput;
-          
+
           if (value.length === 0) {
             return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
           }
