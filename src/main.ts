@@ -17,7 +17,7 @@ import { CLIFlags, FormData } from './types';
 const cli = meow(
   `
 	Usage
-	  $ theme-generator [options]
+	  $ vscode-theme-gen [options]
 
 	Options
 	  --input, -i       Input Ghostty theme file (.txt)
@@ -34,9 +34,9 @@ const cli = meow(
 	  --version         Show version
 
 	Examples
-	  $ theme-generator
-	  $ theme-generator --input my-theme.txt --output ./my-theme
-	  $ theme-generator -i theme.txt -n "My Theme" -p my-publisher
+	  $ vscode-theme-gen
+	  $ vscode-theme-gen --input my-theme.txt --output ./my-theme
+	  $ vscode-theme-gen -i theme.txt -n "My Theme" -p my-publisher
 `,
   {
     importMeta: import.meta,
@@ -242,7 +242,7 @@ const main = (): void => {
       console.error(err.stack);
     }
     console.error('');
-    console.error('Please report this issue at: https://github.com/your-repo/issues');
+    console.error('Please report this issue at: https://github.com/corismer/vscode-theme-gen/issues');
     process.exit(1);
   });
 
@@ -253,7 +253,7 @@ const main = (): void => {
     console.error('An unexpected error occurred:');
     console.error(reason);
     console.error('');
-    console.error('Please report this issue at: https://github.com/your-repo/issues');
+    console.error('Please report this issue at: https://github.com/corismer/vscode-theme-gen/issues');
     process.exit(1);
   });
 };
