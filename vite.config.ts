@@ -29,7 +29,7 @@ export default defineConfig({
   },
 
   build: {
-    target: 'es2020',
+    target: 'node18',
     outDir: 'dist',
     lib: {
       entry: 'src/main.ts',
@@ -38,11 +38,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
-        // Runtime dependencies that should remain external
-        'react',
-        'ink', 
-        'meow',
-        // Node.js built-ins
+        // Node.js built-ins (including node: prefixed versions)
         'fs',
         'fs/promises',
         'path',
@@ -51,7 +47,26 @@ export default defineConfig({
         'process',
         'child_process',
         'stream',
-        'events'
+        'events',
+        'node:fs',
+        'node:fs/promises',
+        'node:path',
+        'node:os',
+        'node:util',
+        'node:process',
+        'node:child_process',
+        'node:stream',
+        'node:events',
+        'node:buffer',
+        'node:url',
+        'module',
+        'url',
+        'buffer',
+        'assert',
+        // Keep react, ink, and meow as external for now due to Node.js specifics
+        'react',
+        'ink',
+        'meow'
       ],
       output: {
         entryFileNames: 'index.js',

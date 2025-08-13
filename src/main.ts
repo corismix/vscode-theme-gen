@@ -262,9 +262,5 @@ const main = (): void => {
 // Entry Point
 // ============================================================================
 
-// Only run main if this file is being executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
-}
-
-export default main;
+// Run main function - CLI tools should execute directly
+main();
