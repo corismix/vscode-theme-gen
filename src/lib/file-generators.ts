@@ -25,6 +25,7 @@ import {
   GenerationResults,
   VSCodeTheme,
   GenerationError,
+  ValidationError,
 } from '@/types';
 import { fileUtils } from './utils-simple';
 
@@ -183,7 +184,7 @@ export const generatePackageJson = (
     keywords: ['theme', 'dark theme', 'color theme', themeName.toLowerCase()],
     galleryBanner: {
       color: options.galleryBannerColor || '#1e1e1e',
-      theme: 'dark'
+      theme: 'dark',
     },
     contributes: {
       themes: [
@@ -270,11 +271,11 @@ code --install-extension ${options.publisher ? `${options.publisher}.${packageNa
 
 ## Features
 
-- 🎨 Carefully selected colors for optimal readability
-- 🌙 Dark theme optimized for low-light environments
-- 💻 Converted from Ghostty terminal theme for consistency
-- 🔧 Works with all popular programming languages
-- ✨ Thoughtful syntax highlighting
+- Carefully selected colors for optimal readability
+- Dark theme optimized for low-light environments
+- Converted from Ghostty terminal theme for consistency
+- Works with all popular programming languages
+- Thoughtful syntax highlighting
 
 ## Screenshots
 
@@ -388,8 +389,8 @@ export const generateLaunchJson = (): string => {
           type: 'extensionHost',
           request: 'launch',
           args: [
-            '--extensionDevelopmentPath=${workspaceFolder}'
-          ]
+            '--extensionDevelopmentPath=${workspaceFolder}',
+          ],
         },
       ],
     },
@@ -507,7 +508,7 @@ export const generateQuickstart = (themeName: string, options: GenerationOptions
 
 Welcome to ${displayName}! This guide will help you get started with your new VS Code theme.
 
-## 🚀 Installation
+## Installation
 
 ### Method 1: VS Code Marketplace (Recommended)
 1. Open VS Code
@@ -522,17 +523,17 @@ Welcome to ${displayName}! This guide will help you get started with your new VS
 4. Click "..." menu → "Install from VSIX"
 5. Select the downloaded file
 
-## 🎨 Activation
+## Activation
 
 1. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
 2. Type "Preferences: Color Theme"
 3. Select "${displayName}" from the list
 
-## ⌨️ Keyboard Shortcut
+## Keyboard Shortcut
 - **Windows/Linux**: Ctrl+K Ctrl+T
 - **macOS**: Cmd+K Cmd+T
 
-## 🔧 Customization
+## Customization
 
 ### Override Theme Colors
 Add to your VS Code settings.json:
@@ -575,7 +576,7 @@ Add to your VS Code settings.json:
 - [VS Code Theme Documentation](https://code.visualstudio.com/api/extension-guides/color-theme)
 - [Color Theme Guide](https://code.visualstudio.com/docs/getstarted/themes)
 
-## 💡 Tips
+## Tips
 
 - Use the theme with the Fira Code font for best experience
 - Enable bracket pair colorization for better code structure
@@ -588,7 +589,7 @@ Having issues? Found a bug? Want to suggest improvements?
 - [Report Issues](${options.publisher ? `https://github.com/${options.publisher}/${toPackageName(themeName)}/issues` : '#'})
 - [Contribute](${options.publisher ? `https://github.com/${options.publisher}/${toPackageName(themeName)}` : '#'})
 
-Enjoy coding with ${displayName}! 🎉
+Enjoy coding with ${displayName}!
 `;
 };
 
@@ -598,7 +599,7 @@ Enjoy coding with ${displayName}! 🎉
 
 /**
  * Generates .vscodeignore file for VS Code extension packaging
- * 
+ *
  * Excludes unnecessary files from the extension package when using vsce.
  * Based on VS Code extension best practices.
  *
@@ -621,10 +622,10 @@ node_modules/
 
 /**
  * Generates .gitignore file for version control
- * 
+ *
  * Standard .gitignore for VS Code extension development.
  *
- * @returns .gitignore file content  
+ * @returns .gitignore file content
  * @since 2.0.0
  */
 export const generateGitIgnore = (): string => {
@@ -640,7 +641,7 @@ dist/
 
 /**
  * Generates VS Code extension quickstart guide
- * 
+ *
  * Replaces the custom quickstart with the standard VS Code extension
  * development guide that matches what VS Code generates.
  *
@@ -649,9 +650,8 @@ dist/
  * @returns VS Code extension quickstart content
  * @since 2.0.0
  */
-export const generateVSCodeQuickstart = (themeName: string, options: GenerationOptions): string => {
+export const generateVSCodeQuickstart = (themeName: string, _options: GenerationOptions): string => {
   const displayName = toDisplayName(themeName);
-  const packageName = toPackageName(themeName);
 
   return `# ${displayName} - Developer Guide
 
@@ -726,7 +726,7 @@ Changes are automatically applied to the Extension Development Host window.
 
 /**
  * Copies the original source theme file to src-theme directory
- * 
+ *
  * Preserves the original Ghostty theme file for reference and future updates.
  * Creates the src-theme directory structure.
  *
@@ -742,24 +742,24 @@ export const copySourceTheme = async (sourcePath: string, outputPath: string): P
 }> => {
   const { promises: fs } = await import('fs');
   const { basename, join } = await import('path');
-  
+
   // Normalize output path
   const normalizedOutputPath = fileUtils.normalizePath(outputPath);
-  
+
   // Create src-theme directory
   const srcThemeDir = join(normalizedOutputPath, 'src-theme');
   await fs.mkdir(srcThemeDir, { recursive: true });
-  
+
   // Copy the source file
   const fileName = basename(sourcePath);
   const destPath = join(srcThemeDir, fileName);
   const content = await fs.readFile(sourcePath, 'utf8');
   await fs.writeFile(destPath, content);
-  
+
   return {
     path: destPath,
     content,
-    size: Buffer.byteLength(content, 'utf8')
+    size: Buffer.byteLength(content, 'utf8'),
   };
 };
 
@@ -815,8 +815,37 @@ export const generateExtensionFiles = async (
   const generatedFiles: GeneratedFile[] = [];
 
   try {
-    // Normalize output path to handle tilde expansion and cross-platform paths
-    const normalizedOutputPath = fileUtils.normalizePath(options.normalizedOutputPath);
+    // Validate and normalize output path to handle tilde expansion and cross-platform paths
+    if (!options.outputPath) {
+      throw new ValidationError('Output path is required', 'outputPath', [
+        'Provide a valid output directory path',
+        'Example: ./my-theme-extension',
+      ]);
+    }
+
+    // Additional input validation for outputPath
+    if (typeof options.outputPath !== 'string') {
+      throw new ValidationError('Output path must be a string', 'outputPath', [
+        'Ensure the output path is provided as a string',
+        'Example: "./my-theme-extension"',
+      ]);
+    }
+
+    if (options.outputPath.trim().length === 0) {
+      throw new ValidationError('Output path cannot be empty', 'outputPath', [
+        'Provide a non-empty output directory path',
+        'Example: ./my-theme-extension',
+      ]);
+    }
+
+    const normalizedOutputPath = fileUtils.normalizePath(options.outputPath);
+    if (!normalizedOutputPath) {
+      throw new ValidationError('Failed to normalize output path', 'outputPath', [
+        'Check that the output path format is correct',
+        'Avoid invalid characters in the path',
+      ]);
+    }
+
     const { themeName } = options;
     const packageName = toPackageName(themeName);
     const themeFileName = `${packageName}-color-theme.json`;
@@ -956,7 +985,7 @@ export const generateExtensionFiles = async (
     if (options.preserveSourceTheme && options.sourcePath) {
       try {
         const copiedTheme = await copySourceTheme(options.sourcePath, normalizedOutputPath);
-        
+
         generatedFiles.push({
           path: copiedTheme.path,
           content: copiedTheme.content,
@@ -978,13 +1007,13 @@ export const generateExtensionFiles = async (
     if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
       console.log(
-        `✅ Generated ${generatedFiles.length} files in ${duration}ms (${totalSize} bytes total)`,
+        `Generated ${generatedFiles.length} files in ${duration}ms (${totalSize} bytes total)`,
       );
     }
 
     return {
       success: true,
-      normalizedOutputPath,
+      outputPath: normalizedOutputPath,
       files: generatedFiles,
     };
   } catch (error) {

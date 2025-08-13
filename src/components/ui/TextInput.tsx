@@ -18,7 +18,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   placeholder = '',
   onSubmit: _onSubmit,
   onUpdate,
-  icon = '📝',
+  icon = '>',
 }) => {
   const textInput = useTextInput(initialValue);
 

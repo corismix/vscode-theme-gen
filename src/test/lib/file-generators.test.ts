@@ -344,9 +344,9 @@ describe('generateQuickstart', () => {
     const result = generateQuickstart('Test Theme', mockOptions);
 
     expect(result).toContain('# Test Theme - Quick Start Guide');
-    expect(result).toContain('## 🚀 Installation');
-    expect(result).toContain('## 🎨 Activation');
-    expect(result).toContain('## 🔧 Customization');
+    expect(result).toContain('## Installation');
+    expect(result).toContain('## Activation');
+    expect(result).toContain('## Customization');
     expect(result).toContain('## 🐛 Troubleshooting');
   });
 

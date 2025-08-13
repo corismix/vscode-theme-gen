@@ -3,3 +3,4 @@
  */
 export { Header } from './Header';
 export { TextInput, useTextInput } from './TextInput';
+export { NavigationHints } from './NavigationHints';

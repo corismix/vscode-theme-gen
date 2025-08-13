@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { Header, useTextInput } from '../ui';
-import { FormData } from '../types';
+import { Header, useTextInput, NavigationHints } from '../ui';
+import { FormData } from '@/types';
 import { fileUtils } from '../../lib/utils-simple';
 import { FileValidationResult } from '../../types/error.types';
 
@@ -16,7 +16,7 @@ interface FileStepProps {
  * File selection step component
  * Allows user to input path to Ghostty theme file
  */
-export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNext, error }) => {
+const FileStepComponent: React.FC<FileStepProps> = ({ formData, setFormData, onNext, error }) => {
   const textInput = useTextInput(formData.inputFile);
   const [validation, setValidation] = useState<FileValidationResult>({ isValid: true });
   const [isValidating, setIsValidating] = useState(false);
@@ -25,7 +25,7 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
   useEffect(() => {
     const validatePath = async () => {
       const currentPath = textInput.value.trim();
-      
+
       if (!currentPath) {
         setValidation({ isValid: true });
         setIsValidating(false);
@@ -33,11 +33,11 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       }
 
       setIsValidating(true);
-      
+
       try {
         // Use enhanced path validation
         const pathValidation = fileUtils.validateFilePath(currentPath);
-        
+
         if (pathValidation.isValid) {
           // If path format is valid, check if it's a valid Ghostty file
           const fileValidation = fileUtils.validateGhosttyFile(currentPath);
@@ -49,7 +49,7 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
         setValidation({
           isValid: false,
           error: 'Path validation failed',
-          suggestions: ['Check that the path is formatted correctly']
+          suggestions: ['Check that the path is formatted correctly'],
         });
       } finally {
         setIsValidating(false);
@@ -57,7 +57,7 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
     };
 
     // Debounce validation to avoid excessive checks while typing
-    const timeoutId = setTimeout(validatePath, 300);
+    const timeoutId = setTimeout(validatePath, 500);
     return () => clearTimeout(timeoutId);
   }, [textInput.value]);
 
@@ -77,7 +77,7 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
 
   return (
     <Box flexDirection='column'>
-      <Header title='🎨 VS Code Theme Generator - File Selection' />
+      <Header title='VS Code Theme Generator - File Selection' />
 
       <Box marginBottom={1}>
         <Text>Select your Ghostty theme file:</Text>
@@ -86,7 +86,7 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       {/* Input field with validation indicator */}
       <Box borderStyle='single' padding={1} marginBottom={1}>
         <Box>
-          <Text>📁 </Text>
+          <Text>File: </Text>
           {(() => {
             const { value, cursorPos } = textInput;
 
@@ -115,12 +115,12 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
               </Text>
             );
           })()}
-          
+
           {/* Validation indicator */}
           <Text> {
             textInput.value.trim() === '' ? '' :
-            isValidating ? '⏳' :
-            validation.isValid ? '✅' : '❌'
+            isValidating ? 'Validating...' :
+            validation.isValid ? 'Valid' : 'Invalid'
           }</Text>
         </Box>
       </Box>
@@ -135,9 +135,9 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       {/* Real-time validation feedback */}
       {textInput.value.trim() && !validation.isValid && validation.error && (
         <Box marginBottom={1}>
-          <Text color='red'>❌ {validation.error}</Text>
+          <Text color='red'>{validation.error}</Text>
           {validation.suggestions && validation.suggestions.map((suggestion, index) => (
-            <Text key={index} color='yellow'>  💡 {suggestion}</Text>
+            <Text key={index} color='yellow'>  Tip: {suggestion}</Text>
           ))}
         </Box>
       )}
@@ -145,28 +145,27 @@ export const FileStep: React.FC<FileStepProps> = ({ formData, setFormData, onNex
       {/* Success feedback */}
       {textInput.value.trim() && validation.isValid && !isValidating && (
         <Box marginBottom={1}>
-          <Text color='green'>✅ Valid theme file path</Text>
+          <Text color='green'>Valid theme file path</Text>
         </Box>
       )}
 
       {error && (
         <Box marginBottom={1}>
-          <Text color='red'>❌ {error}</Text>
+          <Text color='red'>{error}</Text>
         </Box>
       )}
 
       <Box flexDirection='column'>
         <Text color='gray'>Type or paste the file path and press Enter</Text>
         <Text color='gray' dimColor>
-          💡 Paste: Ctrl+V (Windows/Linux) or Cmd+V (macOS)
+          Supports: ~/home paths, .txt/.toml/.conf files
         </Text>
-        <Text color='gray' dimColor>
-          📁 Supports: ~/home paths, .txt/.toml/.conf files
-        </Text>
-        <Text color='gray' dimColor>
-          ⌨️  Navigate: ←→ arrows, Backspace/Delete, Ctrl+A/E
-        </Text>
+        <NavigationHints showInput showPaste />
       </Box>
     </Box>
   );
 };
+
+FileStepComponent.displayName = 'FileStep';
+
+export const FileStep = React.memo(FileStepComponent);

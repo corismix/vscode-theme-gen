@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { InkKeyEvent, InputHandlerResult, TextInputHook } from '../types/ink.types';
+import { InkKeyEvent, InputHandlerResult, TextInputHook } from '@/types';
 
 /**
  * Terminal text input hook with proper cursor navigation
@@ -75,7 +75,7 @@ export const useTextInput = (initialValue: string = ''): TextInputHook => {
       return { shouldSubmit: false, value };
     }
     if (key.meta && input === 'v') {
-      // This will be handled by the terminal/Ink automatically - just indicate we handled it  
+      // This will be handled by the terminal/Ink automatically - just indicate we handled it
       return { shouldSubmit: false, value };
     }
 
@@ -83,7 +83,7 @@ export const useTextInput = (initialValue: string = ''): TextInputHook => {
     if (input && !key.ctrl && !key.meta && !key.alt && input.length > 0) {
       // Filter out non-printable characters but allow multi-character input (paste)
       const sanitizedInput = input.split('').filter(char => char.charCodeAt(0) >= 32).join('');
-      
+
       if (sanitizedInput.length > 0) {
         const newValue = value.slice(0, cursorPos) + sanitizedInput + value.slice(cursorPos);
         setValue(newValue);

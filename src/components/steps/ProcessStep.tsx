@@ -3,7 +3,27 @@ import { Box, Text } from 'ink';
 import { Header } from '../ui';
 import { buildVSCodeTheme } from '../../lib/theme-generator';
 import { generateExtensionFiles } from '../../lib/file-generators';
-import { FormData, ThemeData } from '../types';
+import { FormData, ThemeData } from '@/types';
+
+// Loading spinner component
+const LoadingSpinner: React.FC = () => {
+  const [spinnerIndex, setSpinnerIndex] = useState(0);
+  const spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSpinnerIndex(prev => (prev + 1) % spinnerChars.length);
+    }, 80);
+
+    return () => clearInterval(interval);
+  }, [spinnerChars.length]);
+
+  return (
+    <Text color="cyan">
+      {spinnerChars[spinnerIndex]}
+    </Text>
+  );
+};
 
 interface ProcessStepProps {
   formData: FormData;
@@ -16,7 +36,7 @@ interface ProcessStepProps {
  * Processing step component
  * Handles the generation of VS Code theme extension files
  */
-export const ProcessStep: React.FC<ProcessStepProps> = ({
+const ProcessStepComponent: React.FC<ProcessStepProps> = ({
   formData,
   themeData,
   onSuccess,
@@ -67,15 +87,22 @@ export const ProcessStep: React.FC<ProcessStepProps> = ({
 
   return (
     <Box flexDirection='column'>
-      <Header title='🔄 Generating Extension' />
+      <Header title='Generating Extension' />
 
       <Box marginBottom={2}>
-        <Text>🎯 {progress}</Text>
+        <Text>Status: {progress}</Text>
       </Box>
 
       <Box>
-        <Text color='gray'>Please wait...</Text>
+        <LoadingSpinner />
+        <Box marginLeft={1}>
+          <Text color='gray'>Processing...</Text>
+        </Box>
       </Box>
     </Box>
   );
 };
+
+ProcessStepComponent.displayName = 'ProcessStep';
+
+export const ProcessStep = React.memo(ProcessStepComponent);

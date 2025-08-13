@@ -37,19 +37,19 @@ export const expandTilde = (filePath: string): string => {
  */
 export const normalizePath = (filePath: string): string => {
   if (!filePath) return filePath;
-  
+
   try {
     // First expand tilde if present
     let expandedPath = expandTilde(filePath.trim());
-    
+
     // Normalize path separators and resolve relative paths
     expandedPath = normalize(expandedPath);
-    
+
     // If not already absolute, resolve relative to current working directory
     if (!isAbsolute(expandedPath)) {
       expandedPath = resolve(expandedPath);
     }
-    
+
     return expandedPath;
   } catch (error) {
     // If path normalization fails, return the original path
@@ -71,7 +71,7 @@ export const validateFilePath = (filePath: string): FileValidationResult => {
 
   try {
     const normalizedPath = normalizePath(filePath);
-    
+
     // Check if path contains invalid characters (basic check)
     if (/[<>:"|?*]/.test(normalizedPath) && process.platform === 'win32') {
       return {
@@ -89,7 +89,7 @@ export const validateFilePath = (filePath: string): FileValidationResult => {
         error: 'Directory does not exist',
         suggestions: [
           `Create the directory: ${dirPath}`,
-          'Check that the directory path is correct'
+          'Check that the directory path is correct',
         ],
       };
     }
@@ -151,7 +151,7 @@ export const validateGhosttyFile = (filePath: string): FileValidationResult => {
   // Check file extension - accept .txt, .toml, .conf, and other common config formats
   const ext = extname(normalizedPath).toLowerCase();
   const validExtensions = ['.txt', '.toml', '.conf', '.config'];
-  
+
   if (!validExtensions.includes(ext)) {
     return {
       isValid: false,
@@ -175,7 +175,7 @@ export const fileUtils = {
   expandTilde,
   normalizePath,
   validateFilePath,
-  
+
   // File utilities (enhanced)
   fileExists,
   validateGhosttyFile,

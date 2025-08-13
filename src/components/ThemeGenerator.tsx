@@ -13,7 +13,7 @@ import { parseThemeFile, buildVSCodeTheme } from '../lib/theme-generator';
 
 // Import step components and shared types
 import { FileStep, ThemeStep, OptionsStep, AdvancedOptionsStep, ProcessStep, SuccessStep, ErrorDisplay } from './steps';
-import { FormData, ThemeData, Step } from './types';
+import { FormData, ThemeData, Step } from '@/types';
 
 /**
  * Main Theme Generator orchestrator component
@@ -137,26 +137,26 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
   // Step information helpers
   const getStepInfo = () => {
     const steps = ['file', 'theme', 'options', 'advanced', 'process'] as const;
-    const currentIndex = steps.indexOf(currentStep as any);
+    const currentIndex = steps.indexOf(currentStep as typeof steps[number]);
     const totalSteps = steps.length;
-    
+
     return {
       currentIndex: currentIndex + 1,
       totalSteps,
       stepName: currentStep,
-      canGoBack: currentStep !== 'file' && currentStep !== 'success' && currentStep !== 'process'
+      canGoBack: currentStep !== 'file' && currentStep !== 'success' && currentStep !== 'process',
     };
   };
 
   const getStepTitle = (step: string) => {
     const titles = {
       file: 'File Selection',
-      theme: 'Theme Configuration', 
+      theme: 'Theme Configuration',
       options: 'Extension Options',
       advanced: 'Advanced Settings',
       process: 'Generating Theme',
       success: 'Generation Complete',
-      error: 'Error Recovery'
+      error: 'Error Recovery',
     };
     return titles[step as keyof typeof titles] || step;
   };
@@ -239,7 +239,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
         <Box marginTop={1} borderStyle='single' borderColor='gray' padding={1}>
           <Box flexDirection='column'>
             <Text color='gray' dimColor>
-              🌟 Global shortcuts: {stepInfo.canGoBack ? 'ESC (back) • ' : ''}? (help) • Ctrl+C (exit)
+              Global shortcuts: {stepInfo.canGoBack ? 'ESC (back) • ' : ''}? (help) • Ctrl+C (exit)
             </Text>
           </Box>
         </Box>
@@ -247,28 +247,25 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
 
       {/* Help overlay */}
       {showHelp && (
-        <Box 
-          position='absolute' 
-          top={2} 
-          left={2} 
-          right={2} 
-          borderStyle='double' 
-          borderColor='yellow' 
-          backgroundColor='black' 
+        <Box
+          borderStyle='double'
+          borderColor='yellow'
           padding={1}
+          marginTop={2}
+          marginBottom={2}
         >
           <Box flexDirection='column'>
-            <Text color='yellow' bold>🆘 Help - VS Code Theme Generator</Text>
+            <Text color='yellow' bold>Help - VS Code Theme Generator</Text>
             <Text> </Text>
-            <Text color='white'>📋 <Text bold>Current Step:</Text> {getStepTitle(currentStep)}</Text>
+            <Text color='white'><Text bold>Current Step:</Text> {getStepTitle(currentStep)}</Text>
             <Text> </Text>
-            <Text color='cyan'>⌨️  <Text bold>Keyboard Shortcuts:</Text></Text>
+            <Text color='cyan'><Text bold>Keyboard Shortcuts:</Text></Text>
             <Text>   • <Text color='green'>Enter:</Text> Submit/Next step</Text>
             {stepInfo.canGoBack && <Text>   • <Text color='green'>ESC:</Text> Go back to previous step</Text>}
             <Text>   • <Text color='green'>?:</Text> Toggle this help</Text>
             <Text>   • <Text color='green'>Ctrl+C:</Text> Exit application</Text>
             <Text> </Text>
-            <Text color='cyan'>📁 <Text bold>File Input:</Text></Text>
+            <Text color='cyan'><Text bold>File Input:</Text></Text>
             <Text>   • <Text color='green'>Paste:</Text> Ctrl+V (Win/Linux) or Cmd+V (Mac)</Text>
             <Text>   • <Text color='green'>Navigate:</Text> Arrow keys, Home/End</Text>
             <Text>   • <Text color='green'>Supports:</Text> ~/paths, .txt/.toml/.conf files</Text>

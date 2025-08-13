@@ -3,14 +3,14 @@
  * Provides essential mocks for file system operations and utilities
  */
 
-import { vi } from 'vitest';
+import { vi, beforeAll, afterAll, afterEach, expect } from 'vitest';
 
 // ============================================================================
 // Global Test Setup
 // ============================================================================
 
-// Increase default timeout for file operations
-vi.setConfig({ testTimeout: 10000 });
+// Note: Test timeout is configured in vitest.config.ts instead of here
+// vi.setConfig is not available in Bun's vitest environment
 
 // ============================================================================
 // File System Mocks

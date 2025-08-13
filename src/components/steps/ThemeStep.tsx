@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { Header, useTextInput } from '../ui';
-import { FormData, ThemeData } from '../types';
+import { Header, useTextInput, NavigationHints } from '../ui';
+import { FormData, ThemeData } from '@/types';
 
 interface ThemeStepProps {
   formData: FormData;
@@ -16,7 +16,7 @@ interface ThemeStepProps {
  * Theme configuration step component
  * Allows user to set theme name and description
  */
-export const ThemeStep: React.FC<ThemeStepProps> = ({
+const ThemeStepComponent: React.FC<ThemeStepProps> = ({
   formData,
   setFormData,
   themeData,
@@ -65,16 +65,16 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
 
   return (
     <Box flexDirection='column'>
-      <Header title='🎨 Theme Configuration' />
+      <Header title='Theme Configuration' />
 
       {themeData && (
         <Box marginBottom={1} padding={1} borderStyle='single' borderColor='green'>
-          <Text color='green'>✅ Theme file parsed successfully!</Text>
+          <Text color='green'>Theme file parsed successfully!</Text>
         </Box>
       )}
 
       <Box marginBottom={1}>
-        <Text>{isEditingName ? '📝' : '✅'} Theme Name:</Text>
+        <Text>Theme Name:</Text>
       </Box>
 
       {isEditingName ? (
@@ -105,14 +105,14 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
         </Box>
       ) : (
         <Box padding={1} marginBottom={1}>
-          <Text color='green'>✅ {nameInput.value}</Text>
+          <Text color='green'>{nameInput.value}</Text>
         </Box>
       )}
 
       {!isEditingName && (
         <>
           <Box marginBottom={1}>
-            <Text>📝 Description:</Text>
+            <Text>Description:</Text>
           </Box>
 
           <Box borderStyle='single' padding={1} marginBottom={1}>
@@ -145,7 +145,7 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
 
       {error && (
         <Box marginBottom={1}>
-          <Text color='red'>❌ {error}</Text>
+          <Text color='red'>{error}</Text>
         </Box>
       )}
 
@@ -155,10 +155,12 @@ export const ThemeStep: React.FC<ThemeStepProps> = ({
             ? 'Enter theme name and press Enter'
             : 'Enter description and press Enter/Tab to continue, Esc to go back'}
         </Text>
-        <Text color='gray' dimColor>
-          Navigation: ←→ arrow keys, Backspace/Delete, Ctrl+A (home), Ctrl+E (end)
-        </Text>
+        <NavigationHints showInput showStepNavigation={!isEditingName} />
       </Box>
     </Box>
   );
 };
+
+ThemeStepComponent.displayName = 'ThemeStep';
+
+export const ThemeStep = React.memo(ThemeStepComponent);

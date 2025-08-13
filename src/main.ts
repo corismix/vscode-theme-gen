@@ -189,7 +189,7 @@ const main = (): void => {
   // eslint-disable-next-line no-console
   console.log('');
   // eslint-disable-next-line no-console
-  console.log('🎨 VS Code Theme Generator');
+  console.log('VS Code Theme Generator');
   // eslint-disable-next-line no-console
   console.log('Convert Ghostty terminal themes to VS Code extensions');
   // eslint-disable-next-line no-console
@@ -198,11 +198,11 @@ const main = (): void => {
   // Validate command line flags
   const validationErrors = validateFlags(cli.flags as CLIFlags);
   if (validationErrors.length > 0) {
-    console.error('❌ Validation errors:');
+    console.error('Validation errors:');
     validationErrors.forEach(error => {
       console.error(`   ${error.message}`);
       if (error.suggestion) {
-        console.error(`   💡 ${error.suggestion}`);
+        console.error(`   Tip: ${error.suggestion}`);
       }
     });
     console.error('');
@@ -236,7 +236,7 @@ const main = (): void => {
     clear();
     unmount();
     console.error('');
-    console.error('❌ An unexpected error occurred:');
+    console.error('An unexpected error occurred:');
     console.error(err.message);
     if (process.env.NODE_ENV === 'development') {
       console.error(err.stack);
@@ -250,7 +250,7 @@ const main = (): void => {
     clear();
     unmount();
     console.error('');
-    console.error('❌ An unexpected error occurred:');
+    console.error('An unexpected error occurred:');
     console.error(reason);
     console.error('');
     console.error('Please report this issue at: https://github.com/your-repo/issues');

@@ -5,7 +5,7 @@
 
 import React from 'react';
 import ThemeGenerator from './ThemeGenerator';
-import { FormData } from '../types';
+import { FormData } from '@/types';
 
 interface AppProps {
   initialData?: Partial<FormData> | undefined;

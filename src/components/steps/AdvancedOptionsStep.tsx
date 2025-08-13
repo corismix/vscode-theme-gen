@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Header } from '../ui';
-import { FormData } from '../types';
+import { FormData } from '@/types';
 
 interface AdvancedOptionsStepProps {
   formData: FormData;
@@ -11,46 +11,46 @@ interface AdvancedOptionsStepProps {
   error?: string | undefined;
 }
 
-type AdvancedOption = 
-  | 'generateFullExtension' 
-  | 'generateQuickstart' 
-  | 'preserveSourceTheme' 
-  | 'generateGitIgnore' 
+type AdvancedOption =
+  | 'generateFullExtension'
+  | 'generateQuickstart'
+  | 'preserveSourceTheme'
+  | 'generateGitIgnore'
   | 'generateVSCodeIgnore';
 
 const ADVANCED_OPTIONS: { key: AdvancedOption; label: string; description: string }[] = [
   {
     key: 'generateFullExtension',
     label: 'Full Extension',
-    description: 'Generate complete extension with LICENSE, .vscode/launch.json'
+    description: 'Generate complete extension with LICENSE, .vscode/launch.json',
   },
   {
     key: 'generateQuickstart',
     label: 'Developer Guide',
-    description: 'Include VS Code extension developer quickstart guide'
+    description: 'Include VS Code extension developer quickstart guide',
   },
   {
     key: 'preserveSourceTheme',
     label: 'Source Theme',
-    description: 'Preserve original Ghostty theme file in src-theme/ folder'
+    description: 'Preserve original Ghostty theme file in src-theme/ folder',
   },
   {
     key: 'generateGitIgnore',
     label: 'Git Ignore',
-    description: 'Generate .gitignore for development workflow'
+    description: 'Generate .gitignore for development workflow',
   },
   {
     key: 'generateVSCodeIgnore',
     label: 'VS Code Ignore',
-    description: 'Generate .vscodeignore for extension packaging'
-  }
+    description: 'Generate .vscodeignore for extension packaging',
+  },
 ];
 
 /**
  * Advanced options configuration step component
  * Allows users to customize extension generation features
  */
-export const AdvancedOptionsStep: React.FC<AdvancedOptionsStepProps> = ({
+const AdvancedOptionsStepComponent: React.FC<AdvancedOptionsStepProps> = ({
   formData,
   setFormData,
   onNext,
@@ -85,7 +85,7 @@ export const AdvancedOptionsStep: React.FC<AdvancedOptionsStepProps> = ({
       if (option) {
         setFormData({
           ...formData,
-          [option.key]: !formData[option.key]
+          [option.key]: !formData[option.key],
         });
       }
       return;
@@ -104,14 +104,14 @@ export const AdvancedOptionsStep: React.FC<AdvancedOptionsStepProps> = ({
     if (optionKey) {
       setFormData({
         ...formData,
-        [optionKey]: !formData[optionKey]
+        [optionKey]: !formData[optionKey],
       });
     }
   });
 
   return (
     <Box flexDirection='column'>
-      <Header title='⚡ Advanced Options' />
+      <Header title='Advanced Options' />
 
       <Box marginBottom={1}>
         <Text>Configure extension generation features:</Text>
@@ -122,7 +122,7 @@ export const AdvancedOptionsStep: React.FC<AdvancedOptionsStepProps> = ({
           <Text>
             {selectedIndex === index ? '→ ' : '  '}
             <Text color={formData[option.key] ? 'green' : 'gray'}>
-              {formData[option.key] ? '✅' : '☐'}
+              {formData[option.key] ? '[X]' : '[ ]'}
             </Text>
             {' '}
             <Text color={selectedIndex === index ? 'cyan' : 'white'}>
@@ -135,7 +135,7 @@ export const AdvancedOptionsStep: React.FC<AdvancedOptionsStepProps> = ({
 
       {error && (
         <Box marginTop={1} marginBottom={1}>
-          <Text color='red'>❌ {error}</Text>
+          <Text color='red'>{error}</Text>
         </Box>
       )}
 
@@ -151,3 +151,7 @@ export const AdvancedOptionsStep: React.FC<AdvancedOptionsStepProps> = ({
     </Box>
   );
 };
+
+AdvancedOptionsStepComponent.displayName = 'AdvancedOptionsStep';
+
+export const AdvancedOptionsStep = React.memo(AdvancedOptionsStepComponent);

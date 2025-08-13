@@ -12,7 +12,7 @@ interface ErrorDisplayProps {
  * Error display component
  * Shows error message and offers back/restart options
  */
-export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onBack, onRestart }) => {
+const ErrorDisplayComponent: React.FC<ErrorDisplayProps> = ({ error, onBack, onRestart }) => {
   useInput((input, key) => {
     if (key.return || input === 'r') {
       onRestart();
@@ -23,7 +23,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onBack, onRes
 
   return (
     <Box flexDirection='column'>
-      <Header title='❌ Error' />
+      <Header title='Error' />
 
       <Box marginBottom={2} padding={1} borderStyle='single' borderColor='red'>
         <Text color='red'>{error}</Text>
@@ -35,3 +35,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onBack, onRes
     </Box>
   );
 };
+
+ErrorDisplayComponent.displayName = 'ErrorDisplay';
+
+export const ErrorDisplay = React.memo(ErrorDisplayComponent);

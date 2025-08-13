@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { Header, useTextInput } from '../ui';
-import { FormData } from '../types';
+import { Header, useTextInput, NavigationHints } from '../ui';
+import { FormData } from '@/types';
 
 interface OptionsStepProps {
   formData: FormData;
@@ -15,7 +15,7 @@ interface OptionsStepProps {
  * Extension options configuration step component
  * Allows user to set publisher and output directory
  */
-export const OptionsStep: React.FC<OptionsStepProps> = ({
+const OptionsStepComponent: React.FC<OptionsStepProps> = ({
   formData,
   setFormData,
   onNext,
@@ -63,10 +63,10 @@ export const OptionsStep: React.FC<OptionsStepProps> = ({
 
   return (
     <Box flexDirection='column'>
-      <Header title='⚙️  Extension Options' />
+      <Header title='Extension Options' />
 
       <Box marginBottom={1}>
-        <Text>{currentField === 'publisher' ? '📝' : '✅'} Publisher:</Text>
+        <Text>Publisher:</Text>
       </Box>
 
       {currentField === 'publisher' ? (
@@ -97,14 +97,14 @@ export const OptionsStep: React.FC<OptionsStepProps> = ({
         </Box>
       ) : (
         <Box padding={1} marginBottom={1}>
-          <Text color='green'>✅ {publisherInput.value}</Text>
+          <Text color='green'>{publisherInput.value}</Text>
         </Box>
       )}
 
       {currentField === 'output' && (
         <>
           <Box marginBottom={1}>
-            <Text>📝 Output Directory:</Text>
+            <Text>Output Directory:</Text>
           </Box>
 
           <Box borderStyle='single' padding={1} marginBottom={1}>
@@ -137,16 +137,18 @@ export const OptionsStep: React.FC<OptionsStepProps> = ({
 
       {error && (
         <Box marginBottom={1}>
-          <Text color='red'>❌ {error}</Text>
+          <Text color='red'>{error}</Text>
         </Box>
       )}
 
       <Box flexDirection='column'>
         <Text color='gray'>Enter values and press Enter/Tab, Esc to go back</Text>
-        <Text color='gray' dimColor>
-          Navigation: ←→ arrow keys, Backspace/Delete, Ctrl+A (home), Ctrl+E (end)
-        </Text>
+        <NavigationHints showInput />
       </Box>
     </Box>
   );
 };
+
+OptionsStepComponent.displayName = 'OptionsStep';
+
+export const OptionsStep = React.memo(OptionsStepComponent);

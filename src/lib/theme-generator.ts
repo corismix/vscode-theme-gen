@@ -113,12 +113,14 @@ const isValidGhosttyColorKey = (key: string): boolean => {
 const safeAssignColor = (colors: GhosttyColors, key: string, value: string): void => {
   if (!isValidGhosttyColorKey(key)) {
     // Log warning for unknown keys but don't throw
-    console.warn(`Unknown color key ignored: ${key}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`Unknown color key ignored: ${key}`);
+    }
     return;
   }
 
-  // Safe assignment with known key using index signature
-  (colors as Record<string, string>)[key] = value;
+  // Safe assignment with known key using keyof assertion
+  colors[key as keyof typeof colors] = value;
 };
 
 /**
@@ -196,7 +198,9 @@ const sanitizeColorValue = (value: string, key?: string): string | null => {
 
     return sanitized.toLowerCase();
   } catch (error) {
-    console.warn(`Color sanitization failed for key ${key}: ${error}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`Color sanitization failed for key ${key}: ${error}`);
+    }
     return null;
   }
 };
@@ -219,12 +223,13 @@ const validateFilePath = (filePath: string): string => {
   if (!pathValidation.isValid) {
     throw new ValidationError(
       pathValidation.error || 'Invalid file path format',
-      { filePath, suggestions: pathValidation.suggestions }
+      undefined,
+      pathValidation.suggestions,
     );
   }
 
   // Return the normalized path with tilde expansion
-  return (pathValidation as any).normalizedPath || fileUtils.normalizePath(filePath);
+  return pathValidation.normalizedPath || fileUtils.normalizePath(filePath);
 };
 
 /**
@@ -266,12 +271,8 @@ export const readThemeFile = async (filePath: string): Promise<string> => {
     // Validate file size
     if (content.length > MAX_FILE_SIZE_BYTES) {
       throw new FileProcessingError(
-        'File is too large',
-        { fileSize: content.length, maxSize: MAX_FILE_SIZE_BYTES },
-        [
-          'Choose a smaller file',
-          `File must be under ${(MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(1)}MB`,
-        ],
+        `File is too large (${(content.length / (1024 * 1024)).toFixed(1)}MB). Maximum size is ${(MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(1)}MB`,
+        filePath,
       );
     }
 
@@ -283,8 +284,7 @@ export const readThemeFile = async (filePath: string): Promise<string> => {
 
     throw new FileProcessingError(
       `Failed to read file: ${(error as Error).message}`,
-      { filePath },
-      ['Check that the file exists', 'Verify file permissions', 'Ensure file is readable'],
+      filePath,
     );
   }
 };
@@ -343,10 +343,7 @@ export const parseThemeFile = async (filePath: string): Promise<ParsedThemeFile>
 
     // Validate line count
     if (lines.length > MAX_LINES) {
-      throw new ValidationError(`Too many lines in file (maximum ${MAX_LINES})`, {
-        lineCount: lines.length,
-        maxLines: MAX_LINES,
-      });
+      throw new ValidationError(`Too many lines in file (${lines.length} lines, maximum ${MAX_LINES})`);
     }
 
     const colors: GhosttyColors = {};
@@ -450,9 +447,7 @@ export const parseThemeFile = async (filePath: string): Promise<ParsedThemeFile>
       throw error;
     }
 
-    throw new FileProcessingError(`Failed to parse theme file: ${(error as Error).message}`, {
-      filePath,
-    });
+    throw new FileProcessingError(`Failed to parse theme file: ${(error as Error).message}`, filePath);
   }
 };
 
@@ -645,7 +640,7 @@ const hexToRgb = (hex: string): [number, number, number] => {
 /**
  * Converts RGB components to hex color
  * @param r - Red component (0-255)
- * @param g - Green component (0-255) 
+ * @param g - Green component (0-255)
  * @param b - Blue component (0-255)
  * @returns Hex color string with # prefix
  */
@@ -666,7 +661,7 @@ const lighten = (hex: string, amount: number): string => {
   return rgbToHex(
     r + (255 - r) * factor,
     g + (255 - g) * factor,
-    b + (255 - b) * factor
+    b + (255 - b) * factor,
   );
 };
 
@@ -703,7 +698,7 @@ const addOpacity = (hex: string, opacity: number): string => {
 const generateBackgroundVariants = (colors: GhosttyColors) => {
   const base = colors.background || '#151719';           // Main background
   const editorBg = colors.color0 || '#171a1d';          // Editor background (palette 0)
-  
+
   return {
     base,                                                // #151719 (main background)
     editor: editorBg,                                   // #171a1d (editor background - palette 0)
@@ -746,26 +741,26 @@ const createEnhancedRoleMap = (colors: GhosttyColors) => {
     // Error states - Red palette
     error: baseRoleMap.red,                  // #f56b5c - errors, deletions, urgent
     errorBright: baseRoleMap.brightRed,      // #ff7a6f - critical errors
-    
-    // Warning states - Yellow palette  
+
+    // Warning states - Yellow palette
     warning: baseRoleMap.yellow,             // #f6b34c - warnings, modifications, find
     warningBright: baseRoleMap.brightYellow, // #f8c867 - important highlights
-    
+
     // Success states - Green palette
     success: baseRoleMap.brightGreen,        // #83e96c - success, additions, hints
     successBase: baseRoleMap.green,          // #6ddf58 - base green
-    
+
     // Info states - Blue palette
     info: baseRoleMap.brightBlue,            // #5b98ff - info, links, highlights
     infoBase: baseRoleMap.blue,              // #3a7ee0 - base blue
-    
+
     // Accent colors - Cyan and Magenta
     accent1: baseRoleMap.brightCyan,         // #4ae0cb - cyan accent
     accent2: baseRoleMap.brightMagenta,      // #c89ef0 - magenta accent
-    
+
     // Focus and interaction states
     focus: baseRoleMap.brightCyan,           // #4ae0cb - focus indicators, active states
-    
+
     // UI chrome colors
     border: baseRoleMap.brightBlack,         // #565b62 - borders, comments
     borderSubtle: darken(baseRoleMap.brightBlack, 0.3), // Subtle borders
@@ -791,7 +786,7 @@ const createEnhancedRoleMap = (colors: GhosttyColors) => {
 /**
  * Builds comprehensive VS Code workbench colors from enhanced role mappings
  *
- * Generates a complete VS Code color theme matching the patterns found in 
+ * Generates a complete VS Code color theme matching the patterns found in
  * professional themes like Eidolon Root. Includes over 200 color mappings
  * covering all VS Code UI elements with proper semantic color usage.
  *
@@ -1330,12 +1325,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'punctuation.definition.comment',
         'comment punctuation',
         'comment.block punctuation',
-        'comment.line punctuation'
+        'comment.line punctuation',
       ],
       settings: {
         fontStyle: 'italic',
-        foreground: semanticColors.border
-      }
+        foreground: semanticColors.border,
+      },
     },
 
     // ========================================================================
@@ -1345,20 +1340,20 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       name: 'Variables',
       scope: [
         'variable',
-        'string constant.other.placeholder'
+        'string constant.other.placeholder',
       ],
       settings: {
-        foreground: foregroundVariants.base
-      }
+        foreground: foregroundVariants.base,
+      },
     },
     {
       name: 'Colors',
       scope: [
-        'constant.other.color'
+        'constant.other.color',
       ],
       settings: {
-        foreground: semanticColors.successBase
-      }
+        foreground: semanticColors.successBase,
+      },
     },
 
     // ========================================================================
@@ -1368,12 +1363,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       name: 'Invalid',
       scope: [
         'invalid',
-        'invalid.illegal'
+        'invalid.illegal',
       ],
       settings: {
         foreground: semanticColors.error,
-        fontStyle: 'underline'
-      }
+        fontStyle: 'underline',
+      },
     },
 
     // ========================================================================
@@ -1387,11 +1382,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'storage.modifier',
         'keyword.control',
         'constant.language',
-        'support.constant'
+        'support.constant',
       ],
       settings: {
-        foreground: semanticColors.error
-      }
+        foreground: semanticColors.error,
+      },
     },
 
     // ========================================================================
@@ -1408,11 +1403,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'punctuation.separator.inheritance.php',
         'punctuation.definition.tag.html',
         'punctuation.definition.tag.begin.html',
-        'punctuation.definition.tag.end.html'
+        'punctuation.definition.tag.end.html',
       ],
       settings: {
-        foreground: roleMap.cyan
-      }
+        foreground: roleMap.cyan,
+      },
     },
 
     // ========================================================================
@@ -1423,11 +1418,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       scope: [
         'entity.name.tag',
         'meta.tag.sgml',
-        'markup.deleted.git_gutter'
+        'markup.deleted.git_gutter',
       ],
       settings: {
-        foreground: semanticColors.error
-      }
+        foreground: semanticColors.error,
+      },
     },
 
     // ========================================================================
@@ -1440,11 +1435,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'meta.function-call',
         'variable.function',
         'support.function',
-        'keyword.other.special-method'
+        'keyword.other.special-method',
       ],
       settings: {
-        foreground: semanticColors.warning
-      }
+        foreground: semanticColors.warning,
+      },
     },
 
     // ========================================================================
@@ -1462,11 +1457,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'meta.use.php',
         'support.other.namespace.php',
         'markup.changed.git_gutter',
-        'support.type.sys-types'
+        'support.type.sys-types',
       ],
       settings: {
-        foreground: semanticColors.warning
-      }
+        foreground: semanticColors.warning,
+      },
     },
 
     // ========================================================================
@@ -1475,11 +1470,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'Entity Types',
       scope: [
-        'support.type'
+        'support.type',
       ],
       settings: {
-        foreground: roleMap.white
-      }
+        foreground: roleMap.white,
+      },
     },
 
     // ========================================================================
@@ -1493,11 +1488,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'source.scss support.type.property-name',
         'source.less support.type.property-name',
         'source.stylus support.type.property-name',
-        'source.postcss support.type.property-name'
+        'source.postcss support.type.property-name',
       ],
       settings: {
-        foreground: semanticColors.warning
-      }
+        foreground: semanticColors.warning,
+      },
     },
 
     // ========================================================================
@@ -1512,11 +1507,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'entity.other.inherited-class',
         'markup.heading',
         'markup.inserted.git_gutter',
-        'meta.group.braces.curly constant.other.object.key.js string.unquoted.label.js'
+        'meta.group.braces.curly constant.other.object.key.js string.unquoted.label.js',
       ],
       settings: {
-        foreground: semanticColors.success
-      }
+        foreground: semanticColors.success,
+      },
     },
 
     // ========================================================================
@@ -1532,11 +1527,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'constant.escape',
         'variable.parameter',
         'keyword.other.unit',
-        'keyword.other'
+        'keyword.other',
       ],
       settings: {
-        foreground: roleMap.magenta
-      }
+        foreground: roleMap.magenta,
+      },
     },
 
     // ========================================================================
@@ -1547,11 +1542,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       scope: [
         'entity.other.attribute-name',
         'entity.other.attribute-name.id',
-        'entity.other.attribute-name.class'
+        'entity.other.attribute-name.class',
       ],
       settings: {
-        foreground: semanticColors.warning
-      }
+        foreground: semanticColors.warning,
+      },
     },
 
     // ========================================================================
@@ -1560,11 +1555,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'Regular Expressions',
       scope: [
-        'string.regexp'
+        'string.regexp',
       ],
       settings: {
-        foreground: roleMap.cyan
-      }
+        foreground: roleMap.cyan,
+      },
     },
 
     // ========================================================================
@@ -1573,11 +1568,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'Escape Characters',
       scope: [
-        'constant.character.escape'
+        'constant.character.escape',
       ],
       settings: {
-        foreground: roleMap.cyan
-      }
+        foreground: roleMap.cyan,
+      },
     },
 
     // ========================================================================
@@ -1587,11 +1582,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       name: 'Embedded',
       scope: [
         'punctuation.section.embedded',
-        'variable.interpolation'
+        'variable.interpolation',
       ],
       settings: {
-        foreground: roleMap.red
-      }
+        foreground: roleMap.red,
+      },
     },
 
     // ========================================================================
@@ -1601,11 +1596,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       name: 'Template Strings',
       scope: [
         'string.template',
-        'string.interpolated'
+        'string.interpolated',
       ],
       settings: {
-        foreground: semanticColors.success
-      }
+        foreground: semanticColors.success,
+      },
     },
 
     // ========================================================================
@@ -1614,11 +1609,11 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'JSON Property Name',
       scope: [
-        'support.type.property-name.json'
+        'support.type.property-name.json',
       ],
       settings: {
-        foreground: semanticColors.info
-      }
+        foreground: semanticColors.info,
+      },
     },
 
     // ========================================================================
@@ -1628,59 +1623,59 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       name: 'Markdown - Plain',
       scope: [
         'text.html.markdown',
-        'punctuation.definition.list_item.markdown'
+        'punctuation.definition.list_item.markdown',
       ],
       settings: {
-        foreground: foregroundVariants.base
-      }
+        foreground: foregroundVariants.base,
+      },
     },
     {
       name: 'Markdown - Markup Raw Inline',
       scope: [
-        'text.html.markdown markup.inline.raw.markdown'
+        'text.html.markdown markup.inline.raw.markdown',
       ],
       settings: {
-        foreground: roleMap.magenta
-      }
+        foreground: roleMap.magenta,
+      },
     },
     {
       name: 'Markdown - Link Text',
       scope: [
-        'text.html.markdown markup.underline.link'
+        'text.html.markdown markup.underline.link',
       ],
       settings: {
-        foreground: semanticColors.info
-      }
-    }
+        foreground: semanticColors.info,
+      },
+    },
   ];
 
   // JSON Rainbow colors using palette colors (specialized token colors for JSON files)
   const jsonTokens: TokenColor[] = [
     {
       name: 'JSON Braces',
-      scope: ['punctuation.definition.dictionary.begin.json', 'punctuation.definition.dictionary.end.json'], 
-      settings: { foreground: semanticColors.warning }
+      scope: ['punctuation.definition.dictionary.begin.json', 'punctuation.definition.dictionary.end.json'],
+      settings: { foreground: semanticColors.warning },
     },
     {
       name: 'JSON Brackets',
-      scope: ['punctuation.definition.array.begin.json', 'punctuation.definition.array.end.json'], 
-      settings: { foreground: semanticColors.success }
+      scope: ['punctuation.definition.array.begin.json', 'punctuation.definition.array.end.json'],
+      settings: { foreground: semanticColors.success },
     },
     {
       name: 'JSON String Quotes',
-      scope: ['punctuation.definition.string.begin.json', 'punctuation.definition.string.end.json'], 
-      settings: { foreground: semanticColors.accent2 }
+      scope: ['punctuation.definition.string.begin.json', 'punctuation.definition.string.end.json'],
+      settings: { foreground: semanticColors.accent2 },
     },
     {
       name: 'JSON Key-Value Separator',
       scope: ['punctuation.separator.dictionary.key-value.json'],
-      settings: { foreground: semanticColors.accent1 }
+      settings: { foreground: semanticColors.accent1 },
     },
     {
       name: 'JSON Separators',
-      scope: ['punctuation.separator.dictionary.pair.json', 'punctuation.separator.array.json'], 
-      settings: { foreground: foregroundVariants.base }
-    }
+      scope: ['punctuation.separator.dictionary.pair.json', 'punctuation.separator.array.json'],
+      settings: { foreground: foregroundVariants.base },
+    },
   ];
 
   // Additional comprehensive token colors to match professional themes
@@ -1691,27 +1686,27 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'JS/TS This',
       scope: ['variable.language.this'],
-      settings: { foreground: semanticColors.error }
+      settings: { foreground: semanticColors.error },
     },
     {
       name: 'JS/TS Super',
       scope: ['variable.language.super'],
-      settings: { foreground: semanticColors.error }
+      settings: { foreground: semanticColors.error },
     },
     {
       name: 'JS/TS Import/Export',
       scope: ['keyword.control.import', 'keyword.control.export', 'keyword.control.from'],
-      settings: { foreground: roleMap.magenta }
+      settings: { foreground: roleMap.magenta },
     },
     {
       name: 'JS/TS Type Keywords',
       scope: ['storage.type.type', 'storage.type.interface', 'storage.type.enum'],
-      settings: { foreground: roleMap.blue }
+      settings: { foreground: roleMap.blue },
     },
     {
       name: 'JS/TS Decorators',
       scope: ['punctuation.decorator', 'meta.decorator'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
 
     // ========================================================================
@@ -1720,27 +1715,27 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'CSS Property Values',
       scope: ['support.constant.property-value.css', 'constant.other.color.rgb-value.css'],
-      settings: { foreground: roleMap.cyan }
+      settings: { foreground: roleMap.cyan },
     },
     {
       name: 'CSS Units',
       scope: ['keyword.other.unit.css', 'keyword.other.unit.scss'],
-      settings: { foreground: roleMap.magenta }
+      settings: { foreground: roleMap.magenta },
     },
     {
       name: 'CSS Selectors',
       scope: ['entity.name.tag.css', 'entity.other.attribute-name.class.css'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
     {
       name: 'CSS ID Selectors',
       scope: ['entity.other.attribute-name.id.css'],
-      settings: { foreground: semanticColors.success }
+      settings: { foreground: semanticColors.success },
     },
     {
       name: 'CSS Pseudo Classes',
       scope: ['entity.other.attribute-name.pseudo-class.css', 'entity.other.attribute-name.pseudo-element.css'],
-      settings: { foreground: roleMap.blue }
+      settings: { foreground: roleMap.blue },
     },
 
     // ========================================================================
@@ -1749,22 +1744,22 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'HTML Doctype',
       scope: ['meta.tag.sgml.doctype.html'],
-      settings: { foreground: semanticColors.border, fontStyle: 'italic' }
+      settings: { foreground: semanticColors.border, fontStyle: 'italic' },
     },
     {
       name: 'HTML Tag Names',
       scope: ['entity.name.tag.html', 'entity.name.tag.block.any.html'],
-      settings: { foreground: semanticColors.error }
+      settings: { foreground: semanticColors.error },
     },
     {
       name: 'HTML Attribute Names',
       scope: ['entity.other.attribute-name.html'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
     {
       name: 'HTML Attribute Values',
       scope: ['string.quoted.double.html', 'string.quoted.single.html'],
-      settings: { foreground: semanticColors.success }
+      settings: { foreground: semanticColors.success },
     },
 
     // ========================================================================
@@ -1773,22 +1768,22 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'Python Self',
       scope: ['variable.language.self.python'],
-      settings: { foreground: semanticColors.error, fontStyle: 'italic' }
+      settings: { foreground: semanticColors.error, fontStyle: 'italic' },
     },
     {
       name: 'Python Decorators',
       scope: ['entity.name.function.decorator.python'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
     {
       name: 'Python Magic Methods',
       scope: ['support.function.magic.python'],
-      settings: { foreground: roleMap.magenta }
+      settings: { foreground: roleMap.magenta },
     },
     {
       name: 'Python String Formatting',
       scope: ['constant.character.format.placeholder.other.python'],
-      settings: { foreground: roleMap.cyan }
+      settings: { foreground: roleMap.cyan },
     },
 
     // ========================================================================
@@ -1797,32 +1792,32 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'Markdown Headers',
       scope: ['markup.heading.markdown', 'entity.name.section.markdown'],
-      settings: { foreground: semanticColors.error, fontStyle: 'bold' }
+      settings: { foreground: semanticColors.error, fontStyle: 'bold' },
     },
     {
       name: 'Markdown Bold',
       scope: ['markup.bold.markdown'],
-      settings: { foreground: foregroundVariants.base, fontStyle: 'bold' }
+      settings: { foreground: foregroundVariants.base, fontStyle: 'bold' },
     },
     {
       name: 'Markdown Italic',
       scope: ['markup.italic.markdown'],
-      settings: { foreground: foregroundVariants.base, fontStyle: 'italic' }
+      settings: { foreground: foregroundVariants.base, fontStyle: 'italic' },
     },
     {
       name: 'Markdown Code',
       scope: ['markup.inline.raw.markdown', 'markup.fenced_code.block.markdown'],
-      settings: { foreground: roleMap.magenta }
+      settings: { foreground: roleMap.magenta },
     },
     {
       name: 'Markdown Links',
       scope: ['markup.underline.link.markdown', 'string.other.link.title.markdown'],
-      settings: { foreground: semanticColors.info }
+      settings: { foreground: semanticColors.info },
     },
     {
       name: 'Markdown Lists',
       scope: ['markup.list.numbered.markdown', 'markup.list.unnumbered.markdown'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
 
     // ========================================================================
@@ -1831,12 +1826,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'YAML Keys',
       scope: ['entity.name.tag.yaml'],
-      settings: { foreground: semanticColors.info }
+      settings: { foreground: semanticColors.info },
     },
     {
       name: 'YAML Anchors',
       scope: ['punctuation.definition.anchor.yaml', 'variable.other.alias.yaml'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
 
     // ========================================================================
@@ -1845,12 +1840,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'SQL Keywords',
       scope: ['keyword.other.DML.sql', 'keyword.other.DDL.create.II.sql'],
-      settings: { foreground: roleMap.blue }
+      settings: { foreground: roleMap.blue },
     },
     {
       name: 'SQL Functions',
       scope: ['support.function.aggregate.sql', 'support.function.scalar.sql'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
 
     // ========================================================================
@@ -1859,12 +1854,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'Shell Variables',
       scope: ['variable.other.normal.shell', 'variable.other.special.shell'],
-      settings: { foreground: roleMap.cyan }
+      settings: { foreground: roleMap.cyan },
     },
     {
       name: 'Shell Commands',
       scope: ['support.function.builtin.shell'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
 
     // ========================================================================
@@ -1873,12 +1868,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'XML Tags',
       scope: ['entity.name.tag.xml', 'entity.name.tag.namespace.xml'],
-      settings: { foreground: semanticColors.error }
+      settings: { foreground: semanticColors.error },
     },
     {
       name: 'XML Attributes',
       scope: ['entity.other.attribute-name.xml', 'entity.other.attribute-name.namespace.xml'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
 
     // ========================================================================
@@ -1887,17 +1882,17 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'Git Added',
       scope: ['markup.inserted.git_gutter'],
-      settings: { foreground: semanticColors.success }
+      settings: { foreground: semanticColors.success },
     },
     {
       name: 'Git Modified',
       scope: ['markup.changed.git_gutter'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
     {
       name: 'Git Deleted',
       scope: ['markup.deleted.git_gutter'],
-      settings: { foreground: semanticColors.error }
+      settings: { foreground: semanticColors.error },
     },
 
     // ========================================================================
@@ -1906,53 +1901,53 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     {
       name: 'Annotations',
       scope: ['storage.type.annotation', 'punctuation.definition.annotation'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
     {
       name: 'Type Parameters',
       scope: ['entity.name.type.parameter'],
-      settings: { foreground: roleMap.cyan }
+      settings: { foreground: roleMap.cyan },
     },
     {
       name: 'Generic Types',
       scope: ['meta.type.parameters', 'punctuation.definition.typeparameters'],
-      settings: { foreground: roleMap.cyan }
+      settings: { foreground: roleMap.cyan },
     },
     {
       name: 'Module Names',
       scope: ['entity.name.namespace', 'entity.name.module'],
-      settings: { foreground: semanticColors.info }
+      settings: { foreground: semanticColors.info },
     },
     {
       name: 'Interface Names',
       scope: ['entity.name.type.interface'],
-      settings: { foreground: semanticColors.info }
+      settings: { foreground: semanticColors.info },
     },
     {
       name: 'Enum Names',
       scope: ['entity.name.type.enum'],
-      settings: { foreground: roleMap.blue }
+      settings: { foreground: roleMap.blue },
     },
     {
       name: 'Constant Names',
       scope: ['entity.name.constant'],
-      settings: { foreground: roleMap.magenta }
+      settings: { foreground: roleMap.magenta },
     },
     {
       name: 'Property Access',
       scope: ['meta.property.object', 'variable.other.property'],
-      settings: { foreground: foregroundVariants.base }
+      settings: { foreground: foregroundVariants.base },
     },
     {
       name: 'Method Calls',
       scope: ['meta.method-call', 'meta.function-call.method'],
-      settings: { foreground: semanticColors.warning }
+      settings: { foreground: semanticColors.warning },
     },
     {
       name: 'Constructor Calls',
       scope: ['meta.instance.constructor', 'entity.name.function.constructor'],
-      settings: { foreground: roleMap.blue }
-    }
+      settings: { foreground: roleMap.blue },
+    },
   ];
 
   return [...baseTokens, ...jsonTokens, ...advancedTokens];
@@ -2066,10 +2061,7 @@ export const buildVSCodeTheme = (
       tokenColors,
     };
   } catch (error) {
-    throw new FileProcessingError(`Failed to build VS Code theme: ${(error as Error).message}`, {
-      themeName,
-      filePath,
-    });
+    throw new FileProcessingError(`Failed to build VS Code theme: ${(error as Error).message}`, filePath);
   }
 };
 
