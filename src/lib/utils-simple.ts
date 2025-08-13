@@ -6,7 +6,7 @@
 import { existsSync } from 'fs';
 import { resolve, normalize, isAbsolute, extname, dirname } from 'path';
 import { homedir } from 'os';
-import { FileValidationResult } from '../types';
+import { FileValidationResult } from '../types/error.types';
 
 // ============================================================================
 // Enhanced Path Utilities

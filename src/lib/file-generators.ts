@@ -26,6 +26,7 @@ import {
   VSCodeTheme,
   GenerationError,
 } from '@/types';
+import { fileUtils } from './utils-simple';
 
 // ============================================================================
 // Package Name Utilities
@@ -730,7 +731,7 @@ Changes are automatically applied to the Extension Development Host window.
  * Creates the src-theme directory structure.
  *
  * @param sourcePath - Path to the original Ghostty theme file
- * @param outputPath - Extension output directory
+ * @param normalizedOutputPath - Extension output directory
  * @returns Promise resolving to the copied file information
  * @since 2.0.0
  */
@@ -742,8 +743,11 @@ export const copySourceTheme = async (sourcePath: string, outputPath: string): P
   const { promises: fs } = await import('fs');
   const { basename, join } = await import('path');
   
+  // Normalize output path
+  const normalizedOutputPath = fileUtils.normalizePath(outputPath);
+  
   // Create src-theme directory
-  const srcThemeDir = join(outputPath, 'src-theme');
+  const srcThemeDir = join(normalizedOutputPath, 'src-theme');
   await fs.mkdir(srcThemeDir, { recursive: true });
   
   // Copy the source file
@@ -789,7 +793,7 @@ export const copySourceTheme = async (sourcePath: string, outputPath: string): P
  * const results = await generateExtensionFiles(theme, {
  *   themeName: 'Dark Professional',
  *   version: '1.0.0',
- *   outputPath: './my-theme-extension',
+ *   normalizedOutputPath: './my-theme-extension',
  *   publisher: 'my-company',
  *   generateReadme: true,
  *   generateChangelog: true,
@@ -811,21 +815,23 @@ export const generateExtensionFiles = async (
   const generatedFiles: GeneratedFile[] = [];
 
   try {
-    const { outputPath, themeName } = options;
+    // Normalize output path to handle tilde expansion and cross-platform paths
+    const normalizedOutputPath = fileUtils.normalizePath(options.normalizedOutputPath);
+    const { themeName } = options;
     const packageName = toPackageName(themeName);
     const themeFileName = `${packageName}-color-theme.json`;
 
     // Ensure output directory exists
-    await fs.mkdir(outputPath, { recursive: true });
-    await fs.mkdir(join(outputPath, 'themes'), { recursive: true });
+    await fs.mkdir(normalizedOutputPath, { recursive: true });
+    await fs.mkdir(join(normalizedOutputPath, 'themes'), { recursive: true });
 
     if (options.generateFullExtension) {
-      await fs.mkdir(join(outputPath, '.vscode'), { recursive: true });
+      await fs.mkdir(join(normalizedOutputPath, '.vscode'), { recursive: true });
     }
 
     // Generate theme file
     const themeContent = JSON.stringify(theme, null, 2);
-    const themeFilePath = join(outputPath, 'themes', themeFileName);
+    const themeFilePath = join(normalizedOutputPath, 'themes', themeFileName);
     await fs.writeFile(themeFilePath, themeContent);
 
     const themeFile: GeneratedFile = {
@@ -838,7 +844,7 @@ export const generateExtensionFiles = async (
 
     // Generate package.json
     const packageContent = generatePackageJson(themeName, options, themeFileName);
-    const packageFilePath = join(outputPath, 'package.json');
+    const packageFilePath = join(normalizedOutputPath, 'package.json');
     await fs.writeFile(packageFilePath, packageContent);
 
     const packageFile: GeneratedFile = {
@@ -852,7 +858,7 @@ export const generateExtensionFiles = async (
     // Generate README if requested
     if (options.generateReadme) {
       const readmeContent = generateReadme(themeName, options);
-      const readmeFilePath = join(outputPath, 'README.md');
+      const readmeFilePath = join(normalizedOutputPath, 'README.md');
       await fs.writeFile(readmeFilePath, readmeContent);
 
       generatedFiles.push({
@@ -866,7 +872,7 @@ export const generateExtensionFiles = async (
     // Generate CHANGELOG if requested
     if (options.generateChangelog) {
       const changelogContent = generateChangelog(themeName, options);
-      const changelogFilePath = join(outputPath, 'CHANGELOG.md');
+      const changelogFilePath = join(normalizedOutputPath, 'CHANGELOG.md');
       await fs.writeFile(changelogFilePath, changelogContent);
 
       generatedFiles.push({
@@ -880,7 +886,7 @@ export const generateExtensionFiles = async (
     // Generate VS Code quickstart if requested (replaces custom quickstart)
     if (options.generateQuickstart) {
       const quickstartContent = generateVSCodeQuickstart(themeName, options);
-      const quickstartFilePath = join(outputPath, 'vsc-extension-quickstart.md');
+      const quickstartFilePath = join(normalizedOutputPath, 'vsc-extension-quickstart.md');
       await fs.writeFile(quickstartFilePath, quickstartContent);
 
       generatedFiles.push({
@@ -895,7 +901,7 @@ export const generateExtensionFiles = async (
     if (options.generateFullExtension) {
       // Launch configuration
       const launchContent = generateLaunchJson();
-      const launchFilePath = join(outputPath, '.vscode', 'launch.json');
+      const launchFilePath = join(normalizedOutputPath, '.vscode', 'launch.json');
       await fs.writeFile(launchFilePath, launchContent);
 
       generatedFiles.push({
@@ -907,7 +913,7 @@ export const generateExtensionFiles = async (
 
       // License file
       const licenseContent = generateLicense(options);
-      const licenseFilePath = join(outputPath, 'LICENSE');
+      const licenseFilePath = join(normalizedOutputPath, 'LICENSE');
       await fs.writeFile(licenseFilePath, licenseContent);
 
       generatedFiles.push({
@@ -921,7 +927,7 @@ export const generateExtensionFiles = async (
     // Generate .vscodeignore if requested or for full extension
     if (options.generateVSCodeIgnore || options.generateFullExtension) {
       const vsCodeIgnoreContent = generateVSCodeIgnore();
-      const vsCodeIgnoreFilePath = join(outputPath, '.vscodeignore');
+      const vsCodeIgnoreFilePath = join(normalizedOutputPath, '.vscodeignore');
       await fs.writeFile(vsCodeIgnoreFilePath, vsCodeIgnoreContent);
 
       generatedFiles.push({
@@ -935,7 +941,7 @@ export const generateExtensionFiles = async (
     // Generate .gitignore if requested or for full extension
     if (options.generateGitIgnore || options.generateFullExtension) {
       const gitIgnoreContent = generateGitIgnore();
-      const gitIgnoreFilePath = join(outputPath, '.gitignore');
+      const gitIgnoreFilePath = join(normalizedOutputPath, '.gitignore');
       await fs.writeFile(gitIgnoreFilePath, gitIgnoreContent);
 
       generatedFiles.push({
@@ -949,7 +955,7 @@ export const generateExtensionFiles = async (
     // Copy source theme if requested and source path provided
     if (options.preserveSourceTheme && options.sourcePath) {
       try {
-        const copiedTheme = await copySourceTheme(options.sourcePath, outputPath);
+        const copiedTheme = await copySourceTheme(options.sourcePath, normalizedOutputPath);
         
         generatedFiles.push({
           path: copiedTheme.path,
@@ -978,7 +984,7 @@ export const generateExtensionFiles = async (
 
     return {
       success: true,
-      outputPath,
+      normalizedOutputPath,
       files: generatedFiles,
     };
   } catch (error) {

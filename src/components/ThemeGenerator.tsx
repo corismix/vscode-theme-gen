@@ -121,8 +121,8 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
       return;
     }
 
-    // F1 key for help
-    if (key.f1) {
+    // ? key for help
+    if (input === '?') {
       setShowHelp(!showHelp);
       return;
     }
@@ -239,7 +239,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
         <Box marginTop={1} borderStyle='single' borderColor='gray' padding={1}>
           <Box flexDirection='column'>
             <Text color='gray' dimColor>
-              🌟 Global shortcuts: {stepInfo.canGoBack ? 'ESC (back) • ' : ''}F1 (help) • Ctrl+C (exit)
+              🌟 Global shortcuts: {stepInfo.canGoBack ? 'ESC (back) • ' : ''}? (help) • Ctrl+C (exit)
             </Text>
           </Box>
         </Box>
@@ -265,7 +265,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
             <Text color='cyan'>⌨️  <Text bold>Keyboard Shortcuts:</Text></Text>
             <Text>   • <Text color='green'>Enter:</Text> Submit/Next step</Text>
             {stepInfo.canGoBack && <Text>   • <Text color='green'>ESC:</Text> Go back to previous step</Text>}
-            <Text>   • <Text color='green'>F1:</Text> Toggle this help</Text>
+            <Text>   • <Text color='green'>?:</Text> Toggle this help</Text>
             <Text>   • <Text color='green'>Ctrl+C:</Text> Exit application</Text>
             <Text> </Text>
             <Text color='cyan'>📁 <Text bold>File Input:</Text></Text>
@@ -273,7 +273,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
             <Text>   • <Text color='green'>Navigate:</Text> Arrow keys, Home/End</Text>
             <Text>   • <Text color='green'>Supports:</Text> ~/paths, .txt/.toml/.conf files</Text>
             <Text> </Text>
-            <Text color='gray' dimColor>Press F1 again to close this help</Text>
+            <Text color='gray' dimColor>Press ? again to close this help</Text>
           </Box>
         </Box>
       )}

@@ -24,11 +24,12 @@ import {
   TokenColor,
   ColorRoleMap,
   ParsedThemeFile,
-  ColorValidationResult as FileValidationResult,
+  ColorValidationResult,
   FileProcessingError,
   ValidationError,
 } from '@/types';
 import { FILE_LIMITS, SECURITY_LIMITS } from '@/config';
+import { fileUtils } from './utils-simple';
 
 // ============================================================================
 // Constants
@@ -205,19 +206,25 @@ const sanitizeColorValue = (value: string, key?: string): string | null => {
 // ============================================================================
 
 /**
- * Basic file path validation
+ * Enhanced file path validation with tilde expansion
+ * Uses the same validation logic as FileStep for consistency
  */
 const validateFilePath = (filePath: string): string => {
   if (typeof filePath !== 'string' || !filePath.trim()) {
     throw new ValidationError('Invalid file path provided');
   }
 
-  // Basic security check - prevent path traversal
-  if (filePath.includes('..') || filePath.includes('\0')) {
-    throw new ValidationError('Invalid file path: path traversal detected');
+  // Use enhanced path validation from utils-simple
+  const pathValidation = fileUtils.validateFilePath(filePath);
+  if (!pathValidation.isValid) {
+    throw new ValidationError(
+      pathValidation.error || 'Invalid file path format',
+      { filePath, suggestions: pathValidation.suggestions }
+    );
   }
 
-  return filePath.trim();
+  // Return the normalized path with tilde expansion
+  return (pathValidation as any).normalizedPath || fileUtils.normalizePath(filePath);
 };
 
 /**
@@ -322,7 +329,7 @@ export const readThemeFile = async (filePath: string): Promise<string> => {
  * @since 1.0.0
  */
 export const parseThemeFile = async (filePath: string): Promise<ParsedThemeFile> => {
-  const validation: FileValidationResult = {
+  const validation: ColorValidationResult = {
     isValid: true,
     warnings: [],
   };
