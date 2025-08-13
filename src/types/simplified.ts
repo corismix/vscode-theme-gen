@@ -81,6 +81,11 @@ export interface GenerationOptions {
   generateChangelog: boolean;
   generateQuickstart?: boolean;
   generateFullExtension?: boolean;
+  preserveSourceTheme?: boolean;
+  sourcePath?: string;
+  galleryBannerColor?: string;
+  generateGitIgnore?: boolean;
+  generateVSCodeIgnore?: boolean;
 }
 
 export interface GeneratedFile {

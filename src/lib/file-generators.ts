@@ -103,6 +103,11 @@ interface ExtensionPackageJson {
   };
   categories: string[];
   keywords: string[];
+  galleryBanner?: {
+    color: string;
+    theme: 'dark' | 'light';
+  };
+  icon?: string;
   contributes: PackageJsonContribution;
   publisher?: string;
   license?: string;
@@ -115,6 +120,14 @@ interface ExtensionPackageJson {
     url: string;
   };
   homepage?: string;
+  badges?: Array<{
+    url: string;
+    href: string;
+    description: string;
+  }>;
+  sponsor?: {
+    url: string;
+  };
 }
 
 /**
@@ -167,6 +180,10 @@ export const generatePackageJson = (
     },
     categories: ['Themes'],
     keywords: ['theme', 'dark theme', 'color theme', themeName.toLowerCase()],
+    galleryBanner: {
+      color: options.galleryBannerColor || '#1e1e1e',
+      theme: 'dark'
+    },
     contributes: {
       themes: [
         {
@@ -366,13 +383,12 @@ export const generateLaunchJson = (): string => {
       version: '0.2.0',
       configurations: [
         {
-          name: 'Extension Development Host',
+          name: 'Extension',
           type: 'extensionHost',
           request: 'launch',
-          runtimeExecutable: '${execPath}',
-          args: ['--extensionDevelopmentPath=${workspaceFolder}'],
-          outFiles: ['${workspaceFolder}/out/**/*.js'],
-          preLaunchTask: '${workspaceFolder}/.vscode/tasks.json',
+          args: [
+            '--extensionDevelopmentPath=${workspaceFolder}'
+          ]
         },
       ],
     },
@@ -576,6 +592,174 @@ Enjoy coding with ${displayName}! 🎉
 };
 
 // ============================================================================
+// Additional Extension Files
+// ============================================================================
+
+/**
+ * Generates .vscodeignore file for VS Code extension packaging
+ * 
+ * Excludes unnecessary files from the extension package when using vsce.
+ * Based on VS Code extension best practices.
+ *
+ * @returns .vscodeignore file content
+ * @since 2.0.0
+ */
+export const generateVSCodeIgnore = (): string => {
+  return `.vscode/**
+.vscode-test/**
+.gitignore
+vsc-extension-quickstart.md
+src-theme/**
+*.vsix
+**/.DS_Store
+node_modules/
+*.log
+.git/
+`;
+};
+
+/**
+ * Generates .gitignore file for version control
+ * 
+ * Standard .gitignore for VS Code extension development.
+ *
+ * @returns .gitignore file content  
+ * @since 2.0.0
+ */
+export const generateGitIgnore = (): string => {
+  return `node_modules/
+*.vsix
+.vscode-test/
+*.log
+.DS_Store
+out/
+dist/
+`;
+};
+
+/**
+ * Generates VS Code extension quickstart guide
+ * 
+ * Replaces the custom quickstart with the standard VS Code extension
+ * development guide that matches what VS Code generates.
+ *
+ * @param themeName - Name of the theme
+ * @param options - Generation options
+ * @returns VS Code extension quickstart content
+ * @since 2.0.0
+ */
+export const generateVSCodeQuickstart = (themeName: string, options: GenerationOptions): string => {
+  const displayName = toDisplayName(themeName);
+  const packageName = toPackageName(themeName);
+
+  return `# ${displayName} - Developer Guide
+
+## Getting Started
+
+This extension was generated from a Ghostty terminal theme file using an interactive CLI tool.
+
+## What's in the folder
+
+* \`package.json\` - Extension manifest defining theme location and metadata
+* \`themes/\` - Contains the theme JSON file(s)
+* \`.vscode/launch.json\` - Debug configuration for Extension Development Host
+* \`README.md\` - User-facing documentation
+* \`CHANGELOG.md\` - Version history
+* This file - Developer quick start guide
+
+## Testing the Theme
+
+1. Press \`F5\` to open a new VS Code window with your extension loaded
+2. Open the Command Palette (\`Ctrl+Shift+P\` or \`Cmd+Shift+P\` on Mac)
+3. Type "Color Theme" and select \`Preferences: Color Theme\`
+4. Choose "${displayName}" from the list
+5. Open various file types to test syntax highlighting
+
+## Making Changes
+
+### Theme Colors
+
+Edit \`themes/*.json\` to modify:
+- **Workbench colors**: UI elements like sidebar, tabs, status bar
+- **Token colors**: Syntax highlighting rules
+- **Semantic colors**: Language-specific semantic tokens
+
+Changes are automatically applied to the Extension Development Host window.
+
+### Testing Token Scopes
+
+1. Open a file with syntax highlighting
+2. Use Command Palette: \`Developer: Inspect Editor Tokens and Scopes\`
+3. Click on any text to see its token scope
+4. Use this information to customize token colors
+
+## Publishing
+
+### First Time Setup
+
+1. Install vsce: \`npm install -g vsce\`
+2. Create a publisher account at [Visual Studio Marketplace](https://marketplace.visualstudio.com/manage)
+3. Get a Personal Access Token from Azure DevOps
+
+### Publishing Steps
+
+1. Update version in \`package.json\`
+2. Update \`CHANGELOG.md\`
+3. Package: \`vsce package\`
+4. Publish: \`vsce publish\`
+
+## Resources
+
+- [VS Code Theme Documentation](https://code.visualstudio.com/api/extension-guides/color-theme)
+- [Theme Color Reference](https://code.visualstudio.com/api/references/theme-color)
+- [Publishing Extensions](https://code.visualstudio.com/api/working-with-extensions/publishing-extension)
+
+## Tips
+
+- Use the built-in theme editor: \`Developer: Generate Color Theme From Current Settings\`
+- Test with different file types and languages
+- Check accessibility with high contrast themes
+- Validate JSON files before publishing
+`;
+};
+
+/**
+ * Copies the original source theme file to src-theme directory
+ * 
+ * Preserves the original Ghostty theme file for reference and future updates.
+ * Creates the src-theme directory structure.
+ *
+ * @param sourcePath - Path to the original Ghostty theme file
+ * @param outputPath - Extension output directory
+ * @returns Promise resolving to the copied file information
+ * @since 2.0.0
+ */
+export const copySourceTheme = async (sourcePath: string, outputPath: string): Promise<{
+  path: string;
+  content: string;
+  size: number;
+}> => {
+  const { promises: fs } = await import('fs');
+  const { basename, join } = await import('path');
+  
+  // Create src-theme directory
+  const srcThemeDir = join(outputPath, 'src-theme');
+  await fs.mkdir(srcThemeDir, { recursive: true });
+  
+  // Copy the source file
+  const fileName = basename(sourcePath);
+  const destPath = join(srcThemeDir, fileName);
+  const content = await fs.readFile(sourcePath, 'utf8');
+  await fs.writeFile(destPath, content);
+  
+  return {
+    path: destPath,
+    content,
+    size: Buffer.byteLength(content, 'utf8')
+  };
+};
+
+// ============================================================================
 // File Generation Orchestration
 // ============================================================================
 
@@ -693,10 +877,10 @@ export const generateExtensionFiles = async (
       });
     }
 
-    // Generate quickstart if requested
+    // Generate VS Code quickstart if requested (replaces custom quickstart)
     if (options.generateQuickstart) {
-      const quickstartContent = generateQuickstart(themeName, options);
-      const quickstartFilePath = join(outputPath, 'QUICKSTART.md');
+      const quickstartContent = generateVSCodeQuickstart(themeName, options);
+      const quickstartFilePath = join(outputPath, 'vsc-extension-quickstart.md');
       await fs.writeFile(quickstartFilePath, quickstartContent);
 
       generatedFiles.push({
@@ -732,6 +916,53 @@ export const generateExtensionFiles = async (
         type: 'text',
         size: Buffer.byteLength(licenseContent, 'utf8'),
       });
+    }
+
+    // Generate .vscodeignore if requested or for full extension
+    if (options.generateVSCodeIgnore || options.generateFullExtension) {
+      const vsCodeIgnoreContent = generateVSCodeIgnore();
+      const vsCodeIgnoreFilePath = join(outputPath, '.vscodeignore');
+      await fs.writeFile(vsCodeIgnoreFilePath, vsCodeIgnoreContent);
+
+      generatedFiles.push({
+        path: vsCodeIgnoreFilePath,
+        content: vsCodeIgnoreContent,
+        type: 'text',
+        size: Buffer.byteLength(vsCodeIgnoreContent, 'utf8'),
+      });
+    }
+
+    // Generate .gitignore if requested or for full extension
+    if (options.generateGitIgnore || options.generateFullExtension) {
+      const gitIgnoreContent = generateGitIgnore();
+      const gitIgnoreFilePath = join(outputPath, '.gitignore');
+      await fs.writeFile(gitIgnoreFilePath, gitIgnoreContent);
+
+      generatedFiles.push({
+        path: gitIgnoreFilePath,
+        content: gitIgnoreContent,
+        type: 'text',
+        size: Buffer.byteLength(gitIgnoreContent, 'utf8'),
+      });
+    }
+
+    // Copy source theme if requested and source path provided
+    if (options.preserveSourceTheme && options.sourcePath) {
+      try {
+        const copiedTheme = await copySourceTheme(options.sourcePath, outputPath);
+        
+        generatedFiles.push({
+          path: copiedTheme.path,
+          content: copiedTheme.content,
+          type: 'text',
+          size: copiedTheme.size,
+        });
+      } catch (error) {
+        // Log warning but don't fail the entire generation
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Failed to copy source theme: ${(error as Error).message}`);
+        }
+      }
     }
 
     const duration = Date.now() - startTime;
