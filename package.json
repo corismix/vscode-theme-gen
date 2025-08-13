@@ -1,10 +1,10 @@
 {
-  "name": "vscode-theme-generator-cli",
+  "name": "vscode-theme-gen",
   "version": "1.0.0",
   "description": "Interactive CLI tool for generating VS Code themes from Ghostty terminal color files",
   "main": "dist/index.js",
   "bin": {
-    "theme-generator": "./dist/index.js"
+    "vscode-theme-gen": "./dist/index.js"
   },
   "scripts": {
     "start": "bun run build && bun dist/index.js",
@@ -21,6 +21,7 @@
     "test:watch": "bun vitest --reporter=verbose",
     "test:coverage": "bun vitest run --coverage",
     "test:ui": "bun vitest --ui",
+    "test:npm": "npm exec vitest run --reporter=verbose",
     "clean": "rm -rf dist .tsbuildinfo",
     "prepublishOnly": "bun run clean && bun run build",
     "analyze:bundle": "bun run build && ls -lh dist/ && echo 'Bundle analysis:' && wc -c dist/index.js"
@@ -35,8 +36,16 @@
     "colors",
     "typescript"
   ],
-  "author": "VS Code Theme Generator",
+  "author": "corismer",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/corismer/vscode-theme-gen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/corismer/vscode-theme-gen/issues"
+  },
+  "homepage": "https://github.com/corismer/vscode-theme-gen#readme",
   "type": "module",
   "files": [
     "dist/**/*",

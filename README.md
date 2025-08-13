@@ -17,16 +17,16 @@ A modern TypeScript CLI tool for converting Ghostty terminal color themes into c
 
 ## Installation
 
-### From NPM (when published)
+### From NPM
 ```bash
-npm install -g vscode-theme-generator-cli
-theme-generator
+npm install -g vscode-theme-gen
+vscode-theme-gen
 ```
 
 ### Development Install
 ```bash
-git clone <repository>
-cd vscode-theme-generator
+git clone https://github.com/corismer/vscode-theme-gen.git
+cd vscode-theme-gen
 npm install
 npm run build
 npm start
@@ -54,10 +54,10 @@ The interactive CLI features a clean multi-step workflow:
 ### Command Line Mode
 ```bash
 # Basic usage
-theme-generator --input my-theme.txt --name "My Theme"
+vscode-theme-gen --input my-theme.txt --name "My Theme"
 
 # Full configuration
-theme-generator \
+vscode-theme-gen \
   --input ghostty-theme.txt \
   --output ./my-awesome-theme \
   --name "My Awesome Theme" \
@@ -389,7 +389,7 @@ MIT License - see LICENSE file for details.
 ## Support & Community
 
 - 📚 **Documentation**: Comprehensive inline docs and TypeScript definitions
-- 🐛 **Issues**: [GitHub Issues](https://github.com/corismer/vscode-theme-generator/issues) for bugs and features
+- 🐛 **Issues**: [GitHub Issues](https://github.com/corismer/vscode-theme-gen/issues) for bugs and features
 - 🎯 **Examples**: Sample theme files in repository
 - ⚡ **Performance**: Optimized for professional development workflows
 
