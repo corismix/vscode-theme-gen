@@ -36,16 +36,16 @@
     "colors",
     "typescript"
   ],
-  "author": "corismer",
+  "author": "corismix",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/corismer/vscode-theme-gen.git"
+    "url": "https://github.com/corismix/vscode-theme-gen.git"
   },
   "bugs": {
-    "url": "https://github.com/corismer/vscode-theme-gen/issues"
+    "url": "https://github.com/corismix/vscode-theme-gen/issues"
   },
-  "homepage": "https://github.com/corismer/vscode-theme-gen#readme",
+  "homepage": "https://github.com/corismix/vscode-theme-gen#readme",
   "type": "module",
   "files": [
     "dist/**/*",

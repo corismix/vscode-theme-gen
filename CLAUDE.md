@@ -4,217 +4,141 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a modern TypeScript CLI application for converting Ghostty terminal color themes to VS Code extensions. Features a clean, modular architecture with comprehensive testing, optimized performance (50.11 kB bundle), and 98 tests covering all core functionality.
+VS Code Theme Generator is an interactive CLI tool for converting Ghostty terminal color schemes into VS Code theme extensions. Built with TypeScript, React (Ink), and Vite, it provides a full interactive experience for theme creation and extension generation.
 
-## Architecture
-
-### Core Components
-
-- **CLI Entry**: `src/main.ts` - Meow-based CLI with comprehensive validation
-- **Theme Engine**: `src/lib/theme-generator.ts` - Ghostty to VS Code theme conversion with full color mapping
-- **File Generators**: `src/lib/file-generators.ts` - Complete VS Code extension structure generation
-- **Main Controller**: `src/components/ThemeGenerator.tsx` - 177-line workflow orchestrator
-- **Step Components**: `src/components/steps/` - Clean, focused step-based UI components
-- **Utility Components**: `src/components/ui/` - Reusable UI elements
-
-### Key Technologies
-
-- **Runtime**: Bun 1.0+ or Node.js 18+ with native ES modules
-- **Package Manager**: Bun (primary) with npm compatibility
-- **Language**: TypeScript 5.3+ with strict mode enabled
-- **UI Framework**: React 18 with Ink for terminal UI
-- **Build System**: Vite 7.1+ producing ~53 kB optimized bundle
-- **Testing**: Vitest 3.2+ with 98 comprehensive tests
-- **Dependencies**: Minimal runtime dependencies (ink, meow, react)
+**Key Technologies:**
+- **Runtime:** Bun (primary), Node.js 18+ (compatibility)  
+- **UI Framework:** React with Ink for terminal interfaces
+- **Build System:** Vite with custom shebang plugin for CLI executable
+- **CLI Framework:** Meow for argument parsing and help generation
 
 ## Development Commands
 
-### Essential Commands
+### Build and Development
+- `bun start` - Build production version and run CLI
+- `bun run dev` - Build development version and run CLI  
+- `bun run build` - Production build (creates executable with shebang)
+- `bun run build:dev` - Development build with debugging
+- `bun run build:watch` - Watch mode for development
 
-```bash
-# Build for production
-bun run build
+### Code Quality
+- `bun run type-check` - TypeScript type checking (no emit)
+- `bun run lint` - ESLint with zero warnings policy
+- `bun run lint:fix` - Auto-fix linting issues
+- `bun run format` - Format code with Prettier
+- `bun run format:check` - Check formatting without changes
 
-# Development build with source maps
-bun run build:dev
+### Testing
+- `bun test` - Run all tests with verbose output
+- `bun run test:watch` - Run tests in watch mode
+- `bun run test:coverage` - Generate coverage reports
+- `bun run test:ui` - Visual test interface
 
-# Type checking (no emit)
-bun run type-check
+### Utility Commands
+- `bun run clean` - Remove build artifacts and cache
+- `bun run analyze:bundle` - Analyze bundle size and content
 
-# Run tests
-bun test
+## Architecture
 
-# Run tests in watch mode
-bun run test:watch
+### Core Application Flow
+1. **CLI Entry** (`main.ts`) - Argument parsing, validation, and React app initialization
+2. **Component Tree** - Hierarchical React components using Ink for terminal UI
+3. **Business Logic** - Theme parsing, color mapping, and VS Code extension generation
+4. **File Operations** - Template-based file generation for complete extensions
 
-# Run tests with coverage
-bun run test:coverage
+### Key Architectural Components
 
-# Lint code
-bun run lint
+**Theme Processing Pipeline:**
+- `lib/theme-generator.ts` - Ghostty format parsing and VS Code theme compilation
+- `lib/file-generators.ts` - Extension structure generation (package.json, docs, etc.)
+- `lib/utils-simple.ts` - File system utilities and validation helpers
 
-# Auto-fix lint issues
-bun run lint:fix
+**UI Component Hierarchy:**
+- `App.tsx` → `ThemeGenerator.tsx` → Step Components (`steps/`)
+- Step-based workflow: File → Theme → Options → Advanced → Process → Success
+- Reusable UI components in `ui/` (Header, TextInput, NavigationHints)
 
-# Format code with Prettier
-bun run format
+**Type System:**
+- Centralized type definitions in `types/index.ts`
+- Strong typing for Ghostty colors, VS Code themes, and form state
+- Comprehensive error handling with custom error classes
 
-# Check formatting
-bun run format:check
+### Build Configuration
 
-# Clean build artifacts
-bun run clean
+**Vite Setup (`vite.config.ts`):**
+- Custom shebang plugin for CLI executable creation
+- Path aliases for clean imports (`@/`, `@/components`, etc.)
+- External dependencies (Node.js builtins, React, Ink, Meow)
+- ES modules with Node 18+ target
 
-# Start the CLI (builds first)
-bun start
+**Key Build Features:**
+- Automatic shebang injection for CLI execution
+- Bundle optimization with tree shaking and minification
+- Development sourcemaps for debugging
+- Incremental TypeScript compilation
 
-# Development mode
-bun run dev
-```
+### Security and Validation
 
-### Testing Specific Files
+**File Processing Security:**
+- Path traversal prevention with normalized path validation
+- File size limits and line count restrictions (see `config/limits.ts`)
+- Input sanitization for theme files and user inputs
+- Comprehensive validation with detailed error messages
 
-```bash
-# Run specific test file
-bun vitest src/test/lib/theme-generator.test.ts
+**Theme File Parsing:**
+- Support for multiple Ghostty formats (palette and key-value)
+- Color validation with hex format enforcement
+- Metadata extraction with size and content limits
+- Graceful handling of malformed or incomplete files
 
-# Run tests matching pattern
-bun vitest --grep "parseThemeFile"
+## Development Guidelines
 
-# Debug tests
-bun vitest --reporter=verbose
-```
+### Code Style and Standards
+- **Zero-warning ESLint policy** - All warnings must be resolved before commits
+- **Strict TypeScript** - No implicit any, unused parameters/variables not allowed
+- **React patterns** - Functional components with hooks, proper state management
+- **Error handling** - Custom error classes with detailed messages and suggestions
 
-## Code Standards
+### File Organization Patterns
+- **Barrel exports** - Use `index.ts` files for clean component and utility exports
+- **Path aliases** - Always use `@/` imports for consistency and refactoring ease
+- **Component co-location** - Related components and styles together in feature directories
+- **Type safety** - Export types alongside implementations for reusability
 
-### TypeScript Configuration
+### Testing Strategy
+- **Unit tests** for core business logic (theme generation, file operations)
+- **Integration tests** for CLI workflows and file system interactions
+- **Coverage targets** - Focus on critical paths and error handling scenarios
+- **Test utilities** in `src/test/setup.ts` for consistent test environment
 
-- Strict mode enabled
-- Path aliases configured (@/, @/components, @/utils, @/lib, @/context)
-- Target: ES2020, Module: ESNext
-- React JSX automatic runtime
+### Common Development Tasks
 
-### ESLint Rules
+**Adding new theme features:**
+1. Update `GhosttyColors` interface in `types/index.ts`
+2. Modify parsing logic in `theme-generator.ts`
+3. Update VS Code color mappings in `buildVSCodeColors()`
+4. Add corresponding tests in `test/lib/`
 
-- TypeScript strict rules with @typescript-eslint
-- React hooks rules enforced
-- Max line length: 120 characters
-- Trailing commas: always-multiline
-- Semicolons: always
-- Quotes: single (with template literals allowed)
-- Indent: 2 spaces
+**Adding new UI components:**
+1. Create component in appropriate `components/` subdirectory
+2. Export from local `index.ts` for clean imports
+3. Follow Ink patterns for terminal-specific rendering
+4. Update step logic if component affects workflow
 
-### Prettier Configuration
+**Extending file generation:**
+1. Add new generator functions to `file-generators.ts`
+2. Update `GenerationOptions` interface for new options
+3. Modify form handling in step components
+4. Test generation pipeline thoroughly
 
-- Single quotes
-- Semicolons
-- Print width: 100
-- Arrow parens: avoid
-- Trailing comma: ES5
+### Performance Considerations
+- **Bundle size** - CLI startup time is critical for user experience
+- **Memory usage** - Large theme files and complex color calculations
+- **File I/O** - Async operations with proper error handling and timeouts
+- **Terminal rendering** - Ink optimization for responsive UI updates
 
-## Project Structure
-
-```
-src/
-├── components/              # React UI components (2 main + 6 steps)
-│   ├── App.tsx             # Main application orchestrator
-│   ├── ThemeGenerator.tsx  # Core workflow controller (177 lines)
-│   ├── types.ts            # Component interfaces
-│   ├── steps/              # Step-based workflow components
-│   │   ├── FileStep.tsx    # File selection with validation
-│   │   ├── ThemeStep.tsx   # Theme name configuration
-│   │   ├── OptionsStep.tsx # Extension options setup
-│   │   ├── ProcessStep.tsx # Generation progress display
-│   │   ├── SuccessStep.tsx # Completion summary
-│   │   └── ErrorDisplay.tsx # Error handling UI
-│   └── ui/                 # Reusable UI components
-│       ├── Header.tsx      # Consistent header
-│       └── TextInput.tsx   # Validated text input
-├── hooks/                  # Custom React hooks
-│   └── useTextInput.tsx    # Input validation hook
-├── lib/                    # Core business logic
-│   ├── theme-generator.ts  # Ghostty to VS Code conversion
-│   ├── file-generators.ts  # Extension file generation
-│   └── utils-simple.ts     # File utilities
-├── types/                  # TypeScript definitions
-│   ├── theme.types.ts      # Theme-related types
-│   ├── error.types.ts      # Error handling types
-│   └── simplified.ts       # Application data types
-├── config/                 # Configuration
-│   └── limits.ts           # File size and validation limits
-├── test/                   # Comprehensive test suite (98 tests)
-│   ├── lib/                # Core logic tests
-│   ├── hooks/              # Hook testing
-│   └── integration/        # Integration tests
-└── main.ts                 # CLI entry point
-```
-
-## Key Implementation Details
-
-### Theme Parsing
-
-The theme parser (`src/lib/theme-generator.ts`) handles:
-- Ghostty theme file format (both `key=value` and `palette = N=#color` formats)
-- Color validation with hex format verification and automatic # prefix addition
-- Palette format parsing with complete 16-color support
-- File size limits (1MB max) and line count limits for security
-- Comprehensive error handling with custom ValidationError and FileProcessingError classes
-- Theme name resolution from file metadata or filename
-
-### Architecture Patterns
-
-Clean, modular design with:
-- **Step-based workflow**: Each step is a focused component with clear responsibilities
-- **Custom hooks**: `useTextInput` for validated input handling
-- **Type safety**: Comprehensive TypeScript interfaces and strict mode
-- **Error boundaries**: Graceful error handling with recovery suggestions
-- **Performance**: Minimal bundle size (50.11 kB) with optimized dependencies
-
-### File Generation
-
-Generates complete VS Code extension structure:
-- **package.json**: Proper extension manifest with themes contribution
-- **Theme JSON**: Complete workbench colors and syntax token colors mapping
-- **Documentation**: README.md with installation and usage instructions
-- **Metadata**: CHANGELOG.md, LICENSE, and VS Code launch configuration
-- **Directory structure**: Proper themes/ folder with correctly named theme files
-
-## Error Handling
-
-- **Custom error classes**: ValidationError for input validation, FileProcessingError for file operations
-- **Comprehensive validation**: File path validation, theme format validation, color format validation
-- **Security measures**: Path traversal prevention, file size limits, line count limits
-- **User-friendly messages**: Clear error descriptions with actionable suggestions
-- **Graceful recovery**: ErrorDisplay component with retry mechanisms
-
-## Testing Strategy
-
-- **98 comprehensive tests** covering all core functionality
-- **Unit tests**: Complete coverage of theme-generator, file-generators, and utils
-- **Integration tests**: CLI validation patterns and workflow testing
-- **Hook tests**: Custom hook behavior validation
-- **Mock filesystem**: Safe testing without actual file operations
-- **Performance testing**: Bundle size and startup time validation
-- **Test framework**: Vitest with TypeScript support and fast execution
-
-## Performance Metrics
-
-- **Bundle Size**: ~53 kB production build (gzip: ~14 kB)
-- **Test Coverage**: 98 tests covering all core functionality  
-- **Build Time**: ~74ms for production builds (Bun + Vite)
-- **Package Installation**: 2-4x faster with Bun vs npm
-- **Dependencies**: Minimal runtime dependencies (ink, meow, react)
-- **Memory Usage**: Efficient with 1MB file size limits
-- **Startup Time**: 3x faster CLI initialization with Bun runtime
-
-## Important Notes
-
-- **Runtime**: Bun 1.0+ is recommended for optimal performance (Node.js 18+ still supported)
-- **Package Manager**: Uses Bun for dependency management (npm compatibility maintained)
-- **TypeScript First**: All code must use TypeScript with strict mode enabled
-- **Error Handling**: Use existing ValidationError and FileProcessingError classes
-- **Component Patterns**: Follow React hooks patterns with proper lifecycle management
-- **Terminal Compatibility**: Maintain Ink component compatibility across terminals
-- **Security**: File operations include path validation and size limits
-- **Testing**: All new features require corresponding tests
-- **Performance**: Maintain fast startup and minimal bundle size with Bun optimizations
+### Debugging and Troubleshooting
+- Use `bun run dev` for development builds with enhanced debugging
+- Check `.tsbuildinfo` and clear with `bun run clean` for type issues
+- Vite development mode provides detailed error messages and stack traces
+- Test CLI behavior with various theme files in `test-themes/` directory
