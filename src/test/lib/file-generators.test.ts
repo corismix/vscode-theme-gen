@@ -505,4 +505,69 @@ describe('generateExtensionFiles', () => {
 
     expect(themeFileCall[0]).toContain('my-awesome-theme-color-theme.json');
   });
+
+  // Security Tests: Path Traversal Prevention
+  it('rejects output paths with path traversal sequences', async () => {
+    const maliciousOptions = {
+      ...mockOptions,
+      outputPath: '../../../etc/malicious',
+    };
+
+    await expect(generateExtensionFiles(mockVSCodeTheme, maliciousOptions)).rejects.toThrow(
+      'Path traversal detected',
+    );
+  });
+
+  it('rejects output paths that resolve outside current directory', async () => {
+    const maliciousOptions = {
+      ...mockOptions,
+      outputPath: '/etc/malicious',
+    };
+
+    await expect(generateExtensionFiles(mockVSCodeTheme, maliciousOptions)).rejects.toThrow(
+      'Output path must be within current working directory',
+    );
+  });
+
+  it('accepts safe relative paths', async () => {
+    const safeOptions = {
+      ...mockOptions,
+      outputPath: './safe-theme',
+    };
+
+    const result = await generateExtensionFiles(mockVSCodeTheme, safeOptions);
+    expect(result.success).toBe(true);
+  });
+
+  it('allows outside cwd when flag is set', async () => {
+    const outsideOptions = {
+      ...mockOptions,
+      outputPath: '/tmp/allowed-outside-theme',
+      allowOutsideCwd: true,
+    };
+
+    const result = await generateExtensionFiles(mockVSCodeTheme, outsideOptions);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects symlinked output paths', async () => {
+    // Mock fs to simulate symlink
+    const mockLstat = vi.fn().mockReturnValue({ isSymbolicLink: () => true });
+    const mockExists = vi.fn().mockReturnValue(true);
+    
+    vi.doMock('fs', () => ({
+      promises: { writeFile: vi.fn(), mkdir: vi.fn() },
+      lstatSync: mockLstat,
+      existsSync: mockExists,
+    }));
+
+    const symlinkOptions = {
+      ...mockOptions,
+      outputPath: './symlinked-path',
+    };
+
+    await expect(generateExtensionFiles(mockVSCodeTheme, symlinkOptions)).rejects.toThrow(
+      'symbolic link',
+    );
+  });
 });

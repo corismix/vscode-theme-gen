@@ -39,6 +39,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
     preserveSourceTheme: true,
     generateGitIgnore: true,
     generateVSCodeIgnore: true,
+    allowOutsideCwd: false,
     ...initialData,
   });
   const [themeData, setThemeData] = useState<ThemeData | null>(null);
@@ -106,6 +107,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
       preserveSourceTheme: true,
       generateGitIgnore: true,
       generateVSCodeIgnore: true,
+      allowOutsideCwd: false,
     });
     setThemeData(null);
     setError(null);

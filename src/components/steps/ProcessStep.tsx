@@ -69,6 +69,7 @@ const ProcessStepComponent: React.FC<ProcessStepProps> = ({
           sourcePath: formData.inputFile,
           generateGitIgnore: formData.generateGitIgnore,
           generateVSCodeIgnore: formData.generateVSCodeIgnore,
+          allowOutsideCwd: formData.allowOutsideCwd,
           // Derive gallery banner color from theme background or use default
           galleryBannerColor: themeData.colors.color0 || themeData.colors.background || '#1e1e1e',
         };

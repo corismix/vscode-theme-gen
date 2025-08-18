@@ -30,6 +30,7 @@ const cli = meow(
 	  --no-readme       Skip README.md generation
 	  --no-changelog    Skip CHANGELOG.md generation
 	  --no-quickstart   Skip quickstart guide generation
+	  --allow-outside-cwd Allow output path outside current working directory
 	  --help, -h        Show help
 	  --version         Show version
 
@@ -82,6 +83,10 @@ const cli = meow(
       quickstart: {
         type: 'boolean',
         default: true,
+      },
+      allowOutsideCwd: {
+        type: 'boolean',
+        default: false,
       },
     },
   },
@@ -163,6 +168,7 @@ const createInitialData = (flags: CLIFlags): Partial<FormData> => {
     generateReadme: flags.readme !== false,
     generateChangelog: flags.changelog !== false,
     generateQuickstart: flags.quickstart !== false,
+    allowOutsideCwd: flags.allowOutsideCwd || false,
   };
 };
 
