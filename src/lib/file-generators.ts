@@ -847,8 +847,8 @@ export const generateExtensionFiles = async (
     }
 
     const { themeName } = options;
-    const packageName = toPackageName(themeName);
-    const themeFileName = `${packageName}-color-theme.json`;
+    // Use {name}-theme.json format instead of {package-name}-color-theme.json
+    const themeFileName = `${themeName.toLowerCase().replace(/\s+/g, '-')}-theme.json`;
 
     // Ensure output directory exists
     await fs.mkdir(normalizedOutputPath, { recursive: true });

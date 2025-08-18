@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-01-18
+
+### Changed
+- **BREAKING**: Complete rewrite of theme generation algorithm based on Eidolon Root theme analysis
+- **BREAKING**: File naming changed from `{package-name}-color-theme.json` to `{name}-theme.json`
+- **Algorithm**: Complete overhaul to use direct palette color mapping instead of complex derivations
+- **Color Mapping**: Fixed editor background to use `palette[0]` (color0) instead of background color
+- **Background Hierarchy**: Activity/Sidebar/Status now use actual background color, Editor/Panel/Terminal use palette[0]
+
+### Added  
+- **650+ VS Code Color Properties**: Comprehensive coverage of all VS Code UI elements
+- **Enhanced Token Colors**: Direct palette mapping with proper scope assignments:
+  - Comments: palette[8] (brightBlack) with italic
+  - Keywords: palette[10] (brightGreen)  
+  - Strings: palette[1] (red)
+  - Functions: palette[12] (brightBlue)
+  - Classes: palette[5] (magenta)
+  - Numbers: palette[9] (brightRed)
+  - Operators: palette[6] (cyan)
+  - Tags: palette[11] (brightYellow)
+- **JSON Rainbow Colors**: 9-level color cycling for nested JSON structures
+- **Special Case Handling**: `root.txt` → `eidolon-root` theme name resolution
+- **Opacity Helper**: Consistent `withOpacity()` function for all transparency effects
+
+### Fixed
+- **Color Accuracy**: Themes now generate with palette-first approach matching professional themes
+- **Semantic Colors**: Consistent error=red, warning=yellow, success=green, info=blue mapping
+- **UI Consistency**: All VS Code interface elements properly styled with appropriate colors
+- **Opacity Calculations**: Standardized opacity values (20%, 40%, 60%, 80%) throughout
+- **Background Variants**: Proper calculated variants (widgets, inputs) based on palette[0]
+
+### Technical  
+- **Performance**: Removed complex color derivation functions for direct palette access
+- **Maintainability**: Simplified codebase with clearer color mapping logic
+- **Type Safety**: All TypeScript errors resolved with proper type definitions
+
 ## [1.0.2] - 2024-08-13
 
 ### Fixed

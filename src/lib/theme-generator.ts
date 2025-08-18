@@ -580,37 +580,7 @@ export const createColorRoleMap = (colors: GhosttyColors): ColorRoleMap => {
   };
 };
 
-/**
- * Creates simplified role mappings for theme generation
- */
-const createSimpleRoleMap = (colors: GhosttyColors) => {
-  const roleMap = createColorRoleMap(colors);
-
-  return {
-    black: roleMap.black.hex,
-    red: roleMap.red.hex,
-    green: roleMap.green.hex,
-    yellow: roleMap.yellow.hex,
-    blue: roleMap.blue.hex,
-    magenta: roleMap.magenta.hex,
-    cyan: roleMap.cyan.hex,
-    white: roleMap.white.hex,
-    brightBlack: roleMap.brightBlack.hex,
-    brightRed: roleMap.brightRed.hex,
-    brightGreen: roleMap.brightGreen.hex,
-    brightYellow: roleMap.brightYellow.hex,
-    brightBlue: roleMap.brightBlue.hex,
-    brightMagenta: roleMap.brightMagenta.hex,
-    brightCyan: roleMap.brightCyan.hex,
-    brightWhite: roleMap.brightWhite.hex,
-    background: colors.background || roleMap.black.hex,
-    foreground: colors.foreground || roleMap.brightWhite.hex,
-    cursor: colors.cursor || colors.cursor_text || roleMap.brightWhite.hex,
-    cursorText: colors.cursor_text || roleMap.black.hex,
-    selectionBackground: colors.selection_background || roleMap.blue.hex,
-    selectionForeground: colors.selection_foreground || roleMap.brightWhite.hex,
-  };
-};
+// Removed createSimpleRoleMap - using direct palette mapping instead
 
 // ============================================================================
 // Color Derivation and Helper Functions
@@ -678,755 +648,772 @@ const darken = (hex: string, amount: number): string => {
 };
 
 /**
- * Adds opacity to a hex color
+ * Adds opacity to a hex color with consistent pattern matching
  * @param hex - Source hex color
  * @param opacity - Opacity value (0-1)
- * @returns Hex color with opacity suffix (e.g., #ffffff80)
+ * @returns Hex color with opacity suffix (e.g., #ffffff40)
  */
-const addOpacity = (hex: string, opacity: number): string => {
+const withOpacity = (hex: string, opacity: number): string => {
   const alpha = Math.round(Math.max(0, Math.min(1, opacity)) * 255);
   const alphaHex = alpha.toString(16).padStart(2, '0');
   return `${hex}${alphaHex}`;
 };
 
-/**
- * Generates UI background variants following Eidolon Root pattern
- * Uses palette colors and calculated variants to match exact behavior
- * @param colors - Parsed Ghostty colors object
- * @returns Object with different background variants
- */
-const generateBackgroundVariants = (colors: GhosttyColors) => {
-  const base = colors.background || '#151719';           // Main background
-  const editorBg = colors.color0 || '#171a1d';          // Editor background (palette 0)
+// withOpacity is the primary function for consistent opacity handling
 
-  return {
-    base,                                                // #151719 (main background)
-    editor: editorBg,                                   // #171a1d (editor background - palette 0)
-    widget: lighten(editorBg, 0.02),                    // #1a1d20 (widgets, panels)
-    input: lighten(editorBg, 0.04),                     // #1f2225 (inputs, dropdowns)
-    raised: lighten(editorBg, 0.06),                    // #212428 (elevated surfaces, dropdowns, modals)
-    hover: lighten(base, 0.03),                         // Hover states
-    border: lighten(base, 0.08),                        // Subtle borders
-  };
-};
+// Background variants now calculated inline in buildVSCodeColors
 
-/**
- * Generates foreground variants for different UI elements
- * @param foreground - Base foreground color
- * @returns Object with different foreground variants
- */
-const generateForegroundVariants = (foreground: string) => {
-  const base = foreground;
-  return {
-    base,                                    // #e4e5df (main text)
-    muted: darken(base, 0.15),              // #c8c9c5 (UI chrome, secondary text)
-    subtle: darken(base, 0.3),              // #a8a9a5 (disabled text)
-    bright: lighten(base, 0.05),           // Brighter text for emphasis
-  };
-};
+// Foreground variants now calculated inline in buildVSCodeColors
 
-/**
- * Creates enhanced role mappings with color variants and opacity helpers
- * Based on analysis of the Eidolon Root theme patterns
- * @param colors - Parsed Ghostty colors object
- * @returns Enhanced role map with variants and opacity helpers
- */
-const createEnhancedRoleMap = (colors: GhosttyColors) => {
-  const baseRoleMap = createSimpleRoleMap(colors);
-  const backgroundVariants = generateBackgroundVariants(colors);
-  const foregroundVariants = generateForegroundVariants(baseRoleMap.foreground);
-
-  // Semantic color assignments matching Eidolon Root patterns
-  const semanticColors = {
-    // Error states - Red palette
-    error: baseRoleMap.red,                  // #f56b5c - errors, deletions, urgent
-    errorBright: baseRoleMap.brightRed,      // #ff7a6f - critical errors
-
-    // Warning states - Yellow palette
-    warning: baseRoleMap.yellow,             // #f6b34c - warnings, modifications, find
-    warningBright: baseRoleMap.brightYellow, // #f8c867 - important highlights
-
-    // Success states - Green palette
-    success: baseRoleMap.brightGreen,        // #83e96c - success, additions, hints
-    successBase: baseRoleMap.green,          // #6ddf58 - base green
-
-    // Info states - Blue palette
-    info: baseRoleMap.brightBlue,            // #5b98ff - info, links, highlights
-    infoBase: baseRoleMap.blue,              // #3a7ee0 - base blue
-
-    // Accent colors - Cyan and Magenta
-    accent1: baseRoleMap.brightCyan,         // #4ae0cb - cyan accent
-    accent2: baseRoleMap.brightMagenta,      // #c89ef0 - magenta accent
-
-    // Focus and interaction states
-    focus: baseRoleMap.brightCyan,           // #4ae0cb - focus indicators, active states
-
-    // UI chrome colors
-    border: baseRoleMap.brightBlack,         // #565b62 - borders, comments
-    borderSubtle: darken(baseRoleMap.brightBlack, 0.3), // Subtle borders
-  };
-
-  return {
-    ...baseRoleMap,
-    backgroundVariants,
-    foregroundVariants,
-    semanticColors,
-    // Opacity helper functions
-    withOpacity: (color: string, opacity: number) => addOpacity(color, opacity),
-    // Color variant helpers
-    lighten: (color: string, amount: number) => lighten(color, amount),
-    darken: (color: string, amount: number) => darken(color, amount),
-  };
-};
+// Removed createEnhancedRoleMap function - using direct palette mapping instead
 
 // ============================================================================
 // VS Code Theme Building
 // ============================================================================
 
 /**
- * Builds comprehensive VS Code workbench colors from enhanced role mappings
+ * Builds comprehensive VS Code workbench colors using direct palette mapping
  *
- * Generates a complete VS Code color theme matching the patterns found in
- * professional themes like Eidolon Root. Includes over 200 color mappings
- * covering all VS Code UI elements with proper semantic color usage.
+ * Implements the corrected algorithm based on Eidolon Root theme analysis.
+ * Uses palette colors directly with proper background hierarchy:
+ * - Editor/Panel/Terminal: palette[0]
+ * - Activity/Sidebar/Status: background color
+ * - Widgets: lighten(palette[0], 2%)
+ * - Inputs: lighten(palette[0], 8%)
  *
  * @param colors - Parsed Ghostty colors object
- * @returns Complete VS Code theme colors object
+ * @returns Complete VS Code theme colors object matching Eidolon Root pattern
  *
  * @since 2.0.0
  */
 export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
-  const roleMap = createEnhancedRoleMap(colors);
-  const { backgroundVariants, foregroundVariants, semanticColors } = roleMap;
+  // Direct palette colors extraction
+  const palette = {
+    black: colors.color0 || '#000000',
+    red: colors.color1 || '#ff0000',
+    green: colors.color2 || '#00ff00',
+    yellow: colors.color3 || '#ffff00',
+    blue: colors.color4 || '#0000ff',
+    magenta: colors.color5 || '#ff00ff',
+    cyan: colors.color6 || '#00ffff',
+    white: colors.color7 || '#ffffff',
+    brightBlack: colors.color8 || '#808080',
+    brightRed: colors.color9 || '#ff8080',
+    brightGreen: colors.color10 || '#80ff80',
+    brightYellow: colors.color11 || '#ffff80',
+    brightBlue: colors.color12 || '#8080ff',
+    brightMagenta: colors.color13 || '#ff80ff',
+    brightCyan: colors.color14 || '#80ffff',
+    brightWhite: colors.color15 || '#ffffff',
+  };
 
+  const bg = colors.background || '#000000';
+  const fg = colors.foreground || '#ffffff';
+  
+  // Use palette[0] for editor, NOT background
+  const editorBg = palette.black;
+  const activityBg = bg;
+  
+  // Calculate derived colors
+  const widgetBg = lighten(editorBg, 0.02);
+  const inputBg = lighten(editorBg, 0.08);
+  
   return {
     // ========================================================================
-    // Editor Core Colors
+    // Editor Core Colors - Use palette[0] for editor background
     // ========================================================================
-    'editor.background': backgroundVariants.editor,
-    'editor.foreground': foregroundVariants.base,
-    'editorLineNumber.foreground': roleMap.withOpacity(semanticColors.border, 0.25),
-    'editorLineNumber.activeForeground': foregroundVariants.base,
-    'editorCursor.foreground': semanticColors.error,
-    'editorCursor.background': backgroundVariants.editor,
+    'editor.background': editorBg,
+    'editor.foreground': fg,
+    'editorLineNumber.foreground': withOpacity(palette.brightBlack, 0.25),
+    'editorLineNumber.activeForeground': fg,
+    'editorCursor.foreground': palette.red,
+    'editorCursor.background': editorBg,
 
     // ========================================================================
-    // Editor Selections & Highlights
+    // Editor Selections & Highlights - Use red with correct opacities
     // ========================================================================
-    'editor.selectionBackground': roleMap.withOpacity(semanticColors.error, 0.19),
-    'editor.selectionHighlightBackground': roleMap.withOpacity(semanticColors.error, 0.13),
-    'editor.inactiveSelectionBackground': roleMap.withOpacity(semanticColors.error, 0.08),
-    'editor.lineHighlightBackground': roleMap.withOpacity(foregroundVariants.base, 0.03),
+    'editor.selectionBackground': withOpacity(palette.red, 0.25), // #f56b5c40
+    'editor.selectionHighlightBackground': withOpacity(palette.red, 0.125), // #f56b5c20
+    'editor.inactiveSelectionBackground': withOpacity(palette.red, 0.08),
+    'editor.lineHighlightBackground': withOpacity(fg, 0.03),
     'editor.lineHighlightBorder': '#00000000',
-    'editor.wordHighlightBackground': roleMap.withOpacity(semanticColors.info, 0.13),
-    'editor.wordHighlightStrongBackground': roleMap.withOpacity(semanticColors.info, 0.19),
+    'editor.wordHighlightBackground': withOpacity(palette.brightBlue, 0.13),
+    'editor.wordHighlightStrongBackground': withOpacity(palette.brightBlue, 0.19),
     'editor.wordHighlightBorder': '#00000000',
     'editor.wordHighlightStrongBorder': '#00000000',
+    'editor.selectionForeground': fg,
 
     // ========================================================================
-    // Find & Search
+    // Find & Search - Use yellow with no opacity for borders
     // ========================================================================
-    'editor.findMatchBackground': roleMap.withOpacity(semanticColors.warning, 0.25),
-    'editor.findMatchHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.15),
-    'editor.findRangeHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.08),
-    'editor.findMatchBorder': semanticColors.warning,
+    'editor.findMatchBackground': withOpacity(palette.yellow, 0.25),
+    'editor.findMatchHighlightBackground': withOpacity(palette.yellow, 0.15),
+    'editor.findRangeHighlightBackground': withOpacity(palette.yellow, 0.08),
+    'editor.findMatchBorder': palette.yellow, // No opacity
     'editor.findMatchHighlightBorder': '#00000000',
-    'editor.rangeHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.13),
-    'searchEditor.findMatchBackground': roleMap.withOpacity(semanticColors.warning, 0.25),
+    'editor.rangeHighlightBackground': withOpacity(palette.yellow, 0.13),
+    'searchEditor.findMatchBackground': withOpacity(palette.yellow, 0.25),
 
     // ========================================================================
-    // Bracket Matching & Guides
+    // Bracket Matching & Guides - Use brightBlack with proper opacities
     // ========================================================================
-    'editorBracketMatch.background': roleMap.withOpacity(semanticColors.border, 0.19),
-    'editorBracketMatch.border': roleMap.withOpacity(semanticColors.border, 0.31),
-    'editorBracketHighlight.foreground1': roleMap.brightCyan,
-    'editorBracketHighlight.foreground2': roleMap.brightMagenta,
-    'editorBracketHighlight.foreground3': semanticColors.warning,
-    'editorBracketHighlight.foreground4': semanticColors.info,
-    'editorBracketHighlight.foreground5': semanticColors.success,
-    'editorBracketHighlight.foreground6': semanticColors.errorBright,
-    'editorBracketHighlight.unexpectedBracket.foreground': semanticColors.error,
+    'editorBracketMatch.background': withOpacity(palette.brightBlack, 0.19),
+    'editorBracketMatch.border': withOpacity(palette.brightBlack, 0.31),
+    'editorBracketHighlight.foreground1': palette.brightCyan,
+    'editorBracketHighlight.foreground2': palette.brightMagenta,
+    'editorBracketHighlight.foreground3': palette.yellow,
+    'editorBracketHighlight.foreground4': palette.brightBlue,
+    'editorBracketHighlight.foreground5': palette.brightGreen,
+    'editorBracketHighlight.foreground6': palette.brightRed,
+    'editorBracketHighlight.unexpectedBracket.foreground': palette.red,
 
     // ========================================================================
-    // Indent Guides
+    // Indent Guides - Use brightBlack with consistent opacity levels
     // ========================================================================
-    'editorIndentGuide.background1': roleMap.withOpacity(semanticColors.border, 0.08),
-    'editorIndentGuide.activeBackground1': roleMap.withOpacity(semanticColors.border, 0.25),
-    'editorIndentGuide.background2': roleMap.withOpacity(semanticColors.border, 0.13),
-    'editorIndentGuide.activeBackground2': roleMap.withOpacity(semanticColors.border, 0.27),
-    'editorIndentGuide.background3': roleMap.withOpacity(semanticColors.border, 0.15),
-    'editorIndentGuide.activeBackground3': roleMap.withOpacity(semanticColors.border, 0.31),
-    'editorIndentGuide.background4': roleMap.withOpacity(semanticColors.border, 0.19),
-    'editorIndentGuide.activeBackground4': roleMap.withOpacity(semanticColors.border, 0.33),
-    'editorIndentGuide.background5': roleMap.withOpacity(semanticColors.border, 0.21),
-    'editorIndentGuide.activeBackground5': roleMap.withOpacity(semanticColors.border, 0.38),
-    'editorIndentGuide.background6': roleMap.withOpacity(semanticColors.border, 0.25),
-    'editorIndentGuide.activeBackground6': roleMap.withOpacity(semanticColors.border, 0.40),
-    'editorRuler.foreground': roleMap.withOpacity(semanticColors.border, 0.13),
+    'editorIndentGuide.background1': withOpacity(palette.brightBlack, 0.08),
+    'editorIndentGuide.activeBackground1': withOpacity(palette.brightBlack, 0.25),
+    'editorIndentGuide.background2': withOpacity(palette.brightBlack, 0.13),
+    'editorIndentGuide.activeBackground2': withOpacity(palette.brightBlack, 0.27),
+    'editorIndentGuide.background3': withOpacity(palette.brightBlack, 0.15),
+    'editorIndentGuide.activeBackground3': withOpacity(palette.brightBlack, 0.31),
+    'editorIndentGuide.background4': withOpacity(palette.brightBlack, 0.19),
+    'editorIndentGuide.activeBackground4': withOpacity(palette.brightBlack, 0.33),
+    'editorIndentGuide.background5': withOpacity(palette.brightBlack, 0.21),
+    'editorIndentGuide.activeBackground5': withOpacity(palette.brightBlack, 0.38),
+    'editorIndentGuide.background6': withOpacity(palette.brightBlack, 0.25),
+    'editorIndentGuide.activeBackground6': withOpacity(palette.brightBlack, 0.40),
+    'editorRuler.foreground': withOpacity(palette.brightBlack, 0.13),
 
     // ========================================================================
     // Whitespace & Special Characters
     // ========================================================================
-    'editorWhitespace.foreground': roleMap.withOpacity(semanticColors.border, 0.13),
-    'editorLink.activeForeground': semanticColors.info,
+    'editorWhitespace.foreground': withOpacity(palette.brightBlack, 0.13),
+    'editorLink.activeForeground': palette.brightBlue,
 
     // ========================================================================
-    // Editor Widgets (autocomplete, hover, etc)
+    // Editor Widgets (autocomplete, hover, etc) - Use calculated widget background
     // ========================================================================
-    'editorWidget.background': backgroundVariants.widget,
-    'editorWidget.foreground': foregroundVariants.base,
-    'editorWidget.border': roleMap.withOpacity(semanticColors.border, 0.25),
-    'editorWidget.resizeBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'editorSuggestWidget.background': backgroundVariants.widget,
-    'editorSuggestWidget.border': roleMap.withOpacity(semanticColors.border, 0.25),
-    'editorSuggestWidget.foreground': foregroundVariants.base,
-    'editorSuggestWidget.highlightForeground': semanticColors.warning,
-    'editorSuggestWidget.selectedBackground': roleMap.withOpacity(semanticColors.error, 0.13),
-    'editorSuggestWidget.selectedForeground': foregroundVariants.base,
-    'editorSuggestWidget.focusHighlightForeground': semanticColors.warning,
-    'editorSuggestWidget.selectedIconForeground': semanticColors.warning,
-    'editorHoverWidget.background': backgroundVariants.widget,
-    'editorHoverWidget.border': roleMap.withOpacity(semanticColors.border, 0.25),
-    'editorHoverWidget.foreground': foregroundVariants.base,
-    'editorHoverWidget.statusBarBackground': backgroundVariants.input,
+    'editorWidget.background': widgetBg,
+    'editorWidget.foreground': fg,
+    'editorWidget.border': withOpacity(palette.brightBlack, 0.25),
+    'editorWidget.resizeBorder': withOpacity(palette.brightBlack, 0.25),
+    'editorSuggestWidget.background': widgetBg,
+    'editorSuggestWidget.border': withOpacity(palette.brightBlack, 0.25),
+    'editorSuggestWidget.foreground': fg,
+    'editorSuggestWidget.highlightForeground': palette.yellow,
+    'editorSuggestWidget.selectedBackground': withOpacity(palette.red, 0.13),
+    'editorSuggestWidget.selectedForeground': fg,
+    'editorSuggestWidget.focusHighlightForeground': palette.yellow,
+    'editorSuggestWidget.selectedIconForeground': palette.yellow,
+    'editorHoverWidget.background': widgetBg,
+    'editorHoverWidget.border': withOpacity(palette.brightBlack, 0.25),
+    'editorHoverWidget.foreground': fg,
+    'editorHoverWidget.statusBarBackground': inputBg,
 
     // ========================================================================
-    // Editor Markers & Decorations
+    // Editor Markers & Decorations - Semantic colors with consistent mapping
     // ========================================================================
-    'editorError.foreground': semanticColors.error,
-    'editorError.background': roleMap.withOpacity(semanticColors.error, 0.13),
+    'editorError.foreground': palette.red,
+    'editorError.background': withOpacity(palette.red, 0.13),
     'editorError.border': '#00000000',
-    'editorWarning.foreground': semanticColors.warning,
-    'editorWarning.background': roleMap.withOpacity(semanticColors.warning, 0.13),
+    'editorWarning.foreground': palette.yellow,
+    'editorWarning.background': withOpacity(palette.yellow, 0.13),
     'editorWarning.border': '#00000000',
-    'editorInfo.foreground': semanticColors.info,
-    'editorInfo.background': roleMap.withOpacity(semanticColors.info, 0.13),
+    'editorInfo.foreground': palette.brightBlue,
+    'editorInfo.background': withOpacity(palette.brightBlue, 0.13),
     'editorInfo.border': '#00000000',
-    'editorHint.foreground': semanticColors.success,
+    'editorHint.foreground': palette.brightGreen,
     'editorHint.border': '#00000000',
 
     // ========================================================================
-    // Gutter (Git, Folding, etc)
+    // Gutter (Git, Folding, etc) - Use editor background and semantic colors
     // ========================================================================
-    'editorGutter.background': backgroundVariants.editor,
-    'editorGutter.modifiedBackground': semanticColors.warning,
-    'editorGutter.addedBackground': semanticColors.success,
-    'editorGutter.deletedBackground': semanticColors.error,
-    'editorGutter.foldingControlForeground': roleMap.withOpacity(semanticColors.border, 0.38),
-    'editorGutter.commentRangeForeground': roleMap.withOpacity(semanticColors.border, 0.38),
+    'editorGutter.background': editorBg,
+    'editorGutter.modifiedBackground': palette.yellow,
+    'editorGutter.addedBackground': palette.brightGreen,
+    'editorGutter.deletedBackground': palette.red,
+    'editorGutter.foldingControlForeground': withOpacity(palette.brightBlack, 0.38),
+    'editorGutter.commentRangeForeground': withOpacity(palette.brightBlack, 0.38),
 
     // ========================================================================
-    // Diff Editor
+    // Diff Editor - Git colors
     // ========================================================================
-    'diffEditor.insertedTextBackground': roleMap.withOpacity(semanticColors.success, 0.13),
+    'diffEditor.insertedTextBackground': withOpacity(palette.brightGreen, 0.13),
     'diffEditor.insertedTextBorder': '#00000000',
-    'diffEditor.removedTextBackground': roleMap.withOpacity(semanticColors.error, 0.13),
+    'diffEditor.removedTextBackground': withOpacity(palette.red, 0.13),
     'diffEditor.removedTextBorder': '#00000000',
-    'diffEditor.border': roleMap.withOpacity(semanticColors.border, 0.25),
-    'diffEditor.diagonalFill': roleMap.withOpacity(semanticColors.border, 0.13),
-    'diffEditor.insertedLineBackground': roleMap.withOpacity(semanticColors.success, 0.08),
-    'diffEditor.removedLineBackground': roleMap.withOpacity(semanticColors.error, 0.08),
+    'diffEditor.border': withOpacity(palette.brightBlack, 0.25),
+    'diffEditor.diagonalFill': withOpacity(palette.brightBlack, 0.13),
+    'diffEditor.insertedLineBackground': withOpacity(palette.brightGreen, 0.08),
+    'diffEditor.removedLineBackground': withOpacity(palette.red, 0.08),
 
     // ========================================================================
     // Merge Editor
     // ========================================================================
-    'merge.currentHeaderBackground': roleMap.withOpacity(semanticColors.info, 0.19),
-    'merge.currentContentBackground': roleMap.withOpacity(semanticColors.info, 0.13),
-    'merge.incomingHeaderBackground': roleMap.withOpacity(semanticColors.success, 0.19),
-    'merge.incomingContentBackground': roleMap.withOpacity(semanticColors.success, 0.13),
-    'merge.border': roleMap.withOpacity(semanticColors.border, 0.25),
+    'merge.currentHeaderBackground': withOpacity(palette.brightBlue, 0.19),
+    'merge.currentContentBackground': withOpacity(palette.brightBlue, 0.13),
+    'merge.incomingHeaderBackground': withOpacity(palette.brightGreen, 0.19),
+    'merge.incomingContentBackground': withOpacity(palette.brightGreen, 0.13),
+    'merge.border': withOpacity(palette.brightBlack, 0.25),
 
     // ========================================================================
     // Editor Overview Ruler (Minimap Highlights)
     // ========================================================================
     'editorOverviewRuler.border': '#00000000',
-    'editorOverviewRuler.findMatchForeground': roleMap.withOpacity(semanticColors.warning, 0.50),
-    'editorOverviewRuler.rangeHighlightForeground': roleMap.withOpacity(semanticColors.warning, 0.38),
-    'editorOverviewRuler.selectionHighlightForeground': roleMap.withOpacity(semanticColors.error, 0.38),
-    'editorOverviewRuler.wordHighlightForeground': roleMap.withOpacity(semanticColors.info, 0.38),
-    'editorOverviewRuler.wordHighlightStrongForeground': roleMap.withOpacity(semanticColors.info, 0.50),
-    'editorOverviewRuler.modifiedForeground': roleMap.withOpacity(semanticColors.warning, 0.50),
-    'editorOverviewRuler.addedForeground': roleMap.withOpacity(semanticColors.success, 0.50),
-    'editorOverviewRuler.deletedForeground': roleMap.withOpacity(semanticColors.error, 0.50),
-    'editorOverviewRuler.errorForeground': roleMap.withOpacity(semanticColors.error, 0.50),
-    'editorOverviewRuler.warningForeground': roleMap.withOpacity(semanticColors.warning, 0.50),
-    'editorOverviewRuler.infoForeground': roleMap.withOpacity(semanticColors.info, 0.50),
-    'editorOverviewRuler.bracketMatchForeground': roleMap.withOpacity(semanticColors.border, 0.38),
+    'editorOverviewRuler.findMatchForeground': withOpacity(palette.yellow, 0.50),
+    'editorOverviewRuler.rangeHighlightForeground': withOpacity(palette.yellow, 0.38),
+    'editorOverviewRuler.selectionHighlightForeground': withOpacity(palette.red, 0.38),
+    'editorOverviewRuler.wordHighlightForeground': withOpacity(palette.brightBlue, 0.38),
+    'editorOverviewRuler.wordHighlightStrongForeground': withOpacity(palette.brightBlue, 0.50),
+    'editorOverviewRuler.modifiedForeground': withOpacity(palette.yellow, 0.50),
+    'editorOverviewRuler.addedForeground': withOpacity(palette.brightGreen, 0.50),
+    'editorOverviewRuler.deletedForeground': withOpacity(palette.red, 0.50),
+    'editorOverviewRuler.errorForeground': withOpacity(palette.red, 0.50),
+    'editorOverviewRuler.warningForeground': withOpacity(palette.yellow, 0.50),
+    'editorOverviewRuler.infoForeground': withOpacity(palette.brightBlue, 0.50),
+    'editorOverviewRuler.bracketMatchForeground': withOpacity(palette.brightBlack, 0.38),
 
     // ========================================================================
-    // Activity Bar
+    // Activity Bar - Use background color, NOT palette[0]
     // ========================================================================
-    'activityBar.background': backgroundVariants.base,
-    'activityBar.foreground': foregroundVariants.muted,
-    'activityBar.inactiveForeground': roleMap.withOpacity(semanticColors.border, 0.50),
+    'activityBar.background': activityBg,
+    'activityBar.foreground': darken(fg, 0.15),
+    'activityBar.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
     'activityBar.border': '#00000000',
-    'activityBar.activeBorder': semanticColors.error,
-    'activityBar.activeBackground': roleMap.withOpacity(semanticColors.error, 0.08),
-    'activityBar.activeFocusBorder': semanticColors.error,
-    'activityBar.dropBorder': semanticColors.error,
-    'activityBarBadge.background': semanticColors.error,
-    'activityBarBadge.foreground': backgroundVariants.editor,
-    'activityBarTop.foreground': foregroundVariants.base,
-    'activityBarTop.activeBorder': semanticColors.error,
-    'activityBarTop.inactiveForeground': roleMap.withOpacity(semanticColors.border, 0.50),
-    'activityBarTop.dropBorder': semanticColors.error,
+    'activityBar.activeBorder': palette.red,
+    'activityBar.activeBackground': withOpacity(palette.red, 0.08),
+    'activityBar.activeFocusBorder': palette.red,
+    'activityBar.dropBorder': palette.red,
+    'activityBarBadge.background': palette.red,
+    'activityBarBadge.foreground': editorBg,
+    'activityBarTop.foreground': fg,
+    'activityBarTop.activeBorder': palette.red,
+    'activityBarTop.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
+    'activityBarTop.dropBorder': palette.red,
 
     // ========================================================================
-    // Sidebar
+    // Sidebar - Use background color, NOT palette[0]
     // ========================================================================
-    'sideBar.background': backgroundVariants.base,
-    'sideBar.foreground': foregroundVariants.muted,
+    'sideBar.background': activityBg,
+    'sideBar.foreground': darken(fg, 0.15),
     'sideBar.border': '#00000000',
-    'sideBar.dropBackground': roleMap.withOpacity(semanticColors.error, 0.13),
-    'sideBarTitle.foreground': foregroundVariants.muted,
-    'sideBarSectionHeader.background': backgroundVariants.widget,
-    'sideBarSectionHeader.foreground': foregroundVariants.muted,
+    'sideBar.dropBackground': withOpacity(palette.red, 0.13),
+    'sideBarTitle.foreground': darken(fg, 0.15),
+    'sideBarSectionHeader.background': widgetBg,
+    'sideBarSectionHeader.foreground': darken(fg, 0.15),
     'sideBarSectionHeader.border': '#00000000',
 
     // ========================================================================
-    // List & Tree
+    // List & Tree - Use red for selections and brightBlack for borders
     // ========================================================================
-    'list.activeSelectionBackground': roleMap.withOpacity(semanticColors.error, 0.13),
-    'list.activeSelectionForeground': foregroundVariants.muted,
-    'list.activeSelectionIconForeground': foregroundVariants.base,
-    'list.inactiveSelectionBackground': roleMap.withOpacity(semanticColors.error, 0.08),
-    'list.inactiveSelectionForeground': foregroundVariants.muted,
-    'list.inactiveSelectionIconForeground': foregroundVariants.base,
-    'list.hoverBackground': roleMap.withOpacity(semanticColors.border, 0.13),
-    'list.hoverForeground': foregroundVariants.muted,
-    'list.focusBackground': roleMap.withOpacity(semanticColors.error, 0.13),
-    'list.focusForeground': foregroundVariants.muted,
-    'list.focusHighlightForeground': semanticColors.warning,
-    'list.focusOutline': roleMap.withOpacity(semanticColors.error, 0.25),
-    'list.focusAndSelectionOutline': roleMap.withOpacity(semanticColors.error, 0.38),
-    'list.highlightForeground': semanticColors.warning,
-    'list.dropBackground': roleMap.withOpacity(semanticColors.error, 0.13),
-    'list.deemphasizedForeground': roleMap.withOpacity(semanticColors.border, 0.50),
-    'list.errorForeground': semanticColors.error,
-    'list.warningForeground': semanticColors.warning,
-    'tree.indentGuidesStroke': roleMap.withOpacity(semanticColors.border, 0.25),
-    'tree.tableColumnsBorder': roleMap.withOpacity(semanticColors.border, 0.13),
-    'tree.tableOddRowsBackground': roleMap.withOpacity(semanticColors.border, 0.03),
+    'list.activeSelectionBackground': withOpacity(palette.red, 0.13),
+    'list.activeSelectionForeground': darken(fg, 0.15),
+    'list.activeSelectionIconForeground': fg,
+    'list.inactiveSelectionBackground': withOpacity(palette.red, 0.08),
+    'list.inactiveSelectionForeground': darken(fg, 0.15),
+    'list.inactiveSelectionIconForeground': fg,
+    'list.hoverBackground': withOpacity(palette.brightBlack, 0.13),
+    'list.hoverForeground': darken(fg, 0.15),
+    'list.focusBackground': withOpacity(palette.red, 0.13),
+    'list.focusForeground': darken(fg, 0.15),
+    'list.focusHighlightForeground': palette.yellow,
+    'list.focusOutline': withOpacity(palette.red, 0.25),
+    'list.focusAndSelectionOutline': withOpacity(palette.red, 0.38),
+    'list.highlightForeground': palette.yellow,
+    'list.dropBackground': withOpacity(palette.red, 0.13),
+    'list.deemphasizedForeground': withOpacity(palette.brightBlack, 0.50),
+    'list.errorForeground': palette.red,
+    'list.warningForeground': palette.yellow,
+    'tree.indentGuidesStroke': withOpacity(palette.brightBlack, 0.25),
+    'tree.tableColumnsBorder': withOpacity(palette.brightBlack, 0.13),
+    'tree.tableOddRowsBackground': withOpacity(palette.brightBlack, 0.03),
 
     // ========================================================================
-    // Tabs
+    // Tabs - Editor uses palette[0], inactive uses background
     // ========================================================================
-    'tab.activeBackground': backgroundVariants.editor,
-    'tab.activeForeground': foregroundVariants.muted,
+    'tab.activeBackground': editorBg,
+    'tab.activeForeground': darken(fg, 0.15),
     'tab.border': '#00000000',
     'tab.activeBorder': '#00000000',
-    'tab.activeBorderTop': semanticColors.error,
-    'tab.inactiveBackground': backgroundVariants.base,
-    'tab.inactiveForeground': roleMap.withOpacity(semanticColors.border, 0.50),
-    'tab.hoverBackground': backgroundVariants.widget,
-    'tab.hoverForeground': foregroundVariants.muted,
+    'tab.activeBorderTop': palette.red,
+    'tab.inactiveBackground': activityBg,
+    'tab.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
+    'tab.hoverBackground': widgetBg,
+    'tab.hoverForeground': darken(fg, 0.15),
     'tab.hoverBorder': '#00000000',
-    'tab.unfocusedActiveBackground': backgroundVariants.editor,
-    'tab.unfocusedActiveForeground': roleMap.withOpacity(foregroundVariants.base, 0.63),
-    'tab.unfocusedActiveBorderTop': roleMap.withOpacity(semanticColors.error, 0.38),
-    'tab.unfocusedInactiveBackground': backgroundVariants.base,
-    'tab.unfocusedInactiveForeground': roleMap.withOpacity(semanticColors.border, 0.38),
-    'tab.unfocusedHoverBackground': backgroundVariants.widget,
-    'tab.unfocusedHoverForeground': foregroundVariants.base,
+    'tab.unfocusedActiveBackground': editorBg,
+    'tab.unfocusedActiveForeground': withOpacity(fg, 0.63),
+    'tab.unfocusedActiveBorderTop': withOpacity(palette.red, 0.38),
+    'tab.unfocusedInactiveBackground': activityBg,
+    'tab.unfocusedInactiveForeground': withOpacity(palette.brightBlack, 0.38),
+    'tab.unfocusedHoverBackground': widgetBg,
+    'tab.unfocusedHoverForeground': fg,
 
     // Editor Group Header (Tab Container)
-    'editorGroupHeader.tabsBackground': backgroundVariants.base,
+    'editorGroupHeader.tabsBackground': activityBg,
     'editorGroupHeader.tabsBorder': '#00000000',
-    'editorGroupHeader.noTabsBackground': backgroundVariants.base,
+    'editorGroupHeader.noTabsBackground': activityBg,
 
     // ========================================================================
-    // Terminal Colors
+    // Terminal Colors - Use palette[0] for terminal background
     // ========================================================================
-    'terminal.background': roleMap.background,
-    'terminal.foreground': roleMap.foreground,
-    'terminal.ansiBlack': roleMap.black,
-    'terminal.ansiRed': roleMap.red,
-    'terminal.ansiGreen': roleMap.green,
-    'terminal.ansiYellow': roleMap.yellow,
-    'terminal.ansiBlue': roleMap.blue,
-    'terminal.ansiMagenta': roleMap.magenta,
-    'terminal.ansiCyan': roleMap.cyan,
-    'terminal.ansiWhite': roleMap.white,
-    'terminal.ansiBrightBlack': roleMap.brightBlack,
-    'terminal.ansiBrightRed': roleMap.brightRed,
-    'terminal.ansiBrightGreen': roleMap.brightGreen,
-    'terminal.ansiBrightYellow': roleMap.brightYellow,
-    'terminal.ansiBrightBlue': roleMap.brightBlue,
-    'terminal.ansiBrightMagenta': roleMap.brightMagenta,
-    'terminal.ansiBrightCyan': roleMap.brightCyan,
-    'terminal.ansiBrightWhite': roleMap.brightWhite,
-    'terminal.selectionBackground': roleMap.withOpacity(semanticColors.error, 0.25),
-    'terminal.selectionForeground': foregroundVariants.base,
-    'terminalCursor.foreground': semanticColors.error,
-    'terminalCursor.background': backgroundVariants.editor,
+    'terminal.background': editorBg,
+    'terminal.foreground': fg,
+    'terminal.ansiBlack': palette.black,
+    'terminal.ansiRed': palette.red,
+    'terminal.ansiGreen': palette.green,
+    'terminal.ansiYellow': palette.yellow,
+    'terminal.ansiBlue': palette.blue,
+    'terminal.ansiMagenta': palette.magenta,
+    'terminal.ansiCyan': palette.cyan,
+    'terminal.ansiWhite': palette.white,
+    'terminal.ansiBrightBlack': palette.brightBlack,
+    'terminal.ansiBrightRed': palette.brightRed,
+    'terminal.ansiBrightGreen': palette.brightGreen,
+    'terminal.ansiBrightYellow': palette.brightYellow,
+    'terminal.ansiBrightBlue': palette.brightBlue,
+    'terminal.ansiBrightMagenta': palette.brightMagenta,
+    'terminal.ansiBrightCyan': palette.brightCyan,
+    'terminal.ansiBrightWhite': palette.brightWhite,
+    'terminal.selectionBackground': withOpacity(palette.red, 0.25),
+    'terminal.selectionForeground': fg,
+    'terminalCursor.foreground': palette.red,
+    'terminalCursor.background': editorBg,
 
     // ========================================================================
-    // Notebook Colors
+    // Notebook Colors - Fixed with direct palette colors
     // ========================================================================
-    'notebook.cellBorderColor': roleMap.withOpacity(semanticColors.border, 0.25),
-    'notebook.cellHoverBackground': roleMap.withOpacity(semanticColors.border, 0.08),
-    'notebook.cellInsertionIndicator': semanticColors.error,
-    'notebook.cellStatusBarItemHoverBackground': roleMap.withOpacity(semanticColors.border, 0.13),
-    'notebook.cellToolbarSeparator': roleMap.withOpacity(semanticColors.border, 0.25),
-    'notebook.cellEditorBackground': backgroundVariants.widget,
-    'notebook.editorBackground': backgroundVariants.editor,
-    'notebook.focusedCellBackground': backgroundVariants.widget,
-    'notebook.focusedCellBorder': semanticColors.error,
-    'notebook.focusedEditorBorder': semanticColors.error,
-    'notebook.inactiveFocusedCellBorder': roleMap.withOpacity(semanticColors.error, 0.38),
-    'notebook.inactiveSelectedCellBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'notebook.outputContainerBackgroundColor': backgroundVariants.widget,
-    'notebook.outputContainerBorderColor': roleMap.withOpacity(semanticColors.border, 0.25),
-    'notebook.selectedCellBackground': roleMap.withOpacity(semanticColors.error, 0.06),
-    'notebook.selectedCellBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'notebook.symbolHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.13),
-    'notebookScrollbarSlider.activeBackground': roleMap.withOpacity(semanticColors.border, 0.38),
-    'notebookScrollbarSlider.background': roleMap.withOpacity(semanticColors.border, 0.13),
-    'notebookScrollbarSlider.hoverBackground': roleMap.withOpacity(semanticColors.border, 0.25),
-    'notebookStatusErrorIcon.foreground': semanticColors.error,
-    'notebookStatusRunningIcon.foreground': semanticColors.info,
-    'notebookStatusSuccessIcon.foreground': semanticColors.success,
+    'notebook.cellBorderColor': withOpacity(palette.brightBlack, 0.25),
+    'notebook.cellHoverBackground': withOpacity(palette.brightBlack, 0.08),
+    'notebook.cellInsertionIndicator': palette.red,
+    'notebook.cellStatusBarItemHoverBackground': withOpacity(palette.brightBlack, 0.13),
+    'notebook.cellToolbarSeparator': withOpacity(palette.brightBlack, 0.25),
+    'notebook.cellEditorBackground': widgetBg,
+    'notebook.editorBackground': editorBg,
+    'notebook.focusedCellBackground': widgetBg,
+    'notebook.focusedCellBorder': palette.red,
+    'notebook.focusedEditorBorder': palette.red,
+    'notebook.inactiveFocusedCellBorder': withOpacity(palette.red, 0.38),
+    'notebook.inactiveSelectedCellBorder': withOpacity(palette.brightBlack, 0.25),
+    'notebook.outputContainerBackgroundColor': widgetBg,
+    'notebook.outputContainerBorderColor': withOpacity(palette.brightBlack, 0.25),
+    'notebook.selectedCellBackground': withOpacity(palette.red, 0.06),
+    'notebook.selectedCellBorder': withOpacity(palette.brightBlack, 0.25),
+    'notebook.symbolHighlightBackground': withOpacity(palette.yellow, 0.13),
+    'notebookScrollbarSlider.activeBackground': withOpacity(palette.brightBlack, 0.38),
+    'notebookScrollbarSlider.background': withOpacity(palette.brightBlack, 0.13),
+    'notebookScrollbarSlider.hoverBackground': withOpacity(palette.brightBlack, 0.25),
+    'notebookStatusErrorIcon.foreground': palette.red,
+    'notebookStatusRunningIcon.foreground': palette.brightBlue,
+    'notebookStatusSuccessIcon.foreground': palette.brightGreen,
 
     // ========================================================================
-    // Debug Icon Colors
+    // Debug Icon Colors - Fixed with palette colors
     // ========================================================================
-    'debugIcon.breakpointForeground': semanticColors.error,
-    'debugIcon.breakpointDisabledForeground': roleMap.withOpacity(semanticColors.border, 0.50),
-    'debugIcon.breakpointUnverifiedForeground': semanticColors.warning,
-    'debugIcon.breakpointCurrentStackframeForeground': semanticColors.success,
-    'debugIcon.breakpointStackframeForeground': semanticColors.info,
-    'debugIcon.startForeground': semanticColors.success,
-    'debugIcon.pauseForeground': semanticColors.info,
-    'debugIcon.stopForeground': semanticColors.error,
-    'debugIcon.disconnectForeground': semanticColors.error,
-    'debugIcon.restartForeground': semanticColors.success,
-    'debugIcon.stepOverForeground': semanticColors.info,
-    'debugIcon.stepIntoForeground': semanticColors.info,
-    'debugIcon.stepOutForeground': semanticColors.info,
-    'debugIcon.continueForeground': semanticColors.success,
-    'debugIcon.stepBackForeground': semanticColors.info,
+    'debugIcon.breakpointForeground': palette.red,
+    'debugIcon.breakpointDisabledForeground': withOpacity(palette.brightBlack, 0.50),
+    'debugIcon.breakpointUnverifiedForeground': palette.yellow,
+    'debugIcon.breakpointCurrentStackframeForeground': palette.brightGreen,
+    'debugIcon.breakpointStackframeForeground': palette.brightBlue,
+    'debugIcon.startForeground': palette.brightGreen,
+    'debugIcon.pauseForeground': palette.brightBlue,
+    'debugIcon.stopForeground': palette.red,
+    'debugIcon.disconnectForeground': palette.red,
+    'debugIcon.restartForeground': palette.brightGreen,
+    'debugIcon.stepOverForeground': palette.brightBlue,
+    'debugIcon.stepIntoForeground': palette.brightBlue,
+    'debugIcon.stepOutForeground': palette.brightBlue,
+    'debugIcon.continueForeground': palette.brightGreen,
+    'debugIcon.stepBackForeground': palette.brightBlue,
 
     // ========================================================================
-    // Debug Console Colors
+    // Debug Console Colors - Fixed with palette colors
     // ========================================================================
-    'debugConsole.infoForeground': semanticColors.info,
-    'debugConsole.warningForeground': semanticColors.warning,
-    'debugConsole.errorForeground': semanticColors.error,
-    'debugConsole.sourceForeground': foregroundVariants.base,
-    'debugConsoleInputIcon.foreground': foregroundVariants.base,
+    'debugConsole.infoForeground': palette.brightBlue,
+    'debugConsole.warningForeground': palette.yellow,
+    'debugConsole.errorForeground': palette.red,
+    'debugConsole.sourceForeground': fg,
+    'debugConsoleInputIcon.foreground': fg,
 
     // ========================================================================
-    // Testing Colors
+    // Testing Colors - Fixed with palette colors
     // ========================================================================
-    'testing.iconFailed': semanticColors.error,
-    'testing.iconErrored': semanticColors.error,
-    'testing.iconPassed': semanticColors.success,
-    'testing.runAction': semanticColors.success,
-    'testing.iconQueued': semanticColors.warning,
-    'testing.iconUnset': roleMap.withOpacity(semanticColors.border, 0.50),
-    'testing.iconSkipped': roleMap.withOpacity(semanticColors.border, 0.50),
-    'testing.peekBorder': semanticColors.error,
-    'testing.peekHeaderBackground': roleMap.withOpacity(semanticColors.error, 0.13),
-    'testing.message.error.lineBackground': roleMap.withOpacity(semanticColors.error, 0.13),
-    'testing.message.info.lineBackground': roleMap.withOpacity(semanticColors.info, 0.13),
+    'testing.iconFailed': palette.red,
+    'testing.iconErrored': palette.red,
+    'testing.iconPassed': palette.brightGreen,
+    'testing.runAction': palette.brightGreen,
+    'testing.iconQueued': palette.yellow,
+    'testing.iconUnset': withOpacity(palette.brightBlack, 0.50),
+    'testing.iconSkipped': withOpacity(palette.brightBlack, 0.50),
+    'testing.peekBorder': palette.red,
+    'testing.peekHeaderBackground': withOpacity(palette.red, 0.13),
+    'testing.message.error.lineBackground': withOpacity(palette.red, 0.13),
+    'testing.message.info.lineBackground': withOpacity(palette.brightBlue, 0.13),
 
     // ========================================================================
-    // Welcome Page Colors
+    // Welcome Page Colors - Fixed with palette colors
     // ========================================================================
-    'welcomePage.background': backgroundVariants.editor,
-    'welcomePage.progress.background': roleMap.withOpacity(semanticColors.border, 0.13),
-    'welcomePage.progress.foreground': semanticColors.error,
-    'welcomePage.tileBackground': backgroundVariants.widget,
-    'welcomePage.tileHoverBackground': backgroundVariants.input,
-    'welcomePage.tileBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'walkThrough.embeddedEditorBackground': backgroundVariants.widget,
-    'walkthrough.stepTitle.foreground': foregroundVariants.muted,
+    'welcomePage.background': editorBg,
+    'welcomePage.progress.background': withOpacity(palette.brightBlack, 0.13),
+    'welcomePage.progress.foreground': palette.red,
+    'welcomePage.tileBackground': widgetBg,
+    'welcomePage.tileHoverBackground': inputBg,
+    'welcomePage.tileBorder': withOpacity(palette.brightBlack, 0.25),
+    'walkThrough.embeddedEditorBackground': widgetBg,
+    'walkthrough.stepTitle.foreground': darken(fg, 0.15),
 
     // ========================================================================
-    // Git Decoration Colors
+    // Git Decoration Colors - Standard git semantics
     // ========================================================================
-    'gitDecoration.addedResourceForeground': semanticColors.success,
-    'gitDecoration.modifiedResourceForeground': semanticColors.warning,
-    'gitDecoration.deletedResourceForeground': semanticColors.error,
-    'gitDecoration.renamedResourceForeground': semanticColors.info,
-    'gitDecoration.stageModifiedResourceForeground': semanticColors.warning,
-    'gitDecoration.stageDeletedResourceForeground': semanticColors.error,
-    'gitDecoration.untrackedResourceForeground': semanticColors.success,
-    'gitDecoration.ignoredResourceForeground': roleMap.withOpacity(semanticColors.border, 0.38),
-    'gitDecoration.conflictingResourceForeground': roleMap.brightMagenta,
-    'gitDecoration.submoduleResourceForeground': semanticColors.info,
+    'gitDecoration.addedResourceForeground': palette.brightGreen,
+    'gitDecoration.modifiedResourceForeground': palette.yellow,
+    'gitDecoration.deletedResourceForeground': palette.red,
+    'gitDecoration.renamedResourceForeground': palette.brightBlue,
+    'gitDecoration.stageModifiedResourceForeground': palette.yellow,
+    'gitDecoration.stageDeletedResourceForeground': palette.red,
+    'gitDecoration.untrackedResourceForeground': palette.brightGreen,
+    'gitDecoration.ignoredResourceForeground': withOpacity(palette.brightBlack, 0.38),
+    'gitDecoration.conflictingResourceForeground': palette.brightMagenta,
+    'gitDecoration.submoduleResourceForeground': palette.brightBlue,
 
     // ========================================================================
-    // Settings Editor Colors
+    // Settings Editor Colors - Fixed with palette colors
     // ========================================================================
-    'settings.headerForeground': foregroundVariants.base,
-    'settings.modifiedItemIndicator': semanticColors.warning,
-    'settings.dropdownBackground': backgroundVariants.raised,
-    'settings.dropdownForeground': foregroundVariants.base,
-    'settings.dropdownBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'settings.dropdownListBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'settings.checkboxBackground': backgroundVariants.raised,
-    'settings.checkboxForeground': foregroundVariants.base,
-    'settings.checkboxBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'settings.textInputBackground': backgroundVariants.raised,
-    'settings.textInputForeground': foregroundVariants.base,
-    'settings.textInputBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'settings.numberInputBackground': backgroundVariants.raised,
-    'settings.numberInputForeground': foregroundVariants.base,
-    'settings.numberInputBorder': roleMap.withOpacity(semanticColors.border, 0.25),
-    'settings.focusedRowBackground': roleMap.withOpacity(semanticColors.focus, 0.08),
-    'settings.rowHoverBackground': roleMap.withOpacity(foregroundVariants.base, 0.05),
+    'settings.headerForeground': fg,
+    'settings.modifiedItemIndicator': palette.yellow,
+    'settings.dropdownBackground': lighten(editorBg, 0.06),
+    'settings.dropdownForeground': fg,
+    'settings.dropdownBorder': withOpacity(palette.brightBlack, 0.25),
+    'settings.dropdownListBorder': withOpacity(palette.brightBlack, 0.25),
+    'settings.checkboxBackground': lighten(editorBg, 0.06),
+    'settings.checkboxForeground': fg,
+    'settings.checkboxBorder': withOpacity(palette.brightBlack, 0.25),
+    'settings.textInputBackground': lighten(editorBg, 0.06),
+    'settings.textInputForeground': fg,
+    'settings.textInputBorder': withOpacity(palette.brightBlack, 0.25),
+    'settings.numberInputBackground': lighten(editorBg, 0.06),
+    'settings.numberInputForeground': fg,
+    'settings.numberInputBorder': withOpacity(palette.brightBlack, 0.25),
+    'settings.focusedRowBackground': withOpacity(palette.brightCyan, 0.08),
+    'settings.rowHoverBackground': withOpacity(fg, 0.05),
 
     // ========================================================================
-    // Peek View Colors
+    // Peek View Colors - Fixed with palette colors
     // ========================================================================
-    'peekView.border': semanticColors.focus,
-    'peekViewEditor.background': backgroundVariants.raised,
-    'peekViewEditorGutter.background': backgroundVariants.raised,
-    'peekViewResult.background': backgroundVariants.raised,
-    'peekViewResult.fileForeground': foregroundVariants.base,
-    'peekViewResult.lineForeground': foregroundVariants.muted,
-    'peekViewResult.matchHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.25),
-    'peekViewResult.selectionBackground': roleMap.withOpacity(semanticColors.focus, 0.15),
-    'peekViewResult.selectionForeground': foregroundVariants.base,
-    'peekViewTitle.background': backgroundVariants.base,
-    'peekViewTitleDescription.foreground': foregroundVariants.muted,
-    'peekViewTitleLabel.foreground': foregroundVariants.base,
-    'peekViewEditor.matchHighlightBackground': roleMap.withOpacity(semanticColors.warning, 0.25),
+    'peekView.border': palette.brightCyan,
+    'peekViewEditor.background': lighten(editorBg, 0.06),
+    'peekViewEditorGutter.background': lighten(editorBg, 0.06),
+    'peekViewResult.background': lighten(editorBg, 0.06),
+    'peekViewResult.fileForeground': fg,
+    'peekViewResult.lineForeground': darken(fg, 0.15),
+    'peekViewResult.matchHighlightBackground': withOpacity(palette.yellow, 0.25),
+    'peekViewResult.selectionBackground': withOpacity(palette.brightCyan, 0.15),
+    'peekViewResult.selectionForeground': fg,
+    'peekViewTitle.background': activityBg,
+    'peekViewTitleDescription.foreground': darken(fg, 0.15),
+    'peekViewTitleLabel.foreground': fg,
+    'peekViewEditor.matchHighlightBackground': withOpacity(palette.yellow, 0.25),
 
     // ========================================================================
-    // Chart Colors
+    // Status Bar - Use background color, NOT palette[0]
     // ========================================================================
-    'charts.foreground': foregroundVariants.base,
-    'charts.lines': roleMap.withOpacity(foregroundVariants.base, 0.5),
-    'charts.red': semanticColors.error,
-    'charts.blue': roleMap.blue,
-    'charts.yellow': semanticColors.warning,
-    'charts.orange': roleMap.brightYellow,
-    'charts.green': semanticColors.success,
-    'charts.purple': roleMap.magenta,
-
-    // ========================================================================
-    // Miscellaneous UI Colors
-    // ========================================================================
-    'keybindingLabel.background': roleMap.withOpacity(semanticColors.focus, 0.15),
-    'keybindingLabel.foreground': foregroundVariants.base,
-    'keybindingLabel.border': roleMap.withOpacity(semanticColors.focus, 0.3),
-    'keybindingLabel.bottomBorder': roleMap.withOpacity(semanticColors.focus, 0.4),
-    'commandCenter.foreground': foregroundVariants.muted,
-    'commandCenter.activeForeground': foregroundVariants.base,
-    'commandCenter.background': backgroundVariants.base,
-    'commandCenter.activeBackground': roleMap.withOpacity(semanticColors.focus, 0.1),
-    'commandCenter.border': roleMap.withOpacity(semanticColors.border, 0.25),
-    'commandCenter.inactiveForeground': roleMap.withOpacity(foregroundVariants.base, 0.4),
-    'commandCenter.activeBorder': semanticColors.focus,
-    'commandCenter.debuggingBackground': roleMap.withOpacity(semanticColors.warning, 0.15),
-
-    // ========================================================================
-    // Additional Essential UI Elements
-    // ========================================================================
-    'statusBar.background': backgroundVariants.base,
-    'statusBar.foreground': foregroundVariants.muted,
+    'statusBar.background': activityBg,
+    'statusBar.foreground': darken(fg, 0.15),
     'statusBar.border': '#00000000',
-    'statusBar.debuggingBackground': roleMap.withOpacity(semanticColors.warning, 0.75),
-    'statusBar.debuggingForeground': backgroundVariants.editor,
-    'statusBar.noFolderBackground': backgroundVariants.base,
-    'statusBar.noFolderForeground': foregroundVariants.muted,
-    'statusBarItem.activeBackground': roleMap.withOpacity(foregroundVariants.base, 0.13),
-    'statusBarItem.hoverBackground': roleMap.withOpacity(foregroundVariants.base, 0.08),
-    'statusBarItem.prominentBackground': roleMap.withOpacity(semanticColors.error, 0.75),
-    'statusBarItem.prominentForeground': backgroundVariants.editor,
-    'statusBarItem.prominentHoverBackground': roleMap.withOpacity(semanticColors.error, 0.88),
+    'statusBar.debuggingBackground': withOpacity(palette.yellow, 0.75),
+    'statusBar.debuggingForeground': editorBg,
+    'statusBar.noFolderBackground': activityBg,
+    'statusBar.noFolderForeground': darken(fg, 0.15),
+    'statusBarItem.activeBackground': withOpacity(fg, 0.13),
+    'statusBarItem.hoverBackground': withOpacity(fg, 0.08),
+    'statusBarItem.prominentBackground': withOpacity(palette.red, 0.75),
+    'statusBarItem.prominentForeground': editorBg,
+    'statusBarItem.prominentHoverBackground': withOpacity(palette.red, 0.88),
 
-    // Title Bar
-    'titleBar.activeBackground': backgroundVariants.base,
-    'titleBar.activeForeground': foregroundVariants.muted,
-    'titleBar.inactiveBackground': backgroundVariants.base,
-    'titleBar.inactiveForeground': roleMap.withOpacity(semanticColors.border, 0.50),
+    // Title Bar - Use background color
+    'titleBar.activeBackground': activityBg,
+    'titleBar.activeForeground': darken(fg, 0.15),
+    'titleBar.inactiveBackground': activityBg,
+    'titleBar.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
     'titleBar.border': '#00000000',
 
-    // Input Controls
-    'input.background': backgroundVariants.input,
-    'input.foreground': foregroundVariants.muted,
-    'input.border': roleMap.withOpacity(semanticColors.border, 0.25),
-    'input.placeholderForeground': roleMap.withOpacity(semanticColors.border, 0.50),
-    'inputOption.activeBackground': roleMap.withOpacity(semanticColors.info, 0.31),
-    'inputOption.activeForeground': foregroundVariants.base,
-    'inputOption.hoverBackground': roleMap.withOpacity(semanticColors.info, 0.13),
+    // Input Controls - Use calculated input background
+    'input.background': inputBg,
+    'input.foreground': darken(fg, 0.15),
+    'input.border': withOpacity(palette.brightBlack, 0.25),
+    'input.placeholderForeground': withOpacity(palette.brightBlack, 0.50),
+    'inputOption.activeBackground': withOpacity(palette.brightBlue, 0.31),
+    'inputOption.activeForeground': fg,
+    'inputOption.hoverBackground': withOpacity(palette.brightBlue, 0.13),
 
-    // Dropdown
-    'dropdown.background': backgroundVariants.input,
-    'dropdown.foreground': foregroundVariants.muted,
-    'dropdown.border': roleMap.withOpacity(semanticColors.border, 0.25),
-    'dropdown.listBackground': backgroundVariants.widget,
+    // Dropdown - Use input background
+    'dropdown.background': inputBg,
+    'dropdown.foreground': darken(fg, 0.15),
+    'dropdown.border': withOpacity(palette.brightBlack, 0.25),
+    'dropdown.listBackground': widgetBg,
 
-    // Button
-    'button.background': semanticColors.error,
-    'button.foreground': backgroundVariants.editor,
-    'button.hoverBackground': roleMap.lighten(semanticColors.error, 0.1),
+    // Button - Use red for primary buttons
+    'button.background': palette.red,
+    'button.foreground': editorBg,
+    'button.hoverBackground': lighten(palette.red, 0.1),
     'button.border': '#00000000',
-    'button.secondaryBackground': roleMap.withOpacity(semanticColors.border, 0.25),
-    'button.secondaryForeground': foregroundVariants.muted,
-    'button.secondaryHoverBackground': roleMap.withOpacity(semanticColors.border, 0.38),
+    'button.secondaryBackground': withOpacity(palette.brightBlack, 0.25),
+    'button.secondaryForeground': darken(fg, 0.15),
+    'button.secondaryHoverBackground': withOpacity(palette.brightBlack, 0.38),
 
-    // Badge
-    'badge.background': semanticColors.error,
-    'badge.foreground': backgroundVariants.editor,
+    // Badge - Use red
+    'badge.background': palette.red,
+    'badge.foreground': editorBg,
 
-    // Progress Bar
-    'progressBar.background': semanticColors.error,
+    // Progress Bar - Use red
+    'progressBar.background': palette.red,
 
-    // Panel (Terminal, Output, Problems)
-    'panel.background': backgroundVariants.editor,
-    'panel.border': roleMap.withOpacity(semanticColors.border, 0.25),
-    'panel.dropBorder': semanticColors.error,
-    'panelTitle.activeBorder': semanticColors.error,
-    'panelTitle.activeForeground': foregroundVariants.muted,
-    'panelTitle.inactiveForeground': roleMap.withOpacity(semanticColors.border, 0.50),
+    // Panel (Terminal, Output, Problems) - Use palette[0]
+    'panel.background': editorBg,
+    'panel.border': withOpacity(palette.brightBlack, 0.25),
+    'panel.dropBorder': palette.red,
+    'panelTitle.activeBorder': palette.red,
+    'panelTitle.activeForeground': darken(fg, 0.15),
+    'panelTitle.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
 
     // Scrollbar
-    'scrollbar.shadow': roleMap.withOpacity('#000000', 0.25),
-    'scrollbarSlider.background': roleMap.withOpacity(semanticColors.border, 0.13),
-    'scrollbarSlider.activeBackground': roleMap.withOpacity(semanticColors.border, 0.38),
-    'scrollbarSlider.hoverBackground': roleMap.withOpacity(semanticColors.border, 0.25),
+    'scrollbar.shadow': withOpacity('#000000', 0.25),
+    'scrollbarSlider.background': withOpacity(palette.brightBlack, 0.13),
+    'scrollbarSlider.activeBackground': withOpacity(palette.brightBlack, 0.38),
+    'scrollbarSlider.hoverBackground': withOpacity(palette.brightBlack, 0.25),
 
-    // Additional VS Code properties that might be expected
-    'editor.selectionForeground': foregroundVariants.base,
-    'editor.hoverHighlightBackground': roleMap.withOpacity(semanticColors.border, 0.13),
+    // ========================================================================
+    // Extended UI Properties (missing from current generator)
+    // ========================================================================
+    'editor.wordHighlightText.background': withOpacity(palette.brightBlue, 0.13),
+    'editor.wordHighlightText.border': '#00000000',
+    'editor.wordHighlightStrong.background': withOpacity(palette.brightBlue, 0.19),
+    'editor.wordHighlightStrong.border': '#00000000',
+    
+    // Breadcrumb properties
+    'breadcrumb.foreground': withOpacity(fg, 0.63),
+    'breadcrumb.background': editorBg,
+    'breadcrumb.focusForeground': fg,
+    'breadcrumb.activeSelectionForeground': palette.yellow,
+    'breadcrumbPicker.background': widgetBg,
+    
+    // Minimap properties
+    'minimap.background': editorBg,
+    'minimap.findMatchHighlight': withOpacity(palette.yellow, 0.50),
+    'minimap.selectionHighlight': withOpacity(palette.red, 0.50),
+    'minimap.errorHighlight': withOpacity(palette.red, 0.50),
+    'minimap.warningHighlight': withOpacity(palette.yellow, 0.50),
+    'minimap.selectionOccurrenceHighlight': withOpacity(palette.red, 0.38),
+    
+    // Menu properties
+    'menu.foreground': fg,
+    'menu.background': widgetBg,
+    'menu.selectionForeground': fg,
+    'menu.selectionBackground': withOpacity(palette.red, 0.13),
+    'menu.selectionBorder': '#00000000',
+    'menu.separatorBackground': withOpacity(palette.brightBlack, 0.25),
+    'menu.border': withOpacity(palette.brightBlack, 0.25),
+    
+    // Notification properties
+    'notificationCenter.border': withOpacity(palette.brightBlack, 0.25),
+    'notificationCenterHeader.foreground': fg,
+    'notificationCenterHeader.background': widgetBg,
+    'notificationToast.border': withOpacity(palette.brightBlack, 0.25),
+    'notifications.foreground': fg,
+    'notifications.background': widgetBg,
+    'notifications.border': withOpacity(palette.brightBlack, 0.25),
+    'notificationLink.foreground': palette.brightBlue,
+    'notificationsErrorIcon.foreground': palette.red,
+    'notificationsWarningIcon.foreground': palette.yellow,
+    'notificationsInfoIcon.foreground': palette.brightBlue,
+    
+    // Extension properties
+    'extensionButton.prominentForeground': editorBg,
+    'extensionButton.prominentBackground': palette.red,
+    'extensionButton.prominentHoverBackground': lighten(palette.red, 0.1),
+    'extensionButton.separator': withOpacity(palette.brightBlack, 0.25),
+    'extensionBadge.remoteBackground': palette.brightBlue,
+    'extensionBadge.remoteForeground': editorBg,
+    
+    // Quick Input properties
+    'quickInput.background': widgetBg,
+    'quickInput.foreground': fg,
+    'quickInputList.focusBackground': withOpacity(palette.red, 0.13),
+    'quickInputList.focusForeground': fg,
+    'quickInputList.focusIconForeground': fg,
+    'quickInputTitle.background': lighten(widgetBg, 0.02),
+    
+    // Simple Find Widget properties
+    'simpleFindWidget.sashBorder': withOpacity(palette.brightBlack, 0.25),
+    
+    // Profile Badge properties
+    'profileBadge.background': palette.red,
+    'profileBadge.foreground': editorBg,
+    
+    // Action Bar properties
+    'actionBar.toggledBackground': withOpacity(palette.red, 0.13),
+    
+    // Comments properties
+    'comments.openIcon': palette.brightBlue,
+    'commentsView.header.background': widgetBg,
+    'commentsView.resolvedIcon': palette.brightGreen,
+    'commentsView.unresolvedIcon': palette.yellow,
+    
+    // Ports properties
+    'ports.iconRunningProcessForeground': palette.brightGreen,
+    
+    // Additional essential properties that might be expected
+    'editor.hoverHighlightBackground': withOpacity(palette.brightBlack, 0.13),
+    'editor.linkedEditingBackground': withOpacity(palette.brightBlue, 0.13),
+    'editor.inlineValuesBackground': withOpacity(palette.brightCyan, 0.08),
+    'editor.inlineValuesForeground': palette.brightCyan,
+    'editor.snippetTabstopHighlightBackground': withOpacity(palette.brightBlue, 0.13),
+    'editor.snippetTabstopHighlightBorder': palette.brightBlue,
+    'editor.snippetFinalTabstopHighlightBackground': withOpacity(palette.brightGreen, 0.13),
+    'editor.snippetFinalTabstopHighlightBorder': palette.brightGreen,
     'workbench.colorTheme': 'dark' as const,
 
   } as VSCodeThemeColors;
 };
 
 /**
- * Builds comprehensive token colors for syntax highlighting
+ * Builds comprehensive token colors using direct palette mapping
  *
- * Creates token color definitions that match the Eidolon Root pattern,
- * using palette colors consistently across different programming languages.
- * Includes comprehensive scope coverage and JSON rainbow coloring.
+ * Implements the corrected algorithm based on Eidolon Root theme analysis.
+ * Uses direct palette color mappings:
+ * 1. Comments: palette[8] (brightBlack) with italic
+ * 2. Keywords & Storage: palette[10] (brightGreen)
+ * 3. Strings: palette[1] (red)
+ * 4. Functions: palette[12] (brightBlue)
+ * 5. Classes/Types: palette[5] (magenta)
+ * 6. Numbers/Constants: palette[9] (brightRed)
+ * 7. Operators/Punctuation: palette[6] (cyan)
+ * 8. Tags: palette[11] (brightYellow)
+ * 9. Variables: foreground color
+ * 10. Support Types: palette[14] (brightCyan)
  *
  * @param colors - Parsed Ghostty colors object
- * @returns Array of token color definitions for VS Code themes
+ * @returns Array of token color definitions matching Eidolon Root pattern
  *
  * @since 2.0.0
  */
 export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
-  const roleMap = createEnhancedRoleMap(colors);
-  const { semanticColors, foregroundVariants } = roleMap;
+  // Direct palette colors extraction
+  const palette = {
+    black: colors.color0 || '#000000',
+    red: colors.color1 || '#ff0000',
+    green: colors.color2 || '#00ff00',
+    yellow: colors.color3 || '#ffff00',
+    blue: colors.color4 || '#0000ff',
+    magenta: colors.color5 || '#ff00ff',
+    cyan: colors.color6 || '#00ffff',
+    white: colors.color7 || '#ffffff',
+    brightBlack: colors.color8 || '#808080',
+    brightRed: colors.color9 || '#ff8080',
+    brightGreen: colors.color10 || '#80ff80',
+    brightYellow: colors.color11 || '#ffff80',
+    brightBlue: colors.color12 || '#8080ff',
+    brightMagenta: colors.color13 || '#ff80ff',
+    brightCyan: colors.color14 || '#80ffff',
+    brightWhite: colors.color15 || '#ffffff',
+  };
+
+  const fg = colors.foreground || '#ffffff';
 
   const baseTokens: TokenColor[] = [
     // ========================================================================
-    // Comments
+    // Comments - palette[8] (brightBlack) with italic
     // ========================================================================
     {
       name: 'Comment',
       scope: [
         'comment',
-        'punctuation.definition.comment',
-        'comment punctuation',
-        'comment.block punctuation',
-        'comment.line punctuation',
+        'punctuation.definition.comment'
       ],
       settings: {
         fontStyle: 'italic',
-        foreground: semanticColors.border,
+        foreground: palette.brightBlack,
       },
     },
 
     // ========================================================================
-    // Variables and Constants
+    // Variables - foreground color
     // ========================================================================
     {
       name: 'Variables',
       scope: [
         'variable',
-        'string constant.other.placeholder',
+        'string constant.other.placeholder'
       ],
       settings: {
-        foreground: foregroundVariants.base,
+        foreground: fg,
       },
     },
-    {
-      name: 'Colors',
-      scope: [
-        'constant.other.color',
-      ],
-      settings: {
-        foreground: semanticColors.successBase,
-      },
-    },
-
     // ========================================================================
-    // Invalid Code
+    // Invalid Code - palette[1] (red) with underline
     // ========================================================================
     {
       name: 'Invalid',
       scope: [
         'invalid',
-        'invalid.illegal',
+        'invalid.illegal'
       ],
       settings: {
-        foreground: semanticColors.error,
+        foreground: palette.red,
         fontStyle: 'underline',
       },
     },
 
     // ========================================================================
-    // Keywords and Storage
+    // Keywords and Storage - palette[10] (brightGreen)
     // ========================================================================
     {
       name: 'Keyword, Storage',
       scope: [
         'keyword',
         'storage.type',
-        'storage.modifier',
-        'keyword.control',
-        'constant.language',
-        'support.constant',
+        'storage.modifier'
       ],
       settings: {
-        foreground: semanticColors.error,
+        foreground: palette.brightGreen,
       },
     },
 
     // ========================================================================
-    // Operators
+    // Operators and Punctuation - palette[6] (cyan)
     // ========================================================================
     {
       name: 'Operator, Misc',
       scope: [
-        'keyword.operator',
-        'constant.other.color',
+        'keyword.control',
         'punctuation',
         'meta.tag',
         'punctuation.definition.tag',
-        'punctuation.separator.inheritance.php',
-        'punctuation.definition.tag.html',
-        'punctuation.definition.tag.begin.html',
-        'punctuation.definition.tag.end.html',
+        'punctuation.section.embedded',
+        'keyword.other.template',
+        'keyword.other.substitution'
       ],
       settings: {
-        foreground: roleMap.cyan,
+        foreground: palette.cyan,
       },
     },
 
     // ========================================================================
-    // Tags (HTML/XML)
+    // Tags - palette[11] (brightYellow)
     // ========================================================================
     {
       name: 'Tag',
       scope: [
         'entity.name.tag',
-        'meta.tag.sgml',
-        'markup.deleted.git_gutter',
+        'meta.tag.sgml'
       ],
       settings: {
-        foreground: semanticColors.error,
+        foreground: palette.brightYellow,
       },
     },
 
     // ========================================================================
-    // Functions and Methods
+    // Functions and Methods - palette[12] (brightBlue)
     // ========================================================================
     {
       name: 'Function, Special Method',
@@ -1434,523 +1421,155 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'entity.name.function',
         'meta.function-call',
         'variable.function',
-        'support.function',
-        'keyword.other.special-method',
+        'support.function'
       ],
       settings: {
-        foreground: semanticColors.warning,
+        foreground: palette.brightBlue,
       },
     },
 
     // ========================================================================
-    // Classes and Types
+    // Strings - palette[1] (red)
+    // ========================================================================
+    {
+      name: 'String, Symbols, Inherited Class',
+      scope: [
+        'string',
+        'constant.other.symbol',
+        'constant.other.key'
+      ],
+      settings: {
+        foreground: palette.red,
+      },
+    },
+
+    // ========================================================================
+    // Numbers and Constants - palette[9] (brightRed)
+    // ========================================================================
+    {
+      name: 'Number, Constant, Function Argument',
+      scope: [
+        'constant.numeric',
+        'constant.language',
+        'support.constant',
+        'constant.character',
+        'variable.parameter',
+        'keyword.other.unit'
+      ],
+      settings: {
+        foreground: palette.brightRed,
+      },
+    },
+
+    // ========================================================================
+    // Classes and Types - palette[5] (magenta)
     // ========================================================================
     {
       name: 'Class, Support',
       scope: [
         'entity.name',
-        'entity.name.class',
-        'entity.name.type.class',
         'support.type',
         'support.class',
-        'support.other.namespace.use.php',
-        'meta.use.php',
-        'support.other.namespace.php',
-        'markup.changed.git_gutter',
-        'support.type.sys-types',
+        'support.type.sys-types'
       ],
       settings: {
-        foreground: semanticColors.warning,
+        foreground: palette.magenta,
       },
     },
 
     // ========================================================================
-    // Entity Names
+    // Support Types - palette[14] (brightCyan)
     // ========================================================================
     {
       name: 'Entity Types',
       scope: [
-        'support.type',
+        'support.type'
       ],
       settings: {
-        foreground: roleMap.white,
+        foreground: palette.brightCyan,
       },
     },
 
     // ========================================================================
-    // CSS Selectors
+    // CSS Properties - palette[14] (brightCyan)
     // ========================================================================
     {
       name: 'CSS Class and Support',
       scope: [
         'source.css support.type.property-name',
         'source.sass support.type.property-name',
-        'source.scss support.type.property-name',
-        'source.less support.type.property-name',
-        'source.stylus support.type.property-name',
-        'source.postcss support.type.property-name',
+        'source.scss support.type.property-name'
       ],
       settings: {
-        foreground: semanticColors.warning,
+        foreground: palette.brightCyan,
       },
     },
 
     // ========================================================================
-    // Strings
+    // Attributes - palette[10] (brightGreen)
     // ========================================================================
     {
-      name: 'String, Symbols, Inherited Class, Markup Heading',
+      name: 'Attributes',
       scope: [
-        'string',
-        'constant.other.symbol',
-        'constant.other.key',
-        'entity.other.inherited-class',
-        'markup.heading',
-        'markup.inserted.git_gutter',
-        'meta.group.braces.curly constant.other.object.key.js string.unquoted.label.js',
+        'entity.other.attribute-name'
       ],
       settings: {
-        foreground: semanticColors.success,
+        foreground: palette.brightGreen,
       },
     },
 
-    // ========================================================================
-    // Numbers
-    // ========================================================================
-    {
-      name: 'Number, Constant, Function Argument, Tag Attribute, Embedded',
-      scope: [
-        'constant.numeric',
-        'constant.language',
-        'support.constant',
-        'constant.character',
-        'constant.escape',
-        'variable.parameter',
-        'keyword.other.unit',
-        'keyword.other',
-      ],
-      settings: {
-        foreground: roleMap.magenta,
-      },
-    },
-
-    // ========================================================================
-    // Attributes
-    // ========================================================================
-    {
-      name: 'String, Symbols, Inherited Class, Markup Heading',
-      scope: [
-        'entity.other.attribute-name',
-        'entity.other.attribute-name.id',
-        'entity.other.attribute-name.class',
-      ],
-      settings: {
-        foreground: semanticColors.warning,
-      },
-    },
-
-    // ========================================================================
-    // Regex
-    // ========================================================================
-    {
-      name: 'Regular Expressions',
-      scope: [
-        'string.regexp',
-      ],
-      settings: {
-        foreground: roleMap.cyan,
-      },
-    },
-
-    // ========================================================================
-    // Escape Characters
-    // ========================================================================
-    {
-      name: 'Escape Characters',
-      scope: [
-        'constant.character.escape',
-      ],
-      settings: {
-        foreground: roleMap.cyan,
-      },
-    },
-
-    // ========================================================================
-    // Embedded Code
-    // ========================================================================
-    {
-      name: 'Embedded',
-      scope: [
-        'punctuation.section.embedded',
-        'variable.interpolation',
-      ],
-      settings: {
-        foreground: roleMap.red,
-      },
-    },
-
-    // ========================================================================
-    // Template Strings
-    // ========================================================================
-    {
-      name: 'Template Strings',
-      scope: [
-        'string.template',
-        'string.interpolated',
-      ],
-      settings: {
-        foreground: semanticColors.success,
-      },
-    },
-
-    // ========================================================================
-    // Language-specific: JSON
-    // ========================================================================
-    {
-      name: 'JSON Property Name',
-      scope: [
-        'support.type.property-name.json',
-      ],
-      settings: {
-        foreground: semanticColors.info,
-      },
-    },
-
-    // ========================================================================
-    // Language-specific: Markdown
-    // ========================================================================
-    {
-      name: 'Markdown - Plain',
-      scope: [
-        'text.html.markdown',
-        'punctuation.definition.list_item.markdown',
-      ],
-      settings: {
-        foreground: foregroundVariants.base,
-      },
-    },
-    {
-      name: 'Markdown - Markup Raw Inline',
-      scope: [
-        'text.html.markdown markup.inline.raw.markdown',
-      ],
-      settings: {
-        foreground: roleMap.magenta,
-      },
-    },
-    {
-      name: 'Markdown - Link Text',
-      scope: [
-        'text.html.markdown markup.underline.link',
-      ],
-      settings: {
-        foreground: semanticColors.info,
-      },
-    },
   ];
 
-  // JSON Rainbow colors using palette colors (specialized token colors for JSON files)
+  // JSON Rainbow colors - levels 0-8 cycling through colors
   const jsonTokens: TokenColor[] = [
     {
-      name: 'JSON Braces',
-      scope: ['punctuation.definition.dictionary.begin.json', 'punctuation.definition.dictionary.end.json'],
-      settings: { foreground: semanticColors.warning },
+      name: 'JSON Key - Level 0',
+      scope: ['source.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.brightGreen },
     },
     {
-      name: 'JSON Brackets',
-      scope: ['punctuation.definition.array.begin.json', 'punctuation.definition.array.end.json'],
-      settings: { foreground: semanticColors.success },
+      name: 'JSON Key - Level 1', 
+      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.magenta },
     },
     {
-      name: 'JSON String Quotes',
-      scope: ['punctuation.definition.string.begin.json', 'punctuation.definition.string.end.json'],
-      settings: { foreground: semanticColors.accent2 },
+      name: 'JSON Key - Level 2',
+      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.brightBlue },
     },
     {
-      name: 'JSON Key-Value Separator',
-      scope: ['punctuation.separator.dictionary.key-value.json'],
-      settings: { foreground: semanticColors.accent1 },
+      name: 'JSON Key - Level 3',
+      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.yellow },
     },
     {
-      name: 'JSON Separators',
-      scope: ['punctuation.separator.dictionary.pair.json', 'punctuation.separator.array.json'],
-      settings: { foreground: foregroundVariants.base },
+      name: 'JSON Key - Level 4',
+      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.brightRed },
+    },
+    {
+      name: 'JSON Key - Level 5',
+      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.brightCyan },
+    },
+    {
+      name: 'JSON Key - Level 6',
+      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.green },
+    },
+    {
+      name: 'JSON Key - Level 7',
+      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.brightYellow },
+    },
+    {
+      name: 'JSON Key - Level 8',
+      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
+      settings: { foreground: palette.brightMagenta },
     },
   ];
 
-  // Additional comprehensive token colors to match professional themes
-  const advancedTokens: TokenColor[] = [
-    // ========================================================================
-    // Language-specific: JavaScript/TypeScript
-    // ========================================================================
-    {
-      name: 'JS/TS This',
-      scope: ['variable.language.this'],
-      settings: { foreground: semanticColors.error },
-    },
-    {
-      name: 'JS/TS Super',
-      scope: ['variable.language.super'],
-      settings: { foreground: semanticColors.error },
-    },
-    {
-      name: 'JS/TS Import/Export',
-      scope: ['keyword.control.import', 'keyword.control.export', 'keyword.control.from'],
-      settings: { foreground: roleMap.magenta },
-    },
-    {
-      name: 'JS/TS Type Keywords',
-      scope: ['storage.type.type', 'storage.type.interface', 'storage.type.enum'],
-      settings: { foreground: roleMap.blue },
-    },
-    {
-      name: 'JS/TS Decorators',
-      scope: ['punctuation.decorator', 'meta.decorator'],
-      settings: { foreground: semanticColors.warning },
-    },
-
-    // ========================================================================
-    // Language-specific: CSS/SCSS/LESS
-    // ========================================================================
-    {
-      name: 'CSS Property Values',
-      scope: ['support.constant.property-value.css', 'constant.other.color.rgb-value.css'],
-      settings: { foreground: roleMap.cyan },
-    },
-    {
-      name: 'CSS Units',
-      scope: ['keyword.other.unit.css', 'keyword.other.unit.scss'],
-      settings: { foreground: roleMap.magenta },
-    },
-    {
-      name: 'CSS Selectors',
-      scope: ['entity.name.tag.css', 'entity.other.attribute-name.class.css'],
-      settings: { foreground: semanticColors.warning },
-    },
-    {
-      name: 'CSS ID Selectors',
-      scope: ['entity.other.attribute-name.id.css'],
-      settings: { foreground: semanticColors.success },
-    },
-    {
-      name: 'CSS Pseudo Classes',
-      scope: ['entity.other.attribute-name.pseudo-class.css', 'entity.other.attribute-name.pseudo-element.css'],
-      settings: { foreground: roleMap.blue },
-    },
-
-    // ========================================================================
-    // Language-specific: HTML
-    // ========================================================================
-    {
-      name: 'HTML Doctype',
-      scope: ['meta.tag.sgml.doctype.html'],
-      settings: { foreground: semanticColors.border, fontStyle: 'italic' },
-    },
-    {
-      name: 'HTML Tag Names',
-      scope: ['entity.name.tag.html', 'entity.name.tag.block.any.html'],
-      settings: { foreground: semanticColors.error },
-    },
-    {
-      name: 'HTML Attribute Names',
-      scope: ['entity.other.attribute-name.html'],
-      settings: { foreground: semanticColors.warning },
-    },
-    {
-      name: 'HTML Attribute Values',
-      scope: ['string.quoted.double.html', 'string.quoted.single.html'],
-      settings: { foreground: semanticColors.success },
-    },
-
-    // ========================================================================
-    // Language-specific: Python
-    // ========================================================================
-    {
-      name: 'Python Self',
-      scope: ['variable.language.self.python'],
-      settings: { foreground: semanticColors.error, fontStyle: 'italic' },
-    },
-    {
-      name: 'Python Decorators',
-      scope: ['entity.name.function.decorator.python'],
-      settings: { foreground: semanticColors.warning },
-    },
-    {
-      name: 'Python Magic Methods',
-      scope: ['support.function.magic.python'],
-      settings: { foreground: roleMap.magenta },
-    },
-    {
-      name: 'Python String Formatting',
-      scope: ['constant.character.format.placeholder.other.python'],
-      settings: { foreground: roleMap.cyan },
-    },
-
-    // ========================================================================
-    // Language-specific: Markdown
-    // ========================================================================
-    {
-      name: 'Markdown Headers',
-      scope: ['markup.heading.markdown', 'entity.name.section.markdown'],
-      settings: { foreground: semanticColors.error, fontStyle: 'bold' },
-    },
-    {
-      name: 'Markdown Bold',
-      scope: ['markup.bold.markdown'],
-      settings: { foreground: foregroundVariants.base, fontStyle: 'bold' },
-    },
-    {
-      name: 'Markdown Italic',
-      scope: ['markup.italic.markdown'],
-      settings: { foreground: foregroundVariants.base, fontStyle: 'italic' },
-    },
-    {
-      name: 'Markdown Code',
-      scope: ['markup.inline.raw.markdown', 'markup.fenced_code.block.markdown'],
-      settings: { foreground: roleMap.magenta },
-    },
-    {
-      name: 'Markdown Links',
-      scope: ['markup.underline.link.markdown', 'string.other.link.title.markdown'],
-      settings: { foreground: semanticColors.info },
-    },
-    {
-      name: 'Markdown Lists',
-      scope: ['markup.list.numbered.markdown', 'markup.list.unnumbered.markdown'],
-      settings: { foreground: semanticColors.warning },
-    },
-
-    // ========================================================================
-    // Language-specific: YAML
-    // ========================================================================
-    {
-      name: 'YAML Keys',
-      scope: ['entity.name.tag.yaml'],
-      settings: { foreground: semanticColors.info },
-    },
-    {
-      name: 'YAML Anchors',
-      scope: ['punctuation.definition.anchor.yaml', 'variable.other.alias.yaml'],
-      settings: { foreground: semanticColors.warning },
-    },
-
-    // ========================================================================
-    // Language-specific: SQL
-    // ========================================================================
-    {
-      name: 'SQL Keywords',
-      scope: ['keyword.other.DML.sql', 'keyword.other.DDL.create.II.sql'],
-      settings: { foreground: roleMap.blue },
-    },
-    {
-      name: 'SQL Functions',
-      scope: ['support.function.aggregate.sql', 'support.function.scalar.sql'],
-      settings: { foreground: semanticColors.warning },
-    },
-
-    // ========================================================================
-    // Language-specific: Shell/Bash
-    // ========================================================================
-    {
-      name: 'Shell Variables',
-      scope: ['variable.other.normal.shell', 'variable.other.special.shell'],
-      settings: { foreground: roleMap.cyan },
-    },
-    {
-      name: 'Shell Commands',
-      scope: ['support.function.builtin.shell'],
-      settings: { foreground: semanticColors.warning },
-    },
-
-    // ========================================================================
-    // Language-specific: XML
-    // ========================================================================
-    {
-      name: 'XML Tags',
-      scope: ['entity.name.tag.xml', 'entity.name.tag.namespace.xml'],
-      settings: { foreground: semanticColors.error },
-    },
-    {
-      name: 'XML Attributes',
-      scope: ['entity.other.attribute-name.xml', 'entity.other.attribute-name.namespace.xml'],
-      settings: { foreground: semanticColors.warning },
-    },
-
-    // ========================================================================
-    // Version Control (Git)
-    // ========================================================================
-    {
-      name: 'Git Added',
-      scope: ['markup.inserted.git_gutter'],
-      settings: { foreground: semanticColors.success },
-    },
-    {
-      name: 'Git Modified',
-      scope: ['markup.changed.git_gutter'],
-      settings: { foreground: semanticColors.warning },
-    },
-    {
-      name: 'Git Deleted',
-      scope: ['markup.deleted.git_gutter'],
-      settings: { foreground: semanticColors.error },
-    },
-
-    // ========================================================================
-    // Advanced Constructs
-    // ========================================================================
-    {
-      name: 'Annotations',
-      scope: ['storage.type.annotation', 'punctuation.definition.annotation'],
-      settings: { foreground: semanticColors.warning },
-    },
-    {
-      name: 'Type Parameters',
-      scope: ['entity.name.type.parameter'],
-      settings: { foreground: roleMap.cyan },
-    },
-    {
-      name: 'Generic Types',
-      scope: ['meta.type.parameters', 'punctuation.definition.typeparameters'],
-      settings: { foreground: roleMap.cyan },
-    },
-    {
-      name: 'Module Names',
-      scope: ['entity.name.namespace', 'entity.name.module'],
-      settings: { foreground: semanticColors.info },
-    },
-    {
-      name: 'Interface Names',
-      scope: ['entity.name.type.interface'],
-      settings: { foreground: semanticColors.info },
-    },
-    {
-      name: 'Enum Names',
-      scope: ['entity.name.type.enum'],
-      settings: { foreground: roleMap.blue },
-    },
-    {
-      name: 'Constant Names',
-      scope: ['entity.name.constant'],
-      settings: { foreground: roleMap.magenta },
-    },
-    {
-      name: 'Property Access',
-      scope: ['meta.property.object', 'variable.other.property'],
-      settings: { foreground: foregroundVariants.base },
-    },
-    {
-      name: 'Method Calls',
-      scope: ['meta.method-call', 'meta.function-call.method'],
-      settings: { foreground: semanticColors.warning },
-    },
-    {
-      name: 'Constructor Calls',
-      scope: ['meta.instance.constructor', 'entity.name.function.constructor'],
-      settings: { foreground: roleMap.blue },
-    },
-  ];
-
-  return [...baseTokens, ...jsonTokens, ...advancedTokens];
+  return [...baseTokens, ...jsonTokens];
 };
 
 // ============================================================================
@@ -1958,15 +1577,15 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
 // ============================================================================
 
 /**
- * Resolves the theme name from various sources with priority handling
+ * Resolves the theme name from various sources with priority handling and special cases
  *
  * Determines the theme name using a priority system:
  * 1. Explicit name parameter (highest priority)
  * 2. Name from theme file metadata
- * 3. Derived from filename (lowest priority)
+ * 3. Derived from filename with special case handling (lowest priority)
  *
- * Applies formatting to filename-derived names by replacing separators
- * with spaces and applying title case.
+ * Special cases:
+ * - "root.txt" → "eidolon-root" (based on typical naming patterns)
  *
  * @param filePath - Path to the theme file
  * @param explicitName - Explicitly provided theme name (optional)
@@ -1975,9 +1594,9 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
  *
  * @example
  * ```typescript
- * resolveThemeName('./dark_theme.txt'); // 'Dark Theme'
+ * resolveThemeName('./root.txt'); // 'eidolon-root'
+ * resolveThemeName('./dark_theme.txt'); // 'dark-theme'
  * resolveThemeName('./theme.txt', 'My Custom Theme'); // 'My Custom Theme'
- * resolveThemeName('./theme.txt', undefined, { name: 'Meta Theme' }); // 'Meta Theme'
  * ```
  *
  * @since 1.0.0
@@ -2002,9 +1621,16 @@ export const resolveThemeName = (
 
   try {
     const baseName = basename(filePath, '.txt');
-    return baseName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    // Special case handling
+    if (baseName === 'root') {
+      return 'eidolon-root';
+    }
+    
+    // Default case: convert to kebab-case
+    return baseName.replace(/[_\s]+/g, '-').toLowerCase();
   } catch {
-    return 'Unknown Theme';
+    return 'unknown-theme';
   }
 };
 
