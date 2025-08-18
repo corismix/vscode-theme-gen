@@ -132,11 +132,153 @@ export interface TokenColor {
   };
 }
 
+export interface SemanticTokenStyle {
+  foreground?: string;
+  background?: string;
+  fontStyle?: 'italic' | 'bold' | 'underline' | 'italic bold';
+}
+
 export interface VSCodeTheme {
   name: string;
   type: 'dark' | 'light';
   colors: VSCodeThemeColors;
   tokenColors: TokenColor[];
+  semanticTokenColors?: Record<string, SemanticTokenStyle>;
+  semanticHighlighting?: boolean;
+}
+
+// ============================================================================
+// Phase 1: Pro Theme Generation Types
+// ============================================================================
+
+export interface BackgroundHierarchy {
+  void: string;        // Level 0: Deepest shadows, invisible borders
+  shadow: string;      // Level 1: Deep borders, separators
+  depth: string;       // Level 2: Activity bar, status bar background
+  surface: string;     // Level 3: Sidebar, panel backgrounds
+  canvas: string;      // Level 4: Main editor background (base)
+  overlay: string;     // Level 5: Dropdown menus, tooltips
+  interactive: string; // Level 6: Input fields, form controls
+  elevated: string;    // Level 7: Hover states, active elements
+}
+
+export interface AccentSystem {
+  primary: {
+    base: string;
+    light: string;
+    dark: string;
+    muted: string;
+  };
+  secondary?: {
+    base: string;
+    light: string;
+    dark: string;
+    muted: string;
+  };
+}
+
+export interface ExtendedPalette {
+  primary: {
+    red: string;
+    green: string;
+    blue: string;
+    yellow: string;
+    purple: string;
+    cyan: string;
+  };
+  derived: {
+    // Lightness variations
+    redLight: string;
+    redDark: string;
+    greenLight: string;
+    greenDark: string;
+    blueLight: string;
+    blueDark: string;
+    yellowLight: string;
+    yellowDark: string;
+    purpleLight: string;
+    purpleDark: string;
+    cyanLight: string;
+    cyanDark: string;
+    
+    // Saturation variations
+    redMuted: string;
+    greenMuted: string;
+    blueMuted: string;
+    yellowMuted: string;
+    purpleMuted: string;
+    cyanMuted: string;
+    
+    // Special purpose colors
+    orangeWarm: string;
+    orangeLight: string;
+    orangeDark: string;
+    mutedYellow: string;
+    mutedCyan: string;
+    rainbowPrimary: string;
+    snippetAccent: string;
+    eventAccent: string;
+    selfAccent: string;
+    magicMethod: string;
+    typeAnnotation: string;
+    genericType: string;
+    builtinType: string;
+    destructured: string;
+    lifetime: string;
+    attribute: string;
+    componentName: string;
+    hookFunction: string;
+  };
+  foreground: string;
+}
+
+export interface ProTheme {
+  name: string;
+  type: 'dark' | 'light';
+  colors: VSCodeThemeColors;
+  tokenColors: TokenColor[];
+  semanticTokenColors: Record<string, SemanticTokenStyle>;
+  semanticHighlighting: boolean;
+}
+
+export interface ThemeOptions {
+  name?: string;
+  type?: 'dark' | 'light';
+  borderPhilosophy?: 'minimal' | 'structured' | 'outlined';
+  rainbowIntensity?: 'vibrant' | 'subtle' | 'pastel';
+  fontStyleStrategy?: 'conservative' | 'standard' | 'expressive';
+}
+
+export interface OpacityLevels {
+  invisible: number;    // 0.00
+  ghost: number;        // 0.03
+  whisper: number;      // 0.06
+  subtle: number;       // 0.08
+  light: number;        // 0.10
+  soft: number;         // 0.13
+  gentle: number;       // 0.16
+  visible: number;      // 0.19
+  clear: number;        // 0.22
+  defined: number;      // 0.26
+  medium: number;       // 0.30
+  strong: number;       // 0.35
+  prominent: number;    // 0.40
+  solid: number;        // 0.50
+  heavy: number;        // 0.60
+  opaque: number;       // 0.75
+}
+
+export interface OpacitySemantics {
+  hover: number;
+  focus: number;
+  selection: number;
+  highlight: number;
+  findMatch: number;
+  lineHighlight: number;
+  error: number;
+  warning: number;
+  info: number;
+  success: number;
 }
 
 // ============================================================================

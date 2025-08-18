@@ -27,6 +27,14 @@ import {
   ColorValidationResult,
   FileProcessingError,
   ValidationError,
+  BackgroundHierarchy,
+  AccentSystem,
+  ExtendedPalette,
+  ProTheme,
+  ThemeOptions,
+  OpacityLevels,
+  OpacitySemantics,
+  SemanticTokenStyle,
 } from '@/types';
 import { FILE_LIMITS, SECURITY_LIMITS } from '@/config';
 import { fileUtils } from './utils-simple';
@@ -661,14 +669,671 @@ const withOpacity = (hex: string, opacity: number): string => {
 
 // withOpacity is the primary function for consistent opacity handling
 
-// Background variants now calculated inline in buildVSCodeColors
+// ============================================================================
+// Phase 1: Pro Theme Generation Core Systems
+// ============================================================================
 
-// Foreground variants now calculated inline in buildVSCodeColors
+/**
+ * Converts hex color to HSL components for advanced color manipulation
+ */
+const hexToHsl = (hex: string): { h: number; s: number; l: number } => {
+  const [r, g, b] = hexToRgb(hex);
+  const rNorm = r / 255;
+  const gNorm = g / 255;
+  const bNorm = b / 255;
 
-// Removed createEnhancedRoleMap function - using direct palette mapping instead
+  const max = Math.max(rNorm, gNorm, bNorm);
+  const min = Math.min(rNorm, gNorm, bNorm);
+  const diff = max - min;
+
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (diff !== 0) {
+    s = l > 0.5 ? diff / (2 - max - min) : diff / (max + min);
+
+    switch (max) {
+      case rNorm:
+        h = (gNorm - bNorm) / diff + (gNorm < bNorm ? 6 : 0);
+        break;
+      case gNorm:
+        h = (bNorm - rNorm) / diff + 2;
+        break;
+      case bNorm:
+        h = (rNorm - gNorm) / diff + 4;
+        break;
+    }
+    h /= 6;
+  }
+
+  return { h: h * 360, s, l };
+};
+
+/**
+ * Converts HSL components back to hex color
+ */
+const hslToHex = (hsl: { h: number; s: number; l: number }): string => {
+  const { h, s, l } = hsl;
+  const hNorm = h / 360;
+
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+
+  let r, g, b;
+
+  if (s === 0) {
+    r = g = b = l; // achromatic
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, hNorm + 1/3);
+    g = hue2rgb(p, q, hNorm);
+    b = hue2rgb(p, q, hNorm - 1/3);
+  }
+
+  return rgbToHex(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255));
+};
+
+/**
+ * Adjusts the lightness of a color while preserving hue and saturation
+ */
+const adjustLightness = (hex: string, adjustment: number): string => {
+  const hsl = hexToHsl(hex);
+  hsl.l = Math.max(0, Math.min(1, hsl.l + adjustment));
+  return hslToHex(hsl);
+};
+
+/**
+ * Adjusts the saturation of a color while preserving hue and lightness
+ */
+const adjustSaturation = (hex: string, adjustment: number): string => {
+  const hsl = hexToHsl(hex);
+  hsl.s = Math.max(0, Math.min(1, hsl.s + adjustment));
+  return hslToHex(hsl);
+};
+
+/**
+ * Adjusts the hue of a color while preserving saturation and lightness
+ */
+const adjustHue = (hex: string, adjustment: number): string => {
+  const hsl = hexToHsl(hex);
+  hsl.h = (hsl.h + adjustment) % 360;
+  if (hsl.h < 0) hsl.h += 360;
+  return hslToHex(hsl);
+};
+
+/**
+ * Blends two colors together
+ */
+const blendColors = (color1: string, color2: string, ratio: number): string => {
+  const [r1, g1, b1] = hexToRgb(color1);
+  const [r2, g2, b2] = hexToRgb(color2);
+  
+  const r = Math.round(r1 * ratio + r2 * (1 - ratio));
+  const g = Math.round(g1 * ratio + g2 * (1 - ratio));
+  const b = Math.round(b1 * ratio + b2 * (1 - ratio));
+  
+  return rgbToHex(r, g, b);
+};
+
+/**
+ * Gets the saturation value of a color for intelligent accent selection
+ */
+const getSaturation = (hex: string): number => {
+  return hexToHsl(hex).s;
+};
+
+/**
+ * Gets the hue value of a color for complementary color selection
+ */
+const getHue = (hex: string): number => {
+  return hexToHsl(hex).h;
+};
+
+/**
+ * Advanced Multi-Layer Background Hierarchy Generator
+ * 
+ * Creates an 8-level logarithmic progression with semantic purpose.
+ * Uses mathematical relationships to preserve theme authenticity.
+ */
+class BackgroundGenerator {
+  /**
+   * Creates a hierarchical background system from a base color
+   */
+  static createHierarchy(base: string, theme: 'dark' | 'light' = 'dark'): BackgroundHierarchy {
+    const factor = theme === 'dark' ? -1 : 1; // Invert for light themes
+    const progression = this.calculateProgression(8);
+    
+    return {
+      void: adjustLightness(base, factor * (progression[0] || 0)),      // -15%
+      shadow: adjustLightness(base, factor * (progression[1] || 0)),    // -12%
+      depth: adjustLightness(base, factor * (progression[2] || 0)),     // -8%
+      surface: adjustLightness(base, factor * (progression[3] || 0)),   // -5%
+      canvas: base,                                                     // 0% (base)
+      overlay: adjustLightness(base, -factor * (progression[4] || 0)),  // +4%
+      interactive: adjustLightness(base, -factor * (progression[5] || 0)), // +7%
+      elevated: adjustLightness(base, -factor * (progression[6] || 0)), // +11%
+    };
+  }
+  
+  /**
+   * Calculates logarithmic progression for natural visual hierarchy
+   */
+  private static calculateProgression(levels: number): number[] {
+    const progression: number[] = [];
+    for (let i = 0; i < levels; i++) {
+      // Logarithmic scale: Math.log(i + 2) * baseStep
+      const step = Math.log(i + 2) * 0.04;
+      progression.push(step);
+    }
+    return progression;
+  }
+  
+  /**
+   * Maps background hierarchy to specific VS Code UI elements
+   */
+  static mapToUIElements(hierarchy: BackgroundHierarchy): Partial<VSCodeThemeColors> {
+    return {
+      // Core editor areas
+      'editor.background': hierarchy.canvas,
+      'editorWidget.background': hierarchy.overlay,
+      'editorHoverWidget.background': hierarchy.elevated,
+      
+      // Sidebar and panels
+      'sideBar.background': hierarchy.surface,
+      'activityBar.background': hierarchy.depth,
+      'panel.background': hierarchy.surface,
+      
+      // Interactive elements
+      'input.background': hierarchy.interactive,
+      'dropdown.background': hierarchy.overlay,
+      'quickInput.background': hierarchy.overlay,
+      
+      // Depth indicators
+      'editorGroup.border': hierarchy.shadow,
+      'panel.border': hierarchy.shadow,
+      'widget.shadow': hierarchy.void,
+      
+      // Hover and active states
+      'list.hoverBackground': hierarchy.elevated,
+      'list.activeSelectionBackground': hierarchy.elevated,
+    };
+  }
+}
+
+/**
+ * Pro Opacity System with Mathematical Progression
+ * 
+ * Provides a 16-level mathematical opacity progression with semantic purpose.
+ */
+class OpacitySystem {
+  static readonly levels: OpacityLevels = {
+    invisible: 0.00,    // #ffffff00 - Completely transparent
+    ghost: 0.03,        // #ffffff08 - Barely perceptible
+    whisper: 0.06,      // #ffffff0f - Very subtle backgrounds
+    subtle: 0.08,       // #ffffff14 - Hover states
+    light: 0.10,        // #ffffff1a - Light overlays
+    soft: 0.13,         // #ffffff21 - Active but not selected
+    gentle: 0.16,       // #ffffff29 - Word highlights
+    visible: 0.19,      // #ffffff30 - Semantic states (error/warning)
+    clear: 0.22,        // #ffffff38 - Find matches
+    defined: 0.26,      // #ffffff42 - Selections
+    medium: 0.30,       // #ffffff4d - Medium emphasis
+    strong: 0.35,       // #ffffff59 - Strong highlights
+    prominent: 0.40,    // #ffffff66 - Clear visibility
+    solid: 0.50,        // #ffffff80 - Half opacity
+    heavy: 0.60,        // #ffffff99 - Strong emphasis
+    opaque: 0.75,       // #ffffffbf - Nearly solid
+  };
+  
+  static readonly semantic: OpacitySemantics = {
+    hover: 0.08,           // Subtle feedback
+    focus: 0.13,           // Active state
+    selection: 0.26,       // Clear selection
+    highlight: 0.16,       // Word occurrences
+    findMatch: 0.22,       // Search results
+    lineHighlight: 0.03,   // Current line (barely visible)
+    error: 0.19,           // Error backgrounds
+    warning: 0.19,         // Warning backgrounds
+    info: 0.13,            // Info backgrounds
+    success: 0.13,         // Success backgrounds
+  };
+
+  /**
+   * Converts decimal opacity to hex suffix
+   */
+  static toHex(opacity: number): string {
+    const alpha = Math.round(opacity * 255);
+    return alpha.toString(16).padStart(2, '0').toLowerCase();
+  }
+  
+  /**
+   * Gets semantic opacity level by purpose
+   */
+  static getLevel(purpose: keyof OpacitySemantics): number {
+    return this.semantic[purpose];
+  }
+  
+  /**
+   * Alpha blends two colors for color mixing
+   */
+  static blend(foreground: string, background: string, opacity: number): string {
+    const fgRgb = hexToRgb(foreground);
+    const bgRgb = hexToRgb(background);
+    
+    return rgbToHex(
+      Math.round(fgRgb[0] * opacity + bgRgb[0] * (1 - opacity)),
+      Math.round(fgRgb[1] * opacity + bgRgb[1] * (1 - opacity)),
+      Math.round(fgRgb[2] * opacity + bgRgb[2] * (1 - opacity))
+    );
+  }
+}
+
+/**
+ * Primary and Dual Accent Color System
+ * 
+ * Intelligently selects primary and secondary accents with intensity variations.
+ */
+class AccentGenerator {
+  /**
+   * Creates a complete accent system from Ghostty colors
+   */
+  static createAccentSystem(palette: GhosttyColors): AccentSystem {
+    // Primary accent - most saturated color (usually red or blue)
+    const primaryBase = this.selectPrimaryAccent(palette);
+    
+    // Secondary accent - complementary or analogous color
+    const secondaryBase = this.selectSecondaryAccent(palette, primaryBase);
+    
+    const result: AccentSystem = {
+      primary: {
+        base: primaryBase,
+        light: adjustLightness(primaryBase, 0.15),
+        dark: adjustLightness(primaryBase, -0.15),  
+        muted: adjustSaturation(primaryBase, -0.3),
+      },
+    };
+    
+    if (secondaryBase) {
+      result.secondary = {
+        base: secondaryBase,
+        light: adjustLightness(secondaryBase, 0.12),
+        dark: adjustLightness(secondaryBase, -0.12),
+        muted: adjustSaturation(secondaryBase, -0.25),
+      };
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Intelligently selects primary accent based on color properties
+   */
+  private static selectPrimaryAccent(palette: GhosttyColors): string {
+    const candidates = [
+      { color: palette.color1 || '#ff0000', saturation: getSaturation(palette.color1 || '#ff0000') },
+      { color: palette.color4 || '#0000ff', saturation: getSaturation(palette.color4 || '#0000ff') },
+      { color: palette.color5 || '#ff00ff', saturation: getSaturation(palette.color5 || '#ff00ff') },
+    ];
+    
+    // Select most saturated color as primary accent
+    return candidates.reduce((max, curr) => 
+      curr.saturation > max.saturation ? curr : max
+    ).color;
+  }
+  
+  /**
+   * Selects secondary accent with complementary hue relationship
+   */
+  private static selectSecondaryAccent(palette: GhosttyColors, primary: string): string | null {
+    // Find complementary or analogous color
+    const primaryHue = getHue(primary);
+    const candidates = [
+      palette.color2 || '#00ff00', 
+      palette.color3 || '#ffff00', 
+      palette.color6 || '#00ffff'
+    ];
+    
+    // Select color with complementary hue (opposite side of color wheel)
+    for (const candidate of candidates) {
+      const candidateHue = getHue(candidate);
+      const hueDiff = Math.abs(primaryHue - candidateHue);
+      
+      if (hueDiff > 120 && hueDiff < 240) { // Complementary range
+        return candidate;
+      }
+    }
+    
+    return null; // Single accent system if no good complement found
+  }
+  
+  /**
+   * Applies accent system throughout theme colors
+   */
+  static applyAccentSystem(accents: AccentSystem, theme: VSCodeThemeColors): VSCodeThemeColors {
+    return {
+      ...theme,
+      
+      // Primary accent applications
+      'focusBorder': accents.primary.base,
+      'editorCursor.foreground': accents.primary.base,
+      'button.background': accents.primary.base,
+      'progressBar.background': accents.primary.base,
+      'badge.background': accents.primary.muted,
+      
+      // Selection states with primary
+      'editor.selectionBackground': `${accents.primary.base}${OpacitySystem.toHex(0.26)}`,
+      'list.activeSelectionBackground': `${accents.primary.muted}${OpacitySystem.toHex(0.22)}`,
+      
+      // Secondary accent applications (if available)
+      ...(accents.secondary && {
+        'tab.activeBorderTop': accents.secondary.base,
+        'activityBar.activeBorder': accents.secondary.base,
+        'panelTitle.activeBorder': accents.secondary.base,
+        'statusBar.border': accents.secondary.dark,
+        'textLink.activeForeground': accents.secondary.light,
+      }),
+      
+      // Intensity variations for different contexts
+      'button.hoverBackground': accents.primary.light,
+      'button.secondaryBackground': accents.primary.muted,
+      'textLink.foreground': accents.primary.light,
+      'editorLink.activeForeground': accents.primary.dark,
+    };
+  }
+}
+
+/**
+ * Extended Color Palette Generator
+ * 
+ * Creates mathematical extensions while preserving original character.
+ */
+class PaletteExtender {
+  /**
+   * Extends Ghostty colors into a comprehensive palette
+   */
+  static extendColorPalette(ghosttyColors: GhosttyColors): ExtendedPalette {
+    const primary = {
+      red: ghosttyColors.color1 || '#ff0000',
+      green: ghosttyColors.color2 || '#00ff00',
+      blue: ghosttyColors.color4 || '#0000ff',
+      yellow: ghosttyColors.color3 || '#ffff00',
+      purple: ghosttyColors.color5 || '#ff00ff',
+      cyan: ghosttyColors.color6 || '#00ffff',
+    };
+
+    return {
+      primary,
+      derived: {
+        // Lightness variations (same hue/saturation)
+        redLight: adjustLightness(primary.red, 0.15),
+        redDark: adjustLightness(primary.red, -0.15),
+        greenLight: adjustLightness(primary.green, 0.15),
+        greenDark: adjustLightness(primary.green, -0.15),
+        blueLight: adjustLightness(primary.blue, 0.15),
+        blueDark: adjustLightness(primary.blue, -0.15),
+        yellowLight: adjustLightness(primary.yellow, 0.15),
+        yellowDark: adjustLightness(primary.yellow, -0.15),
+        purpleLight: adjustLightness(primary.purple, 0.15),
+        purpleDark: adjustLightness(primary.purple, -0.15),
+        cyanLight: adjustLightness(primary.cyan, 0.15),
+        cyanDark: adjustLightness(primary.cyan, -0.15),
+        
+        // Saturation variations
+        redMuted: adjustSaturation(primary.red, -0.3),
+        greenMuted: adjustSaturation(primary.green, -0.3),
+        blueMuted: adjustSaturation(primary.blue, -0.3),
+        yellowMuted: adjustSaturation(primary.yellow, -0.3),
+        purpleMuted: adjustSaturation(primary.purple, -0.3),
+        cyanMuted: adjustSaturation(primary.cyan, -0.3),
+        
+        // Special purpose colors derived from palette
+        orangeWarm: blendColors(primary.red, primary.yellow, 0.6),
+        orangeLight: adjustLightness(blendColors(primary.red, primary.yellow, 0.6), 0.1),
+        orangeDark: adjustLightness(blendColors(primary.red, primary.yellow, 0.6), -0.1),
+        mutedYellow: adjustSaturation(primary.yellow, -0.4),
+        mutedCyan: adjustSaturation(primary.cyan, -0.4),
+        
+        // Context-specific derivations
+        typeAnnotation: adjustSaturation(primary.blue, -0.2),
+        selfAccent: adjustHue(primary.red, 15),
+        magicMethod: adjustLightness(primary.purple, 0.1),
+        genericType: blendColors(primary.blue, primary.purple, 0.7),
+        builtinType: adjustSaturation(primary.blue, 0.2),
+        destructured: adjustLightness(primary.cyan, -0.1),
+        lifetime: adjustHue(primary.green, -30),
+        attribute: adjustSaturation(primary.purple, -0.1),
+        componentName: blendColors(primary.cyan, primary.blue, 0.6),
+        hookFunction: adjustHue(primary.cyan, 20),
+        
+        // Rainbow and special effects
+        rainbowPrimary: adjustSaturation(primary.red, 0.2),
+        snippetAccent: blendColors(primary.cyan, primary.purple, 0.7),
+        eventAccent: adjustHue(primary.yellow, 30),
+      },
+      foreground: ghosttyColors.foreground || '#ffffff',
+    };
+  }
+}
+
+/**
+ * Master Pro Theme Generator
+ * 
+ * Orchestrates all Phase 1 systems to generate professional-quality themes.
+ */
+class ProThemeGenerator {
+  /**
+   * Generates a complete professional theme from Ghostty colors
+   */
+  static generateTheme(ghosttyColors: GhosttyColors, options: ThemeOptions = {}): ProTheme {
+    // Phase 1: Create extended palette preserving authenticity
+    const extendedPalette = PaletteExtender.extendColorPalette(ghosttyColors);
+    
+    // Phase 2: Generate background hierarchy 
+    const backgrounds = BackgroundGenerator.createHierarchy(
+      ghosttyColors.background || '#000000', 
+      options.type || 'dark'
+    );
+    
+    // Phase 3: Create accent system
+    const accents = AccentGenerator.createAccentSystem(ghosttyColors);
+    
+    // Phase 4: Generate comprehensive UI colors
+    const uiColors = this.generateUIColors(backgrounds, accents, extendedPalette);
+    
+    // Phase 5: Create token colors (enhanced in later phases)
+    const tokenColors = this.generateTokenColors(extendedPalette, options);
+    
+    // Phase 6: Add semantic tokens (placeholder for now)
+    const semanticTokens = this.generateSemanticTokens(extendedPalette);
+    
+    return {
+      name: options.name || 'Pro Generated Theme',
+      type: options.type || 'dark',
+      colors: uiColors,
+      tokenColors,
+      semanticTokenColors: semanticTokens,
+      semanticHighlighting: true,
+    };
+  }
+  
+  /**
+   * Generates comprehensive UI colors using new systems
+   */
+  private static generateUIColors(
+    backgrounds: BackgroundHierarchy,
+    accents: AccentSystem,
+    palette: ExtendedPalette
+  ): VSCodeThemeColors {
+    // Start with background hierarchy mapping
+    const baseMapping = BackgroundGenerator.mapToUIElements(backgrounds);
+    
+    // Apply accent system
+    const accentMapping = AccentGenerator.applyAccentSystem(accents, {} as VSCodeThemeColors);
+    
+    // Enhanced UI colors with professional opacity usage
+    const enhancedColors: Partial<VSCodeThemeColors> = {
+      ...baseMapping,
+      ...accentMapping,
+      
+      // Enhanced editor colors with proper opacity
+      'editor.lineHighlightBackground': `${palette.foreground}${OpacitySystem.toHex(OpacitySystem.semantic.lineHighlight)}`,
+      'editor.wordHighlightBackground': `${palette.primary.blue}${OpacitySystem.toHex(OpacitySystem.semantic.highlight)}`,
+      'editor.wordHighlightStrongBackground': `${palette.primary.blue}${OpacitySystem.toHex(OpacitySystem.semantic.findMatch)}`,
+      'editor.findMatchBackground': `${palette.primary.yellow}${OpacitySystem.toHex(OpacitySystem.semantic.findMatch)}`,
+      'editor.findMatchHighlightBackground': `${palette.primary.yellow}${OpacitySystem.toHex(OpacitySystem.semantic.highlight)}`,
+      
+      // Enhanced selection colors
+      'editor.selectionBackground': `${accents.primary.base}${OpacitySystem.toHex(OpacitySystem.semantic.selection)}`,
+      'editor.inactiveSelectionBackground': `${accents.primary.base}${OpacitySystem.toHex(OpacitySystem.semantic.hover)}`,
+      
+      // Enhanced hover and focus states
+      'list.hoverBackground': `${accents.primary.base}${OpacitySystem.toHex(OpacitySystem.semantic.hover)}`,
+      'list.focusBackground': `${accents.primary.base}${OpacitySystem.toHex(OpacitySystem.semantic.focus)}`,
+      
+      // Enhanced error and warning colors
+      'editorError.background': `${palette.primary.red}${OpacitySystem.toHex(OpacitySystem.semantic.error)}`,
+      'editorWarning.background': `${palette.primary.yellow}${OpacitySystem.toHex(OpacitySystem.semantic.warning)}`,
+      'editorInfo.background': `${palette.primary.blue}${OpacitySystem.toHex(OpacitySystem.semantic.info)}`,
+      
+      // Terminal colors using palette
+      'terminal.background': backgrounds.canvas,
+      'terminal.foreground': palette.foreground,
+      'terminal.ansiBlack': palette.primary.red, // Will be overridden by existing logic
+      'terminal.ansiRed': palette.primary.red,
+      'terminal.ansiGreen': palette.primary.green,
+      'terminal.ansiYellow': palette.primary.yellow,
+      'terminal.ansiBlue': palette.primary.blue,
+      'terminal.ansiMagenta': palette.primary.purple,
+      'terminal.ansiCyan': palette.primary.cyan,
+      'terminal.selectionBackground': `${accents.primary.base}${OpacitySystem.toHex(OpacitySystem.semantic.selection)}`,
+      
+      // Professional border strategy (transparent by default)
+      'editor.lineHighlightBorder': '#00000000',
+      'editor.wordHighlightBorder': '#00000000',
+      'editor.wordHighlightStrongBorder': '#00000000',
+      'editor.findMatchBorder': '#00000000',
+      'editor.findMatchHighlightBorder': '#00000000',
+      'editorError.border': '#00000000',
+      'editorWarning.border': '#00000000',
+      'editorInfo.border': '#00000000',
+      'tab.border': '#00000000',
+      'activityBar.border': '#00000000',
+      'sideBar.border': '#00000000',
+      'panel.border': '#00000000',
+      'statusBar.border': '#00000000',
+      
+      // Focus borders use accent color
+      'focusBorder': accents.primary.base,
+    };
+    
+    return enhancedColors as VSCodeThemeColors;
+  }
+  
+  /**
+   * Generates enhanced token colors (basic implementation for Phase 1)
+   */
+  private static generateTokenColors(palette: ExtendedPalette, _options: ThemeOptions): TokenColor[] {
+    // For Phase 1, return basic token colors using extended palette
+    return [
+      // Comments with enhanced styling
+      {
+        name: 'Comment',
+        scope: ['comment', 'punctuation.definition.comment'],
+        settings: {
+          fontStyle: 'italic',
+          foreground: palette.derived.cyanMuted,
+        },
+      },
+      
+      // Keywords using primary colors
+      {
+        name: 'Keyword, Storage',
+        scope: ['keyword', 'storage.type', 'storage.modifier'],
+        settings: {
+          foreground: palette.primary.purple,
+        },
+      },
+      
+      // Strings using primary red
+      {
+        name: 'String',
+        scope: ['string'],
+        settings: {
+          foreground: palette.primary.red,
+        },
+      },
+      
+      // Functions using primary cyan
+      {
+        name: 'Function',
+        scope: ['entity.name.function', 'meta.function-call', 'variable.function'],
+        settings: {
+          foreground: palette.primary.cyan,
+        },
+      },
+      
+      // Classes and types
+      {
+        name: 'Class, Support',
+        scope: ['entity.name', 'support.type', 'support.class'],
+        settings: {
+          foreground: palette.primary.blue,
+        },
+      },
+      
+      // Numbers and constants
+      {
+        name: 'Number, Constant',
+        scope: ['constant.numeric', 'constant.language'],
+        settings: {
+          foreground: palette.primary.yellow,
+        },
+      },
+      
+      // Variables
+      {
+        name: 'Variables',
+        scope: ['variable'],
+        settings: {
+          foreground: palette.foreground,
+        },
+      },
+    ];
+  }
+  
+  /**
+   * Generates semantic token colors (placeholder for Phase 1)
+   */
+  private static generateSemanticTokens(palette: ExtendedPalette): Record<string, SemanticTokenStyle> {
+    return {
+      // Basic semantic tokens
+      'variable': { foreground: palette.foreground },
+      'variable.declaration': { foreground: palette.derived.redLight },
+      'function': { foreground: palette.primary.cyan },
+      'function.declaration': { foreground: palette.derived.cyanLight },
+      'parameter': { foreground: palette.foreground, fontStyle: 'italic' },
+      'parameter.declaration': { foreground: palette.primary.yellow, fontStyle: 'italic' },
+      'property': { foreground: palette.derived.redLight },
+      'property.declaration': { foreground: palette.primary.red },
+      'type': { foreground: palette.primary.blue },
+      'class': { foreground: palette.primary.purple },
+      'keyword': { foreground: palette.primary.purple, fontStyle: 'italic' },
+      '*.defaultLibrary': { foreground: palette.derived.builtinType },
+      '*.deprecated': { fontStyle: 'italic' },
+    };
+  }
+}
 
 // ============================================================================
-// VS Code Theme Building
+// Enhanced VS Code Theme Building (Backward Compatibility)
 // ============================================================================
 
 /**
@@ -1744,6 +2409,53 @@ export const extractColorPalette = (colors: GhosttyColors) => {
     ],
   };
 };
+
+// ============================================================================
+// Phase 1 Exports - Pro Theme Generation
+// ============================================================================
+
+/**
+ * Generates a professional-quality VS Code theme using Phase 1 improvements
+ * 
+ * This is the new main theme generation function that uses:
+ * - 8-level background hierarchy
+ * - 16-level mathematical opacity system
+ * - Intelligent accent color selection
+ * - Extended color palette with preserved authenticity
+ * 
+ * @param ghosttyColors - Parsed Ghostty colors
+ * @param options - Theme generation options
+ * @returns Complete professional theme
+ */
+export const generateProTheme = (ghosttyColors: GhosttyColors, options: ThemeOptions = {}): ProTheme => {
+  return ProThemeGenerator.generateTheme(ghosttyColors, options);
+};
+
+/**
+ * Creates background hierarchy from base color (exported for testing)
+ */
+export const createBackgroundHierarchy = (base: string, theme: 'dark' | 'light' = 'dark'): BackgroundHierarchy => {
+  return BackgroundGenerator.createHierarchy(base, theme);
+};
+
+/**
+ * Creates accent system from Ghostty colors (exported for testing)
+ */
+export const createAccentSystem = (palette: GhosttyColors): AccentSystem => {
+  return AccentGenerator.createAccentSystem(palette);
+};
+
+/**
+ * Extends color palette preserving authenticity (exported for testing)
+ */
+export const extendColorPalette = (ghosttyColors: GhosttyColors): ExtendedPalette => {
+  return PaletteExtender.extendColorPalette(ghosttyColors);
+};
+
+/**
+ * Opacity system utilities (exported for testing and external use)
+ */
+export const opacitySystem = OpacitySystem;
 
 // ============================================================================
 // Export all functions - main exports already declared above
