@@ -17,8 +17,8 @@
  * @since 1.0.0
  */
 
-import { promises as fs } from 'fs';
-import { join, basename } from 'path';
+import { promises as fs, lstatSync, existsSync } from 'fs';
+import { join, basename, resolve } from 'path';
 import {
   GenerationOptions,
   GeneratedFile,
@@ -26,6 +26,7 @@ import {
   VSCodeTheme,
   GenerationError,
   ValidationError,
+  SecurityError,
 } from '@/types';
 import { fileUtils } from './utils-simple';
 
@@ -844,6 +845,33 @@ export const generateExtensionFiles = async (
         'Check that the output path format is correct',
         'Avoid invalid characters in the path',
       ]);
+    }
+
+    // Security: Prevent path traversal attacks
+    if (options.outputPath.includes('..')) {
+      throw new SecurityError('Path traversal detected in output path', 'outputPath');
+    }
+
+    // Security: Detect symlinks and warn
+    try {
+      if (existsSync(normalizedOutputPath)) {
+        const stats = lstatSync(normalizedOutputPath);
+        if (stats.isSymbolicLink()) {
+          throw new SecurityError('Output path is a symbolic link, which is not allowed for security reasons', 'outputPath');
+        }
+      }
+    } catch (error) {
+      if (error instanceof SecurityError) {
+        throw error; // Re-throw our security error
+      }
+      // Ignore filesystem errors (path doesn't exist yet, etc.)
+    }
+
+    // Security: Ensure output stays within current working directory (unless explicitly allowed)
+    const resolvedPath = resolve(normalizedOutputPath);
+    const cwd = process.cwd();
+    if (!resolvedPath.startsWith(cwd) && !options.allowOutsideCwd) {
+      throw new SecurityError('Output path must be within current working directory (use --allow-outside-cwd to override)', 'outputPath');
     }
 
     const { themeName } = options;

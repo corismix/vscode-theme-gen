@@ -1,6 +1,6 @@
 {
   "name": "vscode-theme-gen",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Interactive CLI tool for generating VS Code themes from Ghostty terminal color files",
   "main": "dist/index.js",
   "bin": {

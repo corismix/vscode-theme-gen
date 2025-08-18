@@ -22,6 +22,7 @@ export interface FormData {
   preserveSourceTheme: boolean;
   generateGitIgnore: boolean;
   generateVSCodeIgnore: boolean;
+  allowOutsideCwd: boolean;
   skipToStep?: string;
 }
 
@@ -301,6 +302,7 @@ export interface GenerationOptions {
   galleryBannerColor?: string;
   generateGitIgnore?: boolean;
   generateVSCodeIgnore?: boolean;
+  allowOutsideCwd?: boolean;
 }
 
 export interface GeneratedFile {
@@ -507,4 +509,5 @@ export interface CLIFlags {
   readme?: boolean;
   changelog?: boolean;
   quickstart?: boolean;
+  allowOutsideCwd?: boolean;
 }
