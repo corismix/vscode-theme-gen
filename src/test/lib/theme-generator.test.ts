@@ -762,5 +762,51 @@ describe('.ghostty fixture (afterglow)', () => {
     // Semantic colors are untouched by the accent
     expect(theme.colors['editorError.foreground']).toBe('#ff3844');
     expect(theme.colors['gitDecoration.deletedResourceForeground']).toBe('#ff3844');
+
+    // "Highlight matched text" family is deliberately uncolored (plain
+    // foreground), not the raw ANSI yellow the real Afterglow theme uses -
+    // these fire constantly (autocomplete, list search, breadcrumbs) and
+    // were the main source of the "yellow everywhere" complaint
+    expect(theme.colors['editorSuggestWidget.highlightForeground']).toBe('#d8d9d1');
+    expect(theme.colors['editorSuggestWidget.focusHighlightForeground']).toBe('#d8d9d1');
+    expect(theme.colors['editorSuggestWidget.selectedIconForeground']).toBe('#d8d9d1');
+    expect(theme.colors['list.highlightForeground']).toBe('#d8d9d1');
+    expect(theme.colors['list.focusHighlightForeground']).toBe('#d8d9d1');
+    expect(theme.colors['breadcrumb.activeSelectionForeground']).toBe('#d8d9d1');
+
+    // statusBar.debuggingBackground now shares the accent with the sibling
+    // statusBarItem.prominentBackground instead of diverging to raw yellow
+    expect(theme.colors['statusBar.debuggingBackground']).toContain('#ffaf2d');
+
+    // inputValidation.* is a previously-missing surface
+    expect(theme.colors['inputValidation.errorBorder']).toBe('#ff3844');
+    expect(theme.colors['inputValidation.warningBorder']).toBe('#ffd012');
+    expect(theme.colors['inputValidation.infoBorder']).toBe('#4db3ff');
+
+    // Chrome panel seams get a real (if subtle) hairline instead of being
+    // fully transparent - matches 2026-dark's "flat panels, thin lines"
+    // composition instead of Afterglow's borderless chrome
+    expect(theme.colors['activityBar.border']).not.toBe('#00000000');
+    expect(theme.colors['sideBar.border']).not.toBe('#00000000');
+    expect(theme.colors['statusBar.border']).not.toBe('#00000000');
+    expect(theme.colors['titleBar.border']).not.toBe('#00000000');
+    expect(theme.colors['tab.border']).not.toBe('#00000000');
+    expect(theme.colors['editorGroupHeader.tabsBorder']).not.toBe('#00000000');
+
+    // Passive list selection/hover states are neutral (foreground-tinted),
+    // not accent-tinted - accent is reserved for active affordances like
+    // drop targets, focus rings, and the single keyboard-focused quick-pick row
+    expect(theme.colors['list.activeSelectionBackground']).toBe('#d8d9d121');
+    expect(theme.colors['list.inactiveSelectionBackground']).toBe('#d8d9d114');
+    expect(theme.colors['list.focusBackground']).toBe('#d8d9d121');
+
+    // The quick-pick "about to activate" row is a solid accent fill with
+    // contrast-safe text, matching 2026-dark's own treatment of this state
+    expect(theme.colors['quickInputList.focusBackground']).toBe('#ffaf2d');
+    expect(theme.colors['quickInputList.focusForeground']).toBe('#191d21');
+
+    const tokenColors = buildTokenColors(parsed.colors);
+    const diffInserted = tokenColors.find(t => t.name === 'Diff Inserted');
+    expect(diffInserted?.settings.background).toBeDefined();
   });
 });

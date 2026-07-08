@@ -930,10 +930,10 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'editor.findMatchBackground': withOpacity(palette.yellow, 0.25),
     'editor.findMatchHighlightBackground': withOpacity(palette.yellow, 0.15),
-    'editor.findRangeHighlightBackground': withOpacity(palette.yellow, 0.08),
+    'editor.findRangeHighlightBackground': withOpacity(fg, 0.05),
     'editor.findMatchBorder': palette.yellow, // No opacity
     'editor.findMatchHighlightBorder': '#00000000',
-    'editor.rangeHighlightBackground': withOpacity(palette.yellow, 0.13),
+    'editor.rangeHighlightBackground': withOpacity(fg, 0.05),
     'searchEditor.findMatchBackground': withOpacity(palette.yellow, 0.25),
 
     // ========================================================================
@@ -982,11 +982,11 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'editorSuggestWidget.background': backgrounds.elevated,
     'editorSuggestWidget.border': withOpacity(palette.brightBlack, 0.25),
     'editorSuggestWidget.foreground': fg,
-    'editorSuggestWidget.highlightForeground': palette.yellow,
-    'editorSuggestWidget.selectedBackground': withOpacity(accent, 0.13),
+    'editorSuggestWidget.highlightForeground': fg,
+    'editorSuggestWidget.selectedBackground': withOpacity(fg, 0.15),
     'editorSuggestWidget.selectedForeground': fg,
-    'editorSuggestWidget.focusHighlightForeground': palette.yellow,
-    'editorSuggestWidget.selectedIconForeground': palette.yellow,
+    'editorSuggestWidget.focusHighlightForeground': fg,
+    'editorSuggestWidget.selectedIconForeground': fg,
     'editorHoverWidget.background': backgrounds.elevated,
     'editorHoverWidget.border': withOpacity(palette.brightBlack, 0.25),
     'editorHoverWidget.foreground': fg,
@@ -1061,7 +1061,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'activityBar.background': backgrounds.deep,
     'activityBar.foreground': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
     'activityBar.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
-    'activityBar.border': '#00000000',
+    'activityBar.border': withOpacity(palette.brightBlack, 0.25),
     'activityBar.activeBorder': accent,
     'activityBar.activeBackground': withOpacity(accent, 0.08),
     'activityBar.activeFocusBorder': accent,
@@ -1078,30 +1078,32 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'sideBar.background': backgrounds.deep,
     'sideBar.foreground': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
-    'sideBar.border': '#00000000',
+    'sideBar.border': withOpacity(palette.brightBlack, 0.25),
     'sideBar.dropBackground': withOpacity(accent, 0.13),
     'sideBarTitle.foreground': darken(fg, 0.15),
     'sideBarSectionHeader.background': backgrounds.elevated,
     'sideBarSectionHeader.foreground': darken(fg, 0.15),
-    'sideBarSectionHeader.border': '#00000000',
+    'sideBarSectionHeader.border': withOpacity(palette.brightBlack, 0.25),
 
     // ========================================================================
-    // List & Tree - Use red for selections and brightBlack for borders
+    // List & Tree - Passive selection/hover states stay neutral (foreground-
+    // tinted, no injected accent hue); accent is reserved for active
+    // interaction affordances (drop targets, focus rings, buttons)
     // ========================================================================
-    'list.activeSelectionBackground': withOpacity(accent, 0.13),
+    'list.activeSelectionBackground': withOpacity(fg, 0.13),
     'list.activeSelectionForeground': darken(fg, 0.15),
     'list.activeSelectionIconForeground': fg,
-    'list.inactiveSelectionBackground': withOpacity(accent, 0.08),
+    'list.inactiveSelectionBackground': withOpacity(fg, 0.08),
     'list.inactiveSelectionForeground': darken(fg, 0.15),
     'list.inactiveSelectionIconForeground': fg,
     'list.hoverBackground': withOpacity(palette.brightBlack, 0.13),
     'list.hoverForeground': darken(fg, 0.15),
-    'list.focusBackground': withOpacity(accent, 0.13),
+    'list.focusBackground': withOpacity(fg, 0.13),
     'list.focusForeground': darken(fg, 0.15),
-    'list.focusHighlightForeground': palette.yellow,
+    'list.focusHighlightForeground': fg,
     'list.focusOutline': withOpacity(accent, 0.25),
     'list.focusAndSelectionOutline': withOpacity(accent, 0.38),
-    'list.highlightForeground': palette.yellow,
+    'list.highlightForeground': fg,
     'list.dropBackground': withOpacity(accent, 0.13),
     'list.deemphasizedForeground': withOpacity(palette.brightBlack, 0.50),
     'list.errorForeground': palette.red,
@@ -1115,7 +1117,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'tab.activeBackground': backgrounds.editor,
     'tab.activeForeground': ensureContrast(darken(fg, 0.15), backgrounds.editor, 4.5),
-    'tab.border': '#00000000',
+    'tab.border': withOpacity(palette.brightBlack, 0.25),
     'tab.activeBorder': '#00000000',
     'tab.activeBorderTop': accent,
     'tab.inactiveBackground': backgrounds.deep,
@@ -1133,7 +1135,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Editor Group Header (Tab Container)
     'editorGroupHeader.tabsBackground': backgrounds.deep,
-    'editorGroupHeader.tabsBorder': '#00000000',
+    'editorGroupHeader.tabsBorder': withOpacity(palette.brightBlack, 0.25),
     'editorGroupHeader.noTabsBackground': backgrounds.deep,
 
     // ========================================================================
@@ -1282,14 +1284,14 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     // Peek View Colors - Use high contrast background level
     // ========================================================================
-    'peekView.border': palette.brightCyan,
+    'peekView.border': withOpacity(palette.brightBlack, 0.25),
     'peekViewEditor.background': backgrounds.highContrast,
     'peekViewEditorGutter.background': backgrounds.highContrast,
     'peekViewResult.background': backgrounds.highContrast,
     'peekViewResult.fileForeground': fg,
     'peekViewResult.lineForeground': darken(fg, 0.15),
     'peekViewResult.matchHighlightBackground': withOpacity(palette.yellow, 0.25),
-    'peekViewResult.selectionBackground': withOpacity(palette.brightCyan, 0.15),
+    'peekViewResult.selectionBackground': withOpacity(accent, 0.15),
     'peekViewResult.selectionForeground': fg,
     'peekViewTitle.background': backgrounds.deep,
     'peekViewTitleDescription.foreground': darken(fg, 0.15),
@@ -1301,8 +1303,8 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'statusBar.background': backgrounds.deep,
     'statusBar.foreground': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
-    'statusBar.border': '#00000000',
-    'statusBar.debuggingBackground': withOpacity(palette.yellow, 0.75),
+    'statusBar.border': withOpacity(palette.brightBlack, 0.25),
+    'statusBar.debuggingBackground': withOpacity(accent, 0.75),
     'statusBar.debuggingForeground': backgrounds.editor,
     'statusBar.noFolderBackground': backgrounds.deep,
     'statusBar.noFolderForeground': darken(fg, 0.15),
@@ -1317,7 +1319,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'titleBar.activeForeground': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
     'titleBar.inactiveBackground': backgrounds.deep,
     'titleBar.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
-    'titleBar.border': '#00000000',
+    'titleBar.border': withOpacity(palette.brightBlack, 0.25),
 
     // Input Controls - Use input background level
     'input.background': backgrounds.input,
@@ -1327,6 +1329,17 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'inputOption.activeBackground': withOpacity(palette.brightBlue, 0.31),
     'inputOption.activeForeground': fg,
     'inputOption.hoverBackground': withOpacity(palette.brightBlue, 0.13),
+
+    // Input Validation - Semantic info/warning/error states for form fields
+    'inputValidation.infoBackground': withOpacity(palette.brightBlue, 0.13),
+    'inputValidation.infoBorder': palette.brightBlue,
+    'inputValidation.infoForeground': fg,
+    'inputValidation.warningBackground': withOpacity(palette.yellow, 0.13),
+    'inputValidation.warningBorder': palette.yellow,
+    'inputValidation.warningForeground': fg,
+    'inputValidation.errorBackground': withOpacity(palette.red, 0.13),
+    'inputValidation.errorBorder': palette.red,
+    'inputValidation.errorForeground': fg,
 
     // Dropdown - Use input background level
     'dropdown.background': backgrounds.input,
@@ -1338,7 +1351,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'button.background': accent,
     'button.foreground': backgrounds.editor,
     'button.hoverBackground': lighten(accent, 0.1),
-    'button.border': '#00000000',
+    'button.border': accent,
     'button.secondaryBackground': withOpacity(palette.brightBlack, 0.25),
     'button.secondaryForeground': darken(fg, 0.15),
     'button.secondaryHoverBackground': withOpacity(palette.brightBlack, 0.38),
@@ -1376,7 +1389,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'breadcrumb.foreground': withOpacity(fg, 0.63),
     'breadcrumb.background': backgrounds.editor,
     'breadcrumb.focusForeground': fg,
-    'breadcrumb.activeSelectionForeground': palette.yellow,
+    'breadcrumb.activeSelectionForeground': fg,
     'breadcrumbPicker.background': backgrounds.elevated,
 
     // Minimap properties
@@ -1392,7 +1405,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'menu.background': backgrounds.elevated,
     'menu.selectionForeground': fg,
     'menu.selectionBackground': withOpacity(accent, 0.13),
-    'menu.selectionBorder': '#00000000',
+    'menu.selectionBorder': accent,
     'menu.separatorBackground': withOpacity(palette.brightBlack, 0.25),
     'menu.border': withOpacity(palette.brightBlack, 0.25),
 
@@ -1420,9 +1433,9 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // Quick Input properties
     'quickInput.background': backgrounds.elevated,
     'quickInput.foreground': fg,
-    'quickInputList.focusBackground': withOpacity(accent, 0.13),
-    'quickInputList.focusForeground': fg,
-    'quickInputList.focusIconForeground': fg,
+    'quickInputList.focusBackground': accent,
+    'quickInputList.focusForeground': backgrounds.editor,
+    'quickInputList.focusIconForeground': backgrounds.editor,
     'quickInputTitle.background': backgrounds.hover,
 
     // Simple Find Widget properties
@@ -1462,7 +1475,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'commandCenter.foreground': darken(fg, 0.15),
     'commandCenter.activeForeground': fg,
     'commandCenter.background': backgrounds.deep,
-    'commandCenter.activeBackground': withOpacity(accent, 0.13),
+    'commandCenter.activeBackground': withOpacity(fg, 0.06),
     'commandCenter.border': withOpacity(palette.brightBlack, 0.25),
     'commandCenter.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
     'commandCenter.inactiveBorder': withOpacity(palette.brightBlack, 0.13),
@@ -1491,8 +1504,8 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Advanced List States
     'list.invalidItemForeground': palette.red,
-    'list.filterMatchBackground': withOpacity(palette.yellow, 0.25),
-    'list.filterMatchBorder': withOpacity(palette.yellow, 0.38),
+    'list.filterMatchBackground': withOpacity(palette.brightBlack, 0.13),
+    'list.filterMatchBorder': withOpacity(palette.brightBlack, 0.25),
 
     // Editor Group Management
     'editorGroup.border': withOpacity(palette.brightBlack, 0.25),
@@ -1579,7 +1592,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // Interactive Toolbar States
     'toolbar.hoverBackground': backgrounds.hover,
     'toolbar.hoverOutline': withOpacity(palette.brightBlack, 0.25),
-    'toolbar.activeBackground': withOpacity(accent, 0.13),
+    'toolbar.activeBackground': withOpacity(fg, 0.2),
 
     // Enhanced Debug States
     'debugToolBar.background': backgrounds.elevated,
@@ -2212,6 +2225,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         foreground: palette.red,
+        background: withOpacity(palette.brightGreen, 0.13),
       },
     },
 
@@ -2225,6 +2239,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         foreground: palette.cyan,
+        background: withOpacity(palette.red, 0.13),
       },
     },
 
@@ -2238,6 +2253,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         foreground: palette.brightGreen,
+        background: withOpacity(palette.yellow, 0.13),
       },
     },
 
@@ -2734,6 +2750,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         foreground: palette.brightGreen,
+        background: withOpacity(palette.brightGreen, 0.13),
       },
     },
 
@@ -2749,6 +2766,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         foreground: palette.red,
+        background: withOpacity(palette.red, 0.13),
       },
     },
 
@@ -2763,6 +2781,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         foreground: palette.yellow,
+        background: withOpacity(palette.yellow, 0.13),
       },
     },
 
@@ -2943,6 +2962,46 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       settings: {
         foreground: palette.red,
         fontStyle: 'italic',
+      },
+    },
+
+    // ========================================================================
+    // Output/Debug Console Log Levels - semantic info/warn/error/debug
+    // ========================================================================
+    {
+      name: 'Output Log Levels',
+      scope: [
+        'token.info-token',
+      ],
+      settings: {
+        foreground: palette.brightBlue,
+      },
+    },
+    {
+      name: 'Output Log Levels',
+      scope: [
+        'token.warn-token',
+      ],
+      settings: {
+        foreground: palette.yellow,
+      },
+    },
+    {
+      name: 'Output Log Levels',
+      scope: [
+        'token.error-token',
+      ],
+      settings: {
+        foreground: palette.red,
+      },
+    },
+    {
+      name: 'Output Log Levels',
+      scope: [
+        'token.debug-token',
+      ],
+      settings: {
+        foreground: palette.brightMagenta,
       },
     },
   ];
