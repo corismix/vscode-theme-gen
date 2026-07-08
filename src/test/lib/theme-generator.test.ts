@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { join } from 'node:path';
 // vol is mocked but not used directly in tests
 import {
   readThemeFile,
@@ -14,6 +15,9 @@ import {
   buildTokenColors,
   extractColorPalette,
   resolveThemeName,
+  contrastRatio,
+  ensureContrast,
+  isLightBackground,
 } from '../../lib/theme-generator';
 import {
   SAMPLE_GHOSTTY_THEME,
@@ -25,10 +29,25 @@ import {
 } from '../setup';
 import { ValidationError, FileProcessingError } from '../../types';
 
-// Mock the fs module with memfs for controlled file system testing
+// Loaded via the real (unmocked) fs implementation, bypassing the vi.mock('fs', ...)
+// below, so this reads the real fixture content from disk once at import time.
+const realFs = await vi.importActual<typeof import('fs')>('fs');
+const AFTERGLOW_FIXTURE_CONTENT = realFs.readFileSync(
+  join(process.cwd(), 'tests/ghostty/afterglow.ghostty'),
+  'utf8',
+);
+
+// Mock fs/promises for controlled file content/stat responses, and mock
+// existsSync (used by validateFilePath's directory-existence check) so path
+// validation doesn't depend on whether fictitious /test/* paths happen to
+// exist on the machine running the suite.
 vi.mock('fs/promises', () => ({
   readFile: vi.fn(),
   stat: vi.fn(),
+}));
+
+vi.mock('fs', () => ({
+  existsSync: vi.fn(),
 }));
 
 // ============================================================================
@@ -37,12 +56,16 @@ vi.mock('fs/promises', () => ({
 
 const mockReadFile = vi.mocked((await import('fs/promises')).readFile);
 const mockStat = vi.mocked((await import('fs/promises')).stat);
+const mockExistsSync = vi.mocked((await import('fs')).existsSync);
 
 beforeEach(() => {
   vi.clearAllMocks();
 
   // Setup default successful stat response
   mockStat.mockResolvedValue(createMockStats());
+  // Directories exist by default; individual tests override this to simulate
+  // an unresolvable path (e.g. path traversal into a nonexistent location).
+  mockExistsSync.mockReturnValue(true);
 });
 
 // ============================================================================
@@ -68,6 +91,10 @@ describe('readThemeFile', () => {
   });
 
   it('rejects paths with path traversal attempts', async () => {
+    // Simulates the resolved target living outside any real directory
+    // (validateFilePath rejects paths whose resolved parent directory
+    // doesn't exist).
+    mockExistsSync.mockReturnValue(false);
     await expect(readThemeFile('../../../etc/passwd')).rejects.toThrow(ValidationError);
     await expect(readThemeFile('theme/../../../secrets.txt')).rejects.toThrow(ValidationError);
   });
@@ -293,88 +320,113 @@ describe('createColorRoleMap', () => {
 
 describe('buildVSCodeColors', () => {
   it('builds comprehensive VS Code color scheme', () => {
-    const roleMap = {
-      black: '#000000',
-      red: '#ff0000',
-      green: '#00ff00',
-      yellow: '#ffff00',
-      blue: '#0000ff',
-      magenta: '#ff00ff',
-      cyan: '#00ffff',
-      white: '#ffffff',
-      brightBlack: '#808080',
-      brightRed: '#ff8080',
-      brightGreen: '#80ff80',
-      brightYellow: '#ffff80',
-      brightBlue: '#8080ff',
-      brightMagenta: '#ff80ff',
-      brightCyan: '#80ffff',
-      brightWhite: '#ffffff',
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      color2: '#00ff00',
+      color3: '#ffff00',
+      color4: '#0000ff',
+      color5: '#ff00ff',
+      color6: '#00ffff',
+      color7: '#ffffff',
+      color8: '#808080',
+      color9: '#ff8080',
+      color10: '#80ff80',
+      color11: '#ffff80',
+      color12: '#8080ff',
+      color13: '#ff80ff',
+      color14: '#80ffff',
+      color15: '#ffffff',
       background: '#1e1e1e',
       foreground: '#d4d4d4',
-      cursor: '#ffffff',
-      cursorText: '#000000',
-      selectionBackground: '#264f78',
-      selectionForeground: '#ffffff',
+      'cursor-color': '#ffcc00',
+      'selection-background': '#264f78',
+      'selection-foreground': '#ffffff',
     };
 
-    const colors = buildVSCodeColors(roleMap);
+    const themeColors = buildVSCodeColors(colors);
 
-    expect(colors).toBeDefined();
+    expect(themeColors).toBeDefined();
 
-    // Check editor colors
-    expect(colors['editor.background']).toBe('#1e1e1e');
-    expect(colors['editor.foreground']).toBe('#d4d4d4');
-    expect(colors['editor.selectionBackground']).toBe('#264f78');
+    // Check editor colors - editor.background uses color0 (palette black), not the
+    // theme's overall `background` field (that drives the "deep" chrome level instead)
+    expect(themeColors['editor.background']).toBe('#000000');
+    expect(themeColors['editor.foreground']).toBe('#d4d4d4');
+    // Selection background is derived from the theme's own selection-background
+    expect(themeColors['editor.selectionBackground']).toContain('#264f78');
 
     // Check terminal colors
-    expect(colors['terminal.ansiBlack']).toBe('#000000');
-    expect(colors['terminal.ansiRed']).toBe('#ff0000');
-    expect(colors['terminal.ansiBrightWhite']).toBe('#ffffff');
+    expect(themeColors['terminal.ansiBlack']).toBe('#000000');
+    expect(themeColors['terminal.ansiRed']).toBe('#ff0000');
+    expect(themeColors['terminal.ansiBrightWhite']).toBe('#ffffff');
 
     // Check workbench colors
-    expect(colors['activityBar.background']).toBeDefined();
-    expect(colors['statusBar.background']).toBeDefined();
+    expect(themeColors['activityBar.background']).toBeDefined();
+    expect(themeColors['statusBar.background']).toBeDefined();
+
+    // Check accent identity - the theme's cursor-color drives brand/interactive
+    // colors instead of a hardcoded palette slot
+    expect(themeColors['editorCursor.foreground']).toBe('#ffcc00');
+    expect(themeColors['button.background']).toBe('#ffcc00');
+
+    // Semantic colors (errors, git deletions) stay tied to the red palette slot
+    // regardless of the accent color
+    expect(themeColors['editorError.foreground']).toBe('#ff0000');
+    expect(themeColors['gitDecoration.deletedResourceForeground']).toBe('#ff0000');
   });
 });
 
+/** Flattens a TokenColor's scope (string or string[]) to an array of scope strings. */
+const scopesOf = (tc: { scope: string | string[] }): string[] =>
+  Array.isArray(tc.scope) ? tc.scope : [tc.scope];
+
 describe('buildTokenColors', () => {
   it('generates comprehensive token color rules', () => {
-    const roleMap = {
-      brightBlack: '#808080',
-      green: '#00ff00',
-      magenta: '#ff00ff',
-      blue: '#0000ff',
-      red: '#ff0000',
-      yellow: '#ffff00',
-      cyan: '#00ffff',
-      brightWhite: '#ffffff',
-      brightBlue: '#8080ff',
-      brightCyan: '#80ffff',
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      color2: '#00ff00',
+      color3: '#ffff00',
+      color4: '#0000ff',
+      color5: '#ff00ff',
+      color6: '#00ffff',
+      color7: '#ffffff',
+      color8: '#808080',
+      color9: '#ff8080',
+      color10: '#80ff80',
+      color11: '#ffff80',
+      color12: '#8080ff',
+      color13: '#ff80ff',
+      color14: '#80ffff',
+      color15: '#ffffff',
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
     };
 
-    const tokenColors = buildTokenColors(roleMap);
+    const tokenColors = buildTokenColors(colors);
 
     expect(Array.isArray(tokenColors)).toBe(true);
     expect(tokenColors.length).toBeGreaterThan(10);
 
     // Check basic token types are covered
-    const scopes = tokenColors.map(tc => tc.scope);
-    expect(scopes).toContain('comment');
-    expect(scopes).toContain('string');
-    expect(scopes).toContain('keyword');
-    expect(scopes).toContain('entity.name.function');
+    const allScopes = tokenColors.flatMap(scopesOf);
+    expect(allScopes).toContain('comment');
+    expect(allScopes).toContain('string');
+    expect(allScopes).toContain('keyword');
+    expect(allScopes).toContain('entity.name.function');
 
     // Check token structure
     tokenColors.forEach(tokenColor => {
-      expect(typeof tokenColor.scope).toBe('string');
+      expect(
+        typeof tokenColor.scope === 'string' || Array.isArray(tokenColor.scope),
+      ).toBe(true);
       expect(typeof tokenColor.settings).toBe('object');
       // Token colors should have either foreground or fontStyle (or both)
       expect(tokenColor.settings.foreground || tokenColor.settings.fontStyle).toBeDefined();
     });
 
     // Check JSON-specific tokens are included
-    const jsonTokens = tokenColors.filter(tc => tc.scope.includes('json'));
+    const jsonTokens = tokenColors.filter(tc => scopesOf(tc).some(s => s.includes('json')));
     expect(jsonTokens.length).toBeGreaterThan(0);
   });
 });
@@ -476,16 +528,16 @@ describe('resolveThemeName', () => {
     expect(result).toBe('Meta Theme Name');
   });
 
-  it('derives name from filename when no explicit or meta name', () => {
+  it('derives a kebab-case slug from filename when no explicit or meta name', () => {
     const result = resolveThemeName('/test/dark_professional_theme.txt');
-    expect(result).toBe('Dark Professional Theme');
+    expect(result).toBe('dark-professional-theme');
   });
 
   it('handles edge cases gracefully', () => {
     // Empty string results in empty basename, which becomes empty theme name
     expect(resolveThemeName('', undefined, undefined)).toBe('');
-    expect(resolveThemeName('/test/file-with-dashes.txt')).toBe('File With Dashes');
-    expect(resolveThemeName('/test/file_with_underscores.txt')).toBe('File With Underscores');
+    expect(resolveThemeName('/test/file-with-dashes.txt')).toBe('file-with-dashes');
+    expect(resolveThemeName('/test/file_with_underscores.txt')).toBe('file-with-underscores');
   });
 
   it('trims whitespace from names', () => {
@@ -502,6 +554,8 @@ describe('resolveThemeName', () => {
 describe('error handling', () => {
   it('throws ValidationError for invalid inputs', async () => {
     await expect(parseThemeFile('')).rejects.toThrow(ValidationError);
+
+    mockExistsSync.mockReturnValue(false);
     await expect(parseThemeFile('../invalid')).rejects.toThrow(ValidationError);
   });
 
@@ -518,5 +572,195 @@ describe('error handling', () => {
       expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toContain('Invalid file path');
     }
+  });
+});
+
+// ============================================================================
+// Accent Color Derivation Tests
+// ============================================================================
+
+describe('accent color derivation', () => {
+  it('uses cursor-color as the accent when present', () => {
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      background: '#000000',
+      foreground: '#ffffff',
+      'cursor-color': '#00ffcc',
+    };
+
+    const themeColors = buildVSCodeColors(colors);
+
+    expect(themeColors['editorCursor.foreground']).toBe('#00ffcc');
+    expect(themeColors['button.background']).toBe('#00ffcc');
+    expect(themeColors['activityBarBadge.background']).toBe('#00ffcc');
+    expect(themeColors['focusBorder']).toContain('#00ffcc');
+  });
+
+  it('falls back to the red palette slot when no cursor-color is present', () => {
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      background: '#000000',
+      foreground: '#ffffff',
+    };
+
+    const themeColors = buildVSCodeColors(colors);
+
+    expect(themeColors['editorCursor.foreground']).toBe('#ff0000');
+    expect(themeColors['button.background']).toBe('#ff0000');
+  });
+
+  it('never re-points semantic error/git colors at the accent', () => {
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      color10: '#00ff00',
+      background: '#000000',
+      foreground: '#ffffff',
+      'cursor-color': '#00ffcc',
+    };
+
+    const themeColors = buildVSCodeColors(colors);
+
+    expect(themeColors['editorError.foreground']).toBe('#ff0000');
+    expect(themeColors['gitDecoration.deletedResourceForeground']).toBe('#ff0000');
+    expect(themeColors['gitDecoration.addedResourceForeground']).toBe(colors.color10);
+  });
+});
+
+// ============================================================================
+// Selection Color Usage Tests
+// ============================================================================
+
+describe('selection color usage', () => {
+  it('uses the theme-provided selection colors instead of a hardcoded accent', () => {
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      background: '#000000',
+      foreground: '#ffffff',
+      'selection-background': '#264f78',
+      'selection-foreground': '#eeeeee',
+    };
+
+    const themeColors = buildVSCodeColors(colors);
+
+    expect(themeColors['editor.selectionBackground']).toContain('#264f78');
+    expect(themeColors['editor.selectionForeground']).toBe('#eeeeee');
+    expect(themeColors['terminal.selectionBackground']).toContain('#264f78');
+  });
+
+  it('falls back to the accent color when no selection colors are provided', () => {
+    const colors = {
+      color0: '#000000',
+      color1: '#ff0000',
+      background: '#000000',
+      foreground: '#ffffff',
+    };
+
+    const themeColors = buildVSCodeColors(colors);
+
+    expect(themeColors['editor.selectionBackground']).toContain('#ff0000');
+    expect(themeColors['editor.selectionForeground']).toBe('#ffffff');
+  });
+});
+
+// ============================================================================
+// Contrast & Lightness Helper Tests
+// ============================================================================
+
+describe('contrastRatio', () => {
+  it('computes the maximum WCAG contrast ratio between black and white', () => {
+    expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 0);
+  });
+
+  it('computes a ratio of 1 for identical colors', () => {
+    expect(contrastRatio('#336699', '#336699')).toBeCloseTo(1, 5);
+  });
+
+  it('is symmetric regardless of argument order', () => {
+    expect(contrastRatio('#111315', '#d8d9d1')).toBeCloseTo(contrastRatio('#d8d9d1', '#111315'), 5);
+  });
+});
+
+describe('ensureContrast', () => {
+  it('returns the original color unchanged when it already meets the target ratio', () => {
+    expect(ensureContrast('#ffffff', '#000000', 4.5)).toBe('#ffffff');
+  });
+
+  it('nudges a low-contrast foreground color until the target ratio is met', () => {
+    const background = '#101010';
+    const weakForeground = '#151515';
+    expect(contrastRatio(weakForeground, background)).toBeLessThan(4.5);
+
+    const adjusted = ensureContrast(weakForeground, background, 4.5);
+
+    expect(contrastRatio(adjusted, background)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('isLightBackground', () => {
+  it('identifies light and dark colors correctly', () => {
+    expect(isLightBackground('#ffffff')).toBe(true);
+    expect(isLightBackground('#f5f5f5')).toBe(true);
+    expect(isLightBackground('#000000')).toBe(false);
+    expect(isLightBackground('#111315')).toBe(false);
+  });
+});
+
+// ============================================================================
+// Theme Type (Light/Dark) Detection Tests
+// ============================================================================
+
+describe('theme type detection', () => {
+  it('marks a theme with a light background as type light', () => {
+    const theme = buildVSCodeTheme({ background: '#ffffff', foreground: '#000000' }, 'Light Theme');
+    expect(theme.type).toBe('light');
+  });
+
+  it('marks a theme with a dark background as type dark', () => {
+    const theme = buildVSCodeTheme({ background: '#000000', foreground: '#ffffff' }, 'Dark Theme');
+    expect(theme.type).toBe('dark');
+  });
+});
+
+// ============================================================================
+// .ghostty Fixture End-to-End Test
+// ============================================================================
+
+describe('.ghostty fixture (afterglow)', () => {
+  it('parses and builds the real afterglow.ghostty fixture end-to-end', async () => {
+    mockReadFile.mockResolvedValueOnce(AFTERGLOW_FIXTURE_CONTENT);
+
+    const parsed = await parseThemeFile('/repo/tests/ghostty/afterglow.ghostty');
+
+    expect(parsed.colors.background).toBe('#111315');
+    expect(parsed.colors.foreground).toBe('#d8d9d1');
+    expect(parsed.colors['cursor-color']).toBe('#ffaf2d');
+    expect(parsed.colors['selection-background']).toBe('#449aff');
+    expect(parsed.colors.color1).toBe('#ff3844');
+
+    const theme = buildVSCodeTheme(
+      parsed.colors,
+      'Afterglow',
+      '/repo/tests/ghostty/afterglow.ghostty',
+    );
+
+    validateVSCodeTheme(theme);
+    expect(theme.type).toBe('dark');
+
+    // Accent identity: buttons/badges/focus reflect the file's own amber
+    // cursor-color, not a hardcoded palette slot
+    expect(theme.colors['button.background']).toBe('#ffaf2d');
+    expect(theme.colors['editorCursor.foreground']).toBe('#ffaf2d');
+    expect(theme.colors['activityBarBadge.background']).toBe('#ffaf2d');
+
+    // Selection reflects the file's own selection-background
+    expect(theme.colors['editor.selectionBackground']).toContain('#449aff');
+
+    // Semantic colors are untouched by the accent
+    expect(theme.colors['editorError.foreground']).toBe('#ff3844');
+    expect(theme.colors['gitDecoration.deletedResourceForeground']).toBe('#ff3844');
   });
 });

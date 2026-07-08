@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 import { resolve } from 'path';
 
 export default defineConfig({
@@ -6,6 +6,10 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/test/setup.ts'],
+    // `force/` holds unrelated extracted package contents (with their own test
+    // suites) that aren't part of this project - exclude them from discovery
+    // alongside Vitest's normal defaults (node_modules, dist, etc).
+    exclude: [...configDefaults.exclude, 'force/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

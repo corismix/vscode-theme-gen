@@ -17,12 +17,17 @@ import {
 } from '../../lib/file-generators';
 import { VSCodeTheme, GenerationOptions } from '../../types';
 
-// Mock fs module to prevent actual file system operations
+// Mock fs module to prevent actual file system operations. existsSync/lstatSync
+// are mocked too (generateExtensionFiles uses them for its symlink check) -
+// defaulting existsSync to false so the symlink branch is skipped unless a
+// test explicitly opts in.
 vi.mock('fs', () => ({
   promises: {
     writeFile: vi.fn(),
     mkdir: vi.fn(),
   },
+  existsSync: vi.fn(() => false),
+  lstatSync: vi.fn(),
 }));
 
 // ============================================================================
@@ -62,11 +67,17 @@ const mockOptions: GenerationOptions = {
   generateChangelog: true,
   generateQuickstart: false,
   generateFullExtension: true,
+  // /test/output is outside this repo's cwd; these tests exercise file
+  // generation mechanics, not the cwd-containment check (which has its own
+  // dedicated tests below), so opt out of it explicitly.
+  allowOutsideCwd: true,
 };
 
 // Get the mock functions after dynamic import
 let mockWriteFile: vi.MockedFunction<typeof import('fs/promises').writeFile>;
 let mockMkdir: vi.MockedFunction<typeof import('fs/promises').mkdir>;
+let mockExistsSync: vi.MockedFunction<typeof import('fs').existsSync>;
+let mockLstatSync: vi.MockedFunction<typeof import('fs').lstatSync>;
 
 beforeEach(async () => {
   vi.clearAllMocks();
@@ -75,6 +86,9 @@ beforeEach(async () => {
   const fs = await import('fs');
   mockWriteFile = vi.mocked(fs.promises.writeFile);
   mockMkdir = vi.mocked(fs.promises.mkdir);
+  mockExistsSync = vi.mocked(fs.existsSync);
+  mockLstatSync = vi.mocked(fs.lstatSync);
+  mockExistsSync.mockReturnValue(false);
 
   mockWriteFile.mockResolvedValue(undefined);
   mockMkdir.mockResolvedValue(undefined);
@@ -169,12 +183,12 @@ describe('generatePackageJson', () => {
   });
 
   it('includes appropriate keywords', () => {
-    const result = generatePackageJson('Dark Professional', mockOptions, 'theme.json');
+    const result = generatePackageJson('Dark Professional', mockOptions, 'theme.json', 'dark');
     const packageJson = JSON.parse(result);
 
     expect(packageJson.keywords).toContain('theme');
     expect(packageJson.keywords).toContain('dark theme');
-    expect(packageJson.keywords).toContain('color theme');
+    expect(packageJson.keywords).toContain('color-theme');
     expect(packageJson.keywords).toContain('dark professional');
   });
 });
@@ -439,7 +453,7 @@ describe('generateExtensionFiles', () => {
     expect(filePaths.some(p => p.includes('CHANGELOG.md'))).toBe(false);
 
     // Should generate quickstart
-    expect(filePaths.some(p => p.includes('QUICKSTART.md'))).toBe(true);
+    expect(filePaths.some(p => p.includes('vsc-extension-quickstart.md'))).toBe(true);
 
     // Should not generate development files
     expect(filePaths.some(p => p.includes('launch.json'))).toBe(false);
@@ -503,7 +517,7 @@ describe('generateExtensionFiles', () => {
       call => call[0].includes('themes/') && call[0].endsWith('.json'),
     );
 
-    expect(themeFileCall[0]).toContain('my-awesome-theme-color-theme.json');
+    expect(themeFileCall[0]).toContain('my-awesome-theme-theme.json');
   });
 
   // Security Tests: Path Traversal Prevention
@@ -522,6 +536,7 @@ describe('generateExtensionFiles', () => {
     const maliciousOptions = {
       ...mockOptions,
       outputPath: '/etc/malicious',
+      allowOutsideCwd: false,
     };
 
     await expect(generateExtensionFiles(mockVSCodeTheme, maliciousOptions)).rejects.toThrow(
@@ -551,15 +566,9 @@ describe('generateExtensionFiles', () => {
   });
 
   it('rejects symlinked output paths', async () => {
-    // Mock fs to simulate symlink
-    const mockLstat = vi.fn().mockReturnValue({ isSymbolicLink: () => true });
-    const mockExists = vi.fn().mockReturnValue(true);
-    
-    vi.doMock('fs', () => ({
-      promises: { writeFile: vi.fn(), mkdir: vi.fn() },
-      lstatSync: mockLstat,
-      existsSync: mockExists,
-    }));
+    // Simulate the output path already existing as a symlink
+    mockExistsSync.mockReturnValue(true);
+    mockLstatSync.mockReturnValue({ isSymbolicLink: () => true } as ReturnType<typeof mockLstatSync>);
 
     const symlinkOptions = {
       ...mockOptions,

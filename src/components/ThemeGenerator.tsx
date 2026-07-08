@@ -5,14 +5,14 @@
  * and manages the overall wizard flow for VS Code theme generation.
  */
 
-import React, { useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import React, { useState, useEffect } from 'react';
+import { Box, Text, useInput, useApp } from 'ink';
 
 // Import core business logic
 import { parseThemeFile, buildVSCodeTheme } from '../lib/theme-generator';
 
 // Import step components and shared types
-import { FileStep, ThemeStep, OptionsStep, AdvancedOptionsStep, ProcessStep, SuccessStep, ErrorDisplay } from './steps';
+import { FileStep, ThemeStep, OptionsStep, AdvancedOptionsStep, PreviewStep, ProcessStep, SuccessStep, ErrorDisplay } from './steps';
 import { FormData, ThemeData, Step } from '@/types';
 
 /**
@@ -46,6 +46,38 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
+  // When CLI flags pre-fill enough of the form (--input, optionally --name),
+  // jump straight to the step that data makes redundant instead of making the
+  // user click through file selection (and theme naming) again. Runs once on
+  // mount since initialData only ever reflects the CLI flags the process was
+  // started with.
+  useEffect(() => {
+    const skip = initialData.skipToStep;
+    if (!skip || !formData.inputFile) {
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const parsedTheme = await parseThemeFile(formData.inputFile);
+        const theme = buildVSCodeTheme(parsedTheme.colors, formData.themeName || 'Custom Theme');
+        if (cancelled) return;
+        setThemeData({ colors: parsedTheme.colors, theme });
+        setCurrentStep(skip);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : 'Failed to parse theme file');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Navigation handlers
   const goToNext = async () => {
     setError(null);
@@ -64,6 +96,8 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
     } else if (currentStep === 'options') {
       setCurrentStep('advanced');
     } else if (currentStep === 'advanced') {
+      setCurrentStep('preview');
+    } else if (currentStep === 'preview') {
       setCurrentStep('process');
     }
   };
@@ -77,8 +111,14 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
       setCurrentStep('theme');
     } else if (currentStep === 'advanced') {
       setCurrentStep('options');
+    } else if (currentStep === 'preview') {
+      setCurrentStep('advanced');
     } else if (currentStep === 'error') {
-      setCurrentStep('file');
+      // Generation only ever runs from the preview step, so that's where the
+      // user can fix whatever caused it (and Esc further back from there if
+      // the problem is actually in an earlier step) - going all the way back
+      // to file selection would discard their theme name/options for no reason.
+      setCurrentStep('preview');
     }
   };
 
@@ -113,7 +153,14 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
     setError(null);
   };
 
-  const exit = () => process.exit(0);
+  // useApp().exit() unmounts Ink cleanly (restoring raw mode/cursor/alt-screen)
+  // before the process exits, unlike a bare process.exit() which skips that
+  // teardown and can leave the terminal in a dirty state.
+  const { exit: exitApp } = useApp();
+  const exit = () => {
+    exitApp();
+    process.exit(0);
+  };
 
   // Global keyboard navigation
   useInput((input, key) => {
@@ -138,7 +185,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
 
   // Step information helpers
   const getStepInfo = () => {
-    const steps = ['file', 'theme', 'options', 'advanced', 'process'] as const;
+    const steps = ['file', 'theme', 'options', 'advanced', 'preview', 'process'] as const;
     const currentIndex = steps.indexOf(currentStep as typeof steps[number]);
     const totalSteps = steps.length;
 
@@ -156,6 +203,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
       theme: 'Theme Configuration',
       options: 'Extension Options',
       advanced: 'Advanced Settings',
+      preview: 'Preview & Review',
       process: 'Generating Theme',
       success: 'Generation Complete',
       error: 'Error Recovery',
@@ -185,6 +233,11 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
 
       case 'advanced':
         return <AdvancedOptionsStep {...commonProps} onNext={goToNext} onBack={goToBack} />;
+
+      case 'preview':
+        return (
+          <PreviewStep {...commonProps} themeData={themeData} onNext={goToNext} onBack={goToBack} />
+        );
 
       case 'process':
         return themeData ? (
@@ -218,7 +271,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
   return (
     <Box width='100%' minHeight={20} padding={1} flexDirection='column'>
       {/* Progress indicator - only show for main workflow steps */}
-      {['file', 'theme', 'options', 'advanced', 'process'].includes(currentStep) && (
+      {['file', 'theme', 'options', 'advanced', 'preview', 'process'].includes(currentStep) && (
         <Box marginBottom={1} paddingX={1} borderStyle='round' borderColor='gray'>
           <Box width='100%' justifyContent='space-between'>
             <Text color='cyan'>
@@ -270,7 +323,7 @@ const ThemeGenerator: React.FC<{ initialData?: Partial<FormData> | undefined }> 
             <Text color='cyan'><Text bold>File Input:</Text></Text>
             <Text>   • <Text color='green'>Paste:</Text> Ctrl+V (Win/Linux) or Cmd+V (Mac)</Text>
             <Text>   • <Text color='green'>Navigate:</Text> Arrow keys, Home/End</Text>
-            <Text>   • <Text color='green'>Supports:</Text> ~/paths, .txt/.toml/.conf files</Text>
+            <Text>   • <Text color='green'>Supports:</Text> ~/paths, .ghostty/.txt/.toml/.conf files</Text>
             <Text> </Text>
             <Text color='gray' dimColor>Press ? again to close this help</Text>
           </Box>

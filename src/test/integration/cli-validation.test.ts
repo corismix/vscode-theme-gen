@@ -75,22 +75,25 @@ describe('CLI Validation Patterns', () => {
   });
 
   describe('step navigation logic', () => {
+    // Mirrors main.ts's determineSkipStep, which returns actual Step union
+    // values ('options'/'theme') so ThemeGenerator can act on them directly,
+    // rather than the disconnected string labels it used to return.
     const determineSkipStep = (input?: string, name?: string): string | undefined => {
       if (input && name) {
-        return 'extension-options';
+        return 'options';
       } else if (input) {
-        return 'theme-config';
+        return 'theme';
       }
       return undefined;
     };
 
     it('skips to extension options when both input and name provided', () => {
-      expect(determineSkipStep('/test/theme.txt', 'My Theme')).toBe('extension-options');
+      expect(determineSkipStep('/test/theme.txt', 'My Theme')).toBe('options');
     });
 
     it('skips to theme config when only input provided', () => {
-      expect(determineSkipStep('/test/theme.txt')).toBe('theme-config');
-      expect(determineSkipStep('/test/theme.txt', '')).toBe('theme-config');
+      expect(determineSkipStep('/test/theme.txt')).toBe('theme');
+      expect(determineSkipStep('/test/theme.txt', '')).toBe('theme');
     });
 
     it('does not skip when no input provided', () => {

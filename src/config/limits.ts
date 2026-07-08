@@ -311,10 +311,10 @@ export const SECURITY_LIMITS = {
   /**
    * Allowed file extensions for theme files
    * Environment: THEME_ALLOWED_EXTENSIONS (comma-separated)
-   * Default: .txt,.theme,.conf,.json,.config
+   * Default: .txt,.ghostty,.theme,.conf,.json,.config
    */
   ALLOWED_FILE_EXTENSIONS: (
-    process.env.THEME_ALLOWED_EXTENSIONS || '.txt,.theme,.conf,.json,.config'
+    process.env.THEME_ALLOWED_EXTENSIONS || '.txt,.ghostty,.theme,.conf,.json,.config'
   )
     .split(',')
     .map(ext => ext.trim()),

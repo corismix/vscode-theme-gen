@@ -29,6 +29,7 @@ import {
   SecurityError,
 } from '@/types';
 import { fileUtils } from './utils-simple';
+import { DEFAULT_VALUES } from '@/config';
 
 // ============================================================================
 // Package Name Utilities
@@ -165,6 +166,7 @@ export const generatePackageJson = (
   themeName: string,
   options: GenerationOptions,
   themeFileName: string,
+  themeType: 'dark' | 'light' = 'dark',
 ): string => {
   const packageName = toPackageName(themeName);
   const displayName = toDisplayName(themeName);
@@ -172,6 +174,7 @@ export const generatePackageJson = (
     options.description ||
     `**${themeName}** is a carefully crafted VS Code theme converted from a Ghostty terminal theme. ` +
       `It features thoughtful color choices and excellent readability for extended coding sessions.`;
+  const lightnessKeyword = themeType === 'light' ? 'light theme' : 'dark theme';
 
   const packageJson: ExtensionPackageJson = {
     name: packageName,
@@ -181,17 +184,17 @@ export const generatePackageJson = (
     engines: {
       vscode: '^1.102.0',
     },
-    categories: ['Themes'],
-    keywords: ['theme', 'dark theme', 'color theme', themeName.toLowerCase()],
+    categories: [...DEFAULT_VALUES.VSCODE_CATEGORIES],
+    keywords: [...DEFAULT_VALUES.THEME_KEYWORDS, lightnessKeyword, themeName.toLowerCase()],
     galleryBanner: {
-      color: options.galleryBannerColor || '#1e1e1e',
-      theme: 'dark',
+      color: options.galleryBannerColor || (themeType === 'light' ? '#f3f3f3' : '#1e1e1e'),
+      theme: themeType,
     },
     contributes: {
       themes: [
         {
           label: displayName,
-          uiTheme: 'vs-dark',
+          uiTheme: themeType === 'light' ? 'vs' : 'vs-dark',
           path: `./themes/${basename(themeFileName)}`,
         },
       ],
@@ -243,9 +246,17 @@ export const generatePackageJson = (
  *
  * @since 1.0.0
  */
-export const generateReadme = (themeName: string, options: GenerationOptions): string => {
+export const generateReadme = (
+  themeName: string,
+  options: GenerationOptions,
+  themeType: 'dark' | 'light' = 'dark',
+): string => {
   const packageName = toPackageName(themeName);
   const displayName = toDisplayName(themeName);
+  const lightnessBullet =
+    themeType === 'light'
+      ? '- Light theme optimized for bright environments'
+      : '- Dark theme optimized for low-light environments';
 
   return `# ${displayName}
 
@@ -273,18 +284,14 @@ code --install-extension ${options.publisher ? `${options.publisher}.${packageNa
 ## Features
 
 - Carefully selected colors for optimal readability
-- Dark theme optimized for low-light environments
+${lightnessBullet}
 - Converted from Ghostty terminal theme for consistency
 - Works with all popular programming languages
 - Thoughtful syntax highlighting
 
-## Screenshots
-
-Add screenshots of your theme in action here.
-
 ## Development
 
-This theme was generated using the [VS Code Theme Generator](https://github.com/your-repo/vscode-theme-generator).
+This theme was generated using the [VS Code Theme Generator](https://github.com/corismix/vscode-theme-gen).
 
 ## License
 
@@ -325,8 +332,13 @@ See [CHANGELOG.md](./CHANGELOG.md) for release notes.
  *
  * @since 1.0.0
  */
-export const generateChangelog = (themeName: string, options: GenerationOptions): string => {
+export const generateChangelog = (
+  themeName: string,
+  options: GenerationOptions,
+  themeType: 'dark' | 'light' = 'dark',
+): string => {
   const today = new Date().toISOString().split('T')[0];
+  const lightnessBullet = themeType === 'light' ? 'Light theme optimized for readability' : 'Dark theme optimized for readability';
 
   return `# Changelog
 
@@ -339,7 +351,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial release of ${themeName} theme
-- Dark theme optimized for readability
+- ${lightnessBullet}
 - Support for all major programming languages
 - Converted from Ghostty terminal theme for consistency
 
@@ -386,11 +398,15 @@ export const generateLaunchJson = (): string => {
       version: '0.2.0',
       configurations: [
         {
-          name: 'Extension',
+          name: 'Extension Development Host',
           type: 'extensionHost',
           request: 'launch',
+          runtimeExecutable: '${execPath}',
           args: [
             '--extensionDevelopmentPath=${workspaceFolder}',
+          ],
+          outFiles: [
+            '${workspaceFolder}/out/**/*.js',
           ],
         },
       ],
@@ -875,8 +891,9 @@ export const generateExtensionFiles = async (
     }
 
     const { themeName } = options;
-    // Use {name}-theme.json format instead of {package-name}-color-theme.json
-    const themeFileName = `${themeName.toLowerCase().replace(/\s+/g, '-')}-theme.json`;
+    // Use the same sanitization as the package name so special characters
+    // (e.g. "My Theme!") can't leak into the generated filename.
+    const themeFileName = `${toPackageName(themeName)}-theme.json`;
 
     // Ensure output directory exists
     await fs.mkdir(normalizedOutputPath, { recursive: true });
@@ -900,7 +917,7 @@ export const generateExtensionFiles = async (
     generatedFiles.push(themeFile);
 
     // Generate package.json
-    const packageContent = generatePackageJson(themeName, options, themeFileName);
+    const packageContent = generatePackageJson(themeName, options, themeFileName, theme.type);
     const packageFilePath = join(normalizedOutputPath, 'package.json');
     await fs.writeFile(packageFilePath, packageContent);
 
@@ -914,7 +931,7 @@ export const generateExtensionFiles = async (
 
     // Generate README if requested
     if (options.generateReadme) {
-      const readmeContent = generateReadme(themeName, options);
+      const readmeContent = generateReadme(themeName, options, theme.type);
       const readmeFilePath = join(normalizedOutputPath, 'README.md');
       await fs.writeFile(readmeFilePath, readmeContent);
 
@@ -928,7 +945,7 @@ export const generateExtensionFiles = async (
 
     // Generate CHANGELOG if requested
     if (options.generateChangelog) {
-      const changelogContent = generateChangelog(themeName, options);
+      const changelogContent = generateChangelog(themeName, options, theme.type);
       const changelogFilePath = join(normalizedOutputPath, 'CHANGELOG.md');
       await fs.writeFile(changelogFilePath, changelogContent);
 

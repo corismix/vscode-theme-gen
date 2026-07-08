@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { Header, useTextInput, NavigationHints } from '../ui';
+import { Header, useTextInput, NavigationHints, CursorText } from '../ui';
 import { FormData } from '@/types';
 import { fileUtils } from '../../lib/utils-simple';
 import { FileValidationResult } from '../../types/error.types';
@@ -87,34 +87,7 @@ const FileStepComponent: React.FC<FileStepProps> = ({ formData, setFormData, onN
       <Box borderStyle='single' padding={1} marginBottom={1}>
         <Box>
           <Text>File: </Text>
-          {(() => {
-            const { value, cursorPos } = textInput;
-
-            if (value.length === 0) {
-              return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
-            }
-
-            if (cursorPos >= value.length) {
-              return (
-                <Text>
-                  {value}
-                  <Text backgroundColor='cyan' color='black'> </Text>
-                </Text>
-              );
-            }
-
-            const before = value.slice(0, cursorPos);
-            const cursorChar = value.slice(cursorPos, cursorPos + 1);
-            const after = value.slice(cursorPos + 1);
-
-            return (
-              <Text>
-                {before}
-                <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
-                {after}
-              </Text>
-            );
-          })()}
+          <CursorText value={textInput.value} cursorPos={textInput.cursorPos} />
 
           {/* Validation indicator */}
           <Text> {
@@ -158,7 +131,7 @@ const FileStepComponent: React.FC<FileStepProps> = ({ formData, setFormData, onN
       <Box flexDirection='column'>
         <Text color='gray'>Type or paste the file path and press Enter</Text>
         <Text color='gray' dimColor>
-          Supports: ~/home paths, .txt/.toml/.conf files
+          Supports: ~/home paths, .ghostty/.txt/.toml/.conf files
         </Text>
         <NavigationHints showInput showPaste />
       </Box>

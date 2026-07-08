@@ -184,7 +184,10 @@ export const validateVSCodeTheme = (theme: unknown): void => {
   theme.tokenColors.forEach((tokenColor: unknown, _index: number) => {
     expect(tokenColor).toHaveProperty('scope');
     expect(tokenColor).toHaveProperty('settings');
-    expect(typeof tokenColor.scope).toBe('string');
+    // Scope may be a single string or an array of scopes
+    expect(
+      typeof tokenColor.scope === 'string' || Array.isArray(tokenColor.scope),
+    ).toBe(true);
     expect(typeof tokenColor.settings).toBe('object');
     // Token colors should have either foreground or fontStyle (or both)
     expect(tokenColor.settings.foreground || tokenColor.settings.fontStyle).toBeDefined();

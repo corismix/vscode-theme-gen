@@ -18,6 +18,17 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+/**
+ * Makes every path exist except `missingPath` - real filesystems have parent
+ * directories that exist even when a specific file doesn't, and validateFilePath
+ * checks the directory before validateGhosttyFile checks the file itself, so a
+ * blanket `mockReturnValue(false)` would incorrectly fail on "directory does not
+ * exist" before ever reaching the file-existence/extension checks under test.
+ */
+const mockFileMissing = (missingPath: string) => {
+  mockExistsSync.mockImplementation((p: unknown) => p !== missingPath);
+};
+
 // ============================================================================
 // File Existence Tests
 // ============================================================================
@@ -85,9 +96,10 @@ describe('validateGhosttyFile', () => {
   });
 
   it('rejects non-existing files', () => {
-    mockExistsSync.mockReturnValue(false);
+    const missingPath = '/test/nonexistent.txt';
+    mockFileMissing(missingPath);
 
-    const result = validateGhosttyFile('/test/nonexistent.txt');
+    const result = validateGhosttyFile(missingPath);
 
     expect(result.isValid).toBe(false);
     expect(result.error).toBe('File does not exist');
@@ -95,14 +107,12 @@ describe('validateGhosttyFile', () => {
     expect(result.suggestions).toContain('Ensure the file exists');
   });
 
-  it('rejects files without .txt extension', () => {
+  it('rejects files with unsupported extensions', () => {
     mockExistsSync.mockReturnValue(true);
 
-    // Test various non-.txt extensions
+    // Test various unsupported extensions (not in the centralized allowlist)
     const testCases = [
-      '/test/theme.json',
       '/test/theme.yaml',
-      '/test/theme.conf',
       '/test/theme.md',
       '/test/theme',
       '/test/theme.',
@@ -112,12 +122,12 @@ describe('validateGhosttyFile', () => {
       const result = validateGhosttyFile(filePath);
 
       expect(result.isValid).toBe(false);
-      expect(result.error).toBe('File must be a .txt file');
-      expect(result.suggestions).toContain('Ghostty theme files should have .txt extension');
+      expect(result.error).toContain('File must be a theme file');
+      expect(result.suggestions).toContain('Ghostty theme files are typically .ghostty or .txt files');
     });
   });
 
-  it('accepts valid .txt files with various paths', () => {
+  it('accepts valid theme files with various paths and extensions', () => {
     mockExistsSync.mockReturnValue(true);
 
     const validPaths = [
@@ -127,6 +137,11 @@ describe('validateGhosttyFile', () => {
       '/path/to/my-theme.txt',
       '/path/with spaces/theme name.txt',
       '/test/theme-v2.txt',
+      '/test/afterglow.ghostty',
+      '/test/theme.theme',
+      '/test/theme.conf',
+      '/test/theme.json',
+      '/test/theme.config',
     ];
 
     validPaths.forEach(filePath => {
@@ -151,19 +166,19 @@ describe('validateGhosttyFile', () => {
     });
   });
 
-  it('rejects case-sensitive non-.txt extensions', () => {
+  it('treats extensions case-insensitively', () => {
     mockExistsSync.mockReturnValue(true);
 
-    const invalidCases = [
-      '/test/theme.TXT', // Should be case-sensitive
+    const mixedCaseCases = [
+      '/test/theme.TXT',
       '/test/theme.Txt',
       '/test/theme.tXt',
+      '/test/afterglow.GHOSTTY',
     ];
 
-    invalidCases.forEach(filePath => {
+    mixedCaseCases.forEach(filePath => {
       const result = validateGhosttyFile(filePath);
-      expect(result.isValid).toBe(false);
-      expect(result.error).toBe('File must be a .txt file');
+      expect(result.isValid).toBe(true);
     });
   });
 
@@ -177,28 +192,30 @@ describe('validateGhosttyFile', () => {
     mockExistsSync.mockReturnValue(true);
     expect(validateGhosttyFile(longPath).isValid).toBe(true);
 
-    // Test path with only extension
+    // A bare ".txt" is treated as a dotfile with no extension by Node's path.extname,
+    // not as a file with a .txt extension - so it's correctly rejected.
     mockExistsSync.mockReturnValue(true);
-    expect(validateGhosttyFile('.txt').isValid).toBe(true);
+    expect(validateGhosttyFile('.txt').isValid).toBe(false);
   });
 
   it('provides helpful error messages and suggestions', () => {
     // Empty path
     const emptyResult = validateGhosttyFile('');
     expect(emptyResult.error).toContain('File path is required');
-    expect(emptyResult.suggestions).toEqual(['Please provide a valid file path']);
+    expect(emptyResult.suggestions).toContain('Please provide a valid file path');
 
     // Non-existent file
-    mockExistsSync.mockReturnValue(false);
-    const nonExistentResult = validateGhosttyFile('/test/missing.txt');
+    const missingPath = '/test/missing.txt';
+    mockFileMissing(missingPath);
+    const nonExistentResult = validateGhosttyFile(missingPath);
     expect(nonExistentResult.error).toContain('File does not exist');
     expect(nonExistentResult.suggestions).toContain('Check that the file path is correct');
 
     // Wrong extension
     mockExistsSync.mockReturnValue(true);
-    const wrongExtResult = validateGhosttyFile('/test/theme.json');
-    expect(wrongExtResult.error).toContain('File must be a .txt file');
-    expect(wrongExtResult.suggestions).toContain('Ghostty theme files should have .txt extension');
+    const wrongExtResult = validateGhosttyFile('/test/theme.yaml');
+    expect(wrongExtResult.error).toContain('File must be a theme file');
+    expect(wrongExtResult.suggestions).toContain('Ghostty theme files are typically .ghostty or .txt files');
   });
 });
 
@@ -250,9 +267,8 @@ describe('integration tests', () => {
 
   it('handles validation failure workflow', () => {
     // Test failed validation workflow
-    mockExistsSync.mockReturnValue(false);
-
     const invalidPath = '/test/nonexistent.json';
+    mockFileMissing(invalidPath);
 
     // File should not exist
     expect(fileExists(invalidPath)).toBe(false);
@@ -272,23 +288,26 @@ describe('integration tests', () => {
     expect(mockExistsSync).not.toHaveBeenCalled();
 
     // Second check: file existence (should fail before extension check)
-    mockExistsSync.mockReturnValue(false);
-    const nonExistentResult = validateGhosttyFile('/test/missing.json');
+    mockFileMissing('/test/missing.txt');
+    const nonExistentResult = validateGhosttyFile('/test/missing.txt');
     expect(nonExistentResult.error).toBe('File does not exist');
 
     // Third check: extension validation (should run after file existence)
     mockExistsSync.mockReturnValue(true);
-    const wrongExtResult = validateGhosttyFile('/test/theme.json');
-    expect(wrongExtResult.error).toBe('File must be a .txt file');
+    const wrongExtResult = validateGhosttyFile('/test/theme.yaml');
+    expect(wrongExtResult.error).toContain('File must be a theme file');
   });
 
   it('handles filesystem errors during validation', () => {
-    // Test that filesystem errors are handled gracefully
-    mockExistsSync.mockImplementation(() => {
-      throw new Error('Permission denied');
+    // Test that filesystem errors on the file itself (not its parent directory)
+    // are handled gracefully by fileExists's own try/catch
+    const protectedPath = '/test/protected.txt';
+    mockExistsSync.mockImplementation((p: unknown) => {
+      if (p === protectedPath) throw new Error('Permission denied');
+      return true;
     });
 
-    const result = validateGhosttyFile('/test/protected.txt');
+    const result = validateGhosttyFile(protectedPath);
 
     // Should treat as non-existent file
     expect(result.isValid).toBe(false);

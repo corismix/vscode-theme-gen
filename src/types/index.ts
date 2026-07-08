@@ -23,7 +23,7 @@ export interface FormData {
   generateGitIgnore: boolean;
   generateVSCodeIgnore: boolean;
   allowOutsideCwd: boolean;
-  skipToStep?: string;
+  skipToStep?: Step;
 }
 
 export interface ThemeData {
@@ -31,7 +31,7 @@ export interface ThemeData {
   theme: VSCodeTheme;
 }
 
-export type Step = 'file' | 'theme' | 'options' | 'advanced' | 'process' | 'success' | 'error';
+export type Step = 'file' | 'theme' | 'options' | 'advanced' | 'preview' | 'process' | 'success' | 'error';
 
 // ============================================================================
 // Theme Types (Ghostty)

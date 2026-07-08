@@ -2,5 +2,5 @@
  * UI Components - Reusable building blocks
  */
 export { Header } from './Header';
-export { TextInput, useTextInput } from './TextInput';
+export { TextInput, CursorText, useTextInput } from './TextInput';
 export { NavigationHints } from './NavigationHints';

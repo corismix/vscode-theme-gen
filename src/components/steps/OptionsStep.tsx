@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { Header, useTextInput, NavigationHints } from '../ui';
+import { Header, useTextInput, NavigationHints, CursorText } from '../ui';
 import { FormData } from '@/types';
 
 interface OptionsStepProps {
@@ -10,6 +10,26 @@ interface OptionsStepProps {
   onBack: () => void;
   error?: string | undefined;
 }
+
+// Matches the publisher-format check main.ts applies to the --publisher CLI flag,
+// so the interactive wizard rejects the same invalid input the CLI path would.
+const PUBLISHER_REGEX = /^[a-z0-9-]+$/i;
+
+const validatePublisher = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null; // publisher is optional
+  if (trimmed.length < 3 || !PUBLISHER_REGEX.test(trimmed)) {
+    return 'Publisher must be at least 3 characters and contain only letters, numbers, and hyphens';
+  }
+  return null;
+};
+
+const validateOutputPath = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Output path is required';
+  if (trimmed.includes('..')) return 'Output path cannot contain ".." (path traversal)';
+  return null;
+};
 
 /**
  * Extension options configuration step component
@@ -25,6 +45,8 @@ const OptionsStepComponent: React.FC<OptionsStepProps> = ({
   const [currentField, setCurrentField] = useState<'publisher' | 'output'>('publisher');
   const publisherInput = useTextInput(formData.publisher);
   const outputInput = useTextInput(formData.outputPath);
+  const publisherError = validatePublisher(publisherInput.value);
+  const outputError = validateOutputPath(outputInput.value);
 
   // Sync form data with input values
   React.useEffect(() => {
@@ -42,20 +64,20 @@ const OptionsStepComponent: React.FC<OptionsStepProps> = ({
     }
 
     if (currentField === 'publisher') {
-      if (key.tab && publisherInput.value.trim()) {
+      if (key.tab && publisherInput.value.trim() && !publisherError) {
         setCurrentField('output');
         return;
       }
 
       const result = publisherInput.handleInput(input, key);
-      if (result.shouldSubmit && result.value.trim()) {
+      if (result.shouldSubmit && result.value.trim() && !publisherError) {
         setCurrentField('output');
       }
     } else {
       const result = outputInput.handleInput(input, key);
-      if (result.shouldSubmit && result.value.trim()) {
+      if (result.shouldSubmit && result.value.trim() && !outputError) {
         onNext();
-      } else if (key.tab && outputInput.value.trim()) {
+      } else if (key.tab && outputInput.value.trim() && !outputError) {
         onNext();
       }
     }
@@ -71,33 +93,17 @@ const OptionsStepComponent: React.FC<OptionsStepProps> = ({
 
       {currentField === 'publisher' ? (
         <Box borderStyle='single' padding={1} marginBottom={1}>
-          <Text>{(() => {
-            const { value, cursorPos } = publisherInput;
-
-            if (value.length === 0) {
-              return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
-            }
-
-            if (cursorPos >= value.length) {
-              return <Text>{value}<Text backgroundColor='cyan' color='black'> </Text></Text>;
-            }
-
-            const before = value.slice(0, cursorPos);
-            const cursorChar = value.slice(cursorPos, cursorPos + 1);
-            const after = value.slice(cursorPos + 1);
-
-            return (
-              <Text>
-                {before}
-                <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
-                {after}
-              </Text>
-            );
-          })()}</Text>
+          <CursorText value={publisherInput.value} cursorPos={publisherInput.cursorPos} />
         </Box>
       ) : (
         <Box padding={1} marginBottom={1}>
           <Text color='green'>{publisherInput.value}</Text>
+        </Box>
+      )}
+
+      {currentField === 'publisher' && publisherInput.value.trim() && publisherError && (
+        <Box marginBottom={1}>
+          <Text color='red'>{publisherError}</Text>
         </Box>
       )}
 
@@ -108,30 +114,14 @@ const OptionsStepComponent: React.FC<OptionsStepProps> = ({
           </Box>
 
           <Box borderStyle='single' padding={1} marginBottom={1}>
-            <Text>{(() => {
-              const { value, cursorPos } = outputInput;
-
-              if (value.length === 0) {
-                return <Text><Text backgroundColor='cyan' color='black'> </Text></Text>;
-              }
-
-              if (cursorPos >= value.length) {
-                return <Text>{value}<Text backgroundColor='cyan' color='black'> </Text></Text>;
-              }
-
-              const before = value.slice(0, cursorPos);
-              const cursorChar = value.slice(cursorPos, cursorPos + 1);
-              const after = value.slice(cursorPos + 1);
-
-              return (
-                <Text>
-                  {before}
-                  <Text backgroundColor='cyan' color='black'>{cursorChar}</Text>
-                  {after}
-                </Text>
-              );
-            })()}</Text>
+            <CursorText value={outputInput.value} cursorPos={outputInput.cursorPos} />
           </Box>
+
+          {outputError && (
+            <Box marginBottom={1}>
+              <Text color='red'>{outputError}</Text>
+            </Box>
+          )}
         </>
       )}
 

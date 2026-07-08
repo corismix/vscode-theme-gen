@@ -7,6 +7,7 @@ import { existsSync } from 'fs';
 import { resolve, normalize, isAbsolute, extname, dirname } from 'path';
 import { homedir } from 'os';
 import { FileValidationResult } from '../types/error.types';
+import { SECURITY_LIMITS } from '@/config';
 
 // ============================================================================
 // Enhanced Path Utilities
@@ -148,17 +149,17 @@ export const validateGhosttyFile = (filePath: string): FileValidationResult => {
     };
   }
 
-  // Check file extension - accept .txt, .toml, .conf, and other common config formats
+  // Check file extension against the centralized allowlist
   const ext = extname(normalizedPath).toLowerCase();
-  const validExtensions = ['.txt', '.toml', '.conf', '.config'];
+  const validExtensions = SECURITY_LIMITS.ALLOWED_FILE_EXTENSIONS;
 
-  if (!validExtensions.includes(ext)) {
+  if (!(validExtensions as readonly string[]).includes(ext)) {
     return {
       isValid: false,
       error: `File must be a theme file (${validExtensions.join(', ')})`,
       suggestions: [
-        'Ghostty theme files are typically .txt files',
-        'Also accepts .toml, .conf, and .config files',
+        'Ghostty theme files are typically .ghostty or .txt files',
+        `Also accepts ${validExtensions.filter(e => e !== '.ghostty' && e !== '.txt').join(', ')} files`,
       ],
     };
   }

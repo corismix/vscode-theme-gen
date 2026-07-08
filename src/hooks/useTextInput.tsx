@@ -25,14 +25,14 @@ export const useTextInput = (initialValue: string = ''): TextInputHook => {
       return { shouldSubmit: false, value };
     }
 
-    // Home key - move to beginning
-    if (key.ctrl && input === 'a') {
+    // Home key (physical Home, or Ctrl+A) - move to beginning
+    if (key.home || (key.ctrl && input === 'a')) {
       setCursorOffset(value.length);
       return { shouldSubmit: false, value };
     }
 
-    // End key - move to end
-    if (key.ctrl && input === 'e') {
+    // End key (physical End, or Ctrl+E) - move to end
+    if (key.end || (key.ctrl && input === 'e')) {
       setCursorOffset(0);
       return { shouldSubmit: false, value };
     }

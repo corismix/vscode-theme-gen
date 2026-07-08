@@ -8,7 +8,7 @@ import { render } from 'ink';
 import meow from 'meow';
 import App from './components/App';
 import { fileUtils } from './lib/utils-simple';
-import { CLIFlags, FormData } from './types';
+import { CLIFlags, FormData, Step } from './types';
 
 // ============================================================================
 // CLI Definition
@@ -20,7 +20,7 @@ const cli = meow(
 	  $ vscode-theme-gen [options]
 
 	Options
-	  --input, -i       Input Ghostty theme file (.txt)
+	  --input, -i       Input Ghostty theme file (.ghostty, .txt, etc.)
 	  --output, -o      Output directory for extension
 	  --name, -n        Theme name
 	  --description, -d Theme description
@@ -173,15 +173,17 @@ const createInitialData = (flags: CLIFlags): Partial<FormData> => {
 };
 
 /**
- * Determines which step to skip to based on provided flags
+ * Determines which wizard step to jump to based on provided flags, so
+ * pre-filled CLI input actually skips the steps it makes redundant instead
+ * of just pre-populating fields the user has to click through anyway.
  */
-const determineSkipStep = (flags: CLIFlags): string | undefined => {
+const determineSkipStep = (flags: CLIFlags): Step | undefined => {
   if (flags.input && flags.name) {
-    // If both input and name are provided, skip to extension options
-    return 'extension-options';
+    // Both input and name are provided - skip straight to extension options
+    return 'options';
   } else if (flags.input) {
-    // If just input is provided, skip to theme configuration
-    return 'theme-config';
+    // Just input is provided - skip past file selection to theme configuration
+    return 'theme';
   }
   return undefined;
 };
