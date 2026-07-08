@@ -1,0 +1,39 @@
+# Afterglow — Ghostty theme
+# eidolon-root's dark filmic chrome (deep cool-black bg, warm off-white fg,
+# amber cursor) wearing claude's vibrant palette.
+#
+# Personality triad: lavender, teal, amber cursor.
+#   - Red is de-oranged but punchy (red channel pinned high).
+#   - Lavender sits in the magenta channel (5 + 13) where it reads correctly
+#     as magenta/violet, not borrowed cyan.
+#   - Cyan channel (6 + 14) is a real teal.
+#   - Bright variants (9-15) are lifted above their normals for range.
+
+background = #111315
+foreground = #D8D9D1
+
+cursor-color = #FFAF2D
+cursor-text  = #111315
+
+selection-background = #449AFF
+selection-foreground = #111315
+
+# Normal ANSI colors
+palette = 0=#191D21
+palette = 1=#FF3844
+palette = 2=#32D74B
+palette = 3=#FFD012
+palette = 4=#0099FF
+palette = 5=#B796FF
+palette = 6=#00D8B6
+palette = 7=#D8D9D1
+
+# Bright ANSI colors
+palette = 8=#7B8591
+palette = 9=#FF6068
+palette = 10=#57EC57
+palette = 11=#FFDB4D
+palette = 12=#4DB3FF
+palette = 13=#CBB2FF
+palette = 14=#00E4CB
+palette = 15=#E5E6E2
