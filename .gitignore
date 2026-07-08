@@ -111,6 +111,9 @@ storybook-static
 tmp/
 temp/
 
+# Stray Bun package-cache extraction (unrelated debris, occasionally recreated)
+force/
+
 # Logs
 logs/
 *.log
