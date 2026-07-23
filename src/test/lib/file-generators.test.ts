@@ -54,6 +54,7 @@ const mockVSCodeTheme: VSCodeTheme = {
     { scope: 'string', settings: { foreground: '#ce9178' } },
     { scope: 'keyword', settings: { foreground: '#569cd6' } },
   ],
+  semanticHighlighting: true,
 };
 
 const mockOptions: GenerationOptions = {

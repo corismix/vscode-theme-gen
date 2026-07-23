@@ -647,7 +647,7 @@ describe('selection color usage', () => {
     const themeColors = buildVSCodeColors(colors);
 
     expect(themeColors['editor.selectionBackground']).toContain('#264f78');
-    expect(themeColors['editor.selectionForeground']).toBe('#eeeeee');
+    expect(themeColors['editor.selectionForeground']).toBeUndefined();
     expect(themeColors['terminal.selectionBackground']).toContain('#264f78');
   });
 
@@ -662,7 +662,7 @@ describe('selection color usage', () => {
     const themeColors = buildVSCodeColors(colors);
 
     expect(themeColors['editor.selectionBackground']).toContain('#ff0000');
-    expect(themeColors['editor.selectionForeground']).toBe('#ffffff');
+    expect(themeColors['editor.selectionForeground']).toBeUndefined();
   });
 });
 
@@ -803,7 +803,7 @@ describe('.ghostty fixture (afterglow)', () => {
     // The quick-pick "about to activate" row is a solid accent fill with
     // contrast-safe text, matching 2026-dark's own treatment of this state
     expect(theme.colors['quickInputList.focusBackground']).toBe('#ffaf2d');
-    expect(theme.colors['quickInputList.focusForeground']).toBe('#191d21');
+    expect(theme.colors['quickInputList.focusForeground']).toBe('#111315');
 
     const tokenColors = buildTokenColors(parsed.colors);
     const diffInserted = tokenColors.find(t => t.name === 'Diff Inserted');

@@ -99,6 +99,12 @@ export interface VSCodeThemeColors {
   'statusBar.foreground'?: string;
   'titleBar.activeBackground'?: string;
   'titleBar.activeForeground'?: string;
+  'tab.selectedBorderTop'?: string;
+  'panelInput.border'?: string;
+  'inputOption.activeBorder'?: string;
+  'chat.slashCommandBackground'?: string;
+  'chat.slashCommandForeground'?: string;
+  'chat.editedFileForeground'?: string;
 
   // Terminal colors
   'terminal.background': string;
@@ -138,6 +144,7 @@ export interface VSCodeTheme {
   type: 'dark' | 'light';
   colors: VSCodeThemeColors;
   tokenColors: TokenColor[];
+  semanticHighlighting: boolean;
 }
 
 // ============================================================================

@@ -735,6 +735,29 @@ const withOpacity = (hex: string, opacity: number): string => {
 // withOpacity is the primary function for consistent opacity handling
 
 /**
+ * Blends a color toward another color by a given amount in RGB space
+ *
+ * Produces solid (opaque) colors for muted-text tiers where an alpha value
+ * would be invisible to contrast math - ensureContrast operates on opaque
+ * hex values, so muted foregrounds must be real colors, not transparencies.
+ *
+ * @param hex - Source hex color
+ * @param towardHex - Target hex color to blend toward
+ * @param amount - Blend amount (0 = source color, 1 = target color)
+ * @returns Blended opaque hex color
+ */
+const blendHex = (hex: string, towardHex: string, amount: number): string => {
+  const [r1, g1, b1] = hexToRgb(hex);
+  const [r2, g2, b2] = hexToRgb(towardHex);
+  const t = Math.max(0, Math.min(1, amount));
+  return rgbToHex(
+    Math.round(r1 + (r2 - r1) * t),
+    Math.round(g1 + (g2 - g1) * t),
+    Math.round(b1 + (b2 - b1) * t),
+  );
+};
+
+/**
  * Computes the WCAG relative luminance of a hex color (0 = black, 1 = white)
  * @param hex - Source hex color
  * @returns Relative luminance in the range 0-1
@@ -810,17 +833,21 @@ export const isLightBackground = (hex: string): boolean => relativeLuminance(hex
 // ============================================================================
 
 /**
- * Builds comprehensive VS Code workbench colors using direct palette mapping
+ * Builds comprehensive VS Code workbench colors from the source palette
  *
- * Implements the corrected algorithm based on Eidolon Root theme analysis.
- * Uses palette colors directly with proper background hierarchy:
- * - Editor/Panel/Terminal: palette[0]
- * - Activity/Sidebar/Status: background color
- * - Widgets: lighten(palette[0], 2%)
- * - Inputs: lighten(palette[0], 8%)
+ * Recolours the 2026 Dark design scaffold with the Ghostty palette: the
+ * editor is the darkest surface with chrome elevated above it, borders are
+ * opaque neutral hairlines derived from the background, muted text is a solid
+ * blend toward the background, and accent (cursor colour) / selection colours
+ * express the theme's identity. Background hierarchy:
+ * - Editor/Panel/Terminal: darker of `background` and palette[0]
+ * - Activity/Sidebar/Status/Inputs: chrome (the lighter of the two, or +3%)
+ * - Widgets/menus/notifications: elevate(editor, 6%)
+ * - Hover / line-highlight family: elevate(editor, 5%), opaque
+ * - Peek/checkbox high-contrast: elevate(editor, 9%)
  *
  * @param colors - Parsed Ghostty colors object
- * @returns Complete VS Code theme colors object matching Eidolon Root pattern
+ * @returns Complete VS Code theme colors object
  *
  * @since 2.0.0
  */
@@ -845,7 +872,6 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     brightWhite: colors.color15 || '#ffffff',
   };
 
-  const bg = colors.background || '#000000';
   const fg = colors.foreground || '#ffffff';
 
   // ========================================================================
@@ -863,42 +889,83 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
   const accent = sanitizeAccent(colors['cursor-color']) || sanitizeAccent(colors.cursor) || palette.red;
   const selectionBg =
     sanitizeAccent(colors['selection-background']) || sanitizeAccent(colors.selection_background);
-  const selectionFg =
-    sanitizeAccent(colors['selection-foreground']) || sanitizeAccent(colors.selection_foreground) || fg;
 
   // ========================================================================
   // Professional Background Elevation System
   // ========================================================================
-  // Based on analysis of professional themes - systematic hierarchy:
-  // 1. Deep background (activity bar, sidebar, status) - use theme background
-  // 2. Editor background (main editor, panels) - use palette[0]
-  // 3. Elevated surfaces (widgets, hovers, sections) - +2% lightness
-  // 4. Input surfaces (forms, settings) - +5% lightness
-  // 5. Hover states - +3% lightness
-  // 6. Elevated hover - +6% lightness
+  // Calibrated against 2026 Dark's measured elevation deltas: the editor is
+  // the *darkest* surface and chrome (activity bar, sidebar, status bar,
+  // inactive tabs, inputs) sits above it (~+3% lightness), widgets above
+  // that (+6%), with hover/line-highlight (+5%) and peek/checkbox (+9%)
+  // tiers in between. When the source file declares its own `background`
+  // distinct from palette 0 (very common in Ghostty configs), the darker of
+  // the two becomes the editor and the lighter becomes chrome - the theme's
+  // true base colour is never discarded. When they match (or `background`
+  // is missing), chrome is derived from palette 0 so the theme still gets
+  // real depth separation instead of collapsing to one flat shade.
+  const sourceBg =
+    colors.background && isValidHexColor(colors.background) ? colors.background : undefined;
+  const isLight = isLightBackground(sourceBg || palette.black);
+
+  let editorBg = palette.black;
+  let chromeBg: string | undefined;
+  if (sourceBg && sourceBg.toLowerCase() !== palette.black.toLowerCase()) {
+    if (isLight) {
+      // Light themes: palette 0 is near-black and unusable as chrome
+      editorBg = sourceBg;
+    } else if (relativeLuminance(sourceBg) < relativeLuminance(palette.black)) {
+      editorBg = sourceBg;
+      chromeBg = palette.black;
+    } else {
+      chromeBg = sourceBg;
+    }
+  }
+
+  // Elevation moves away from the background: lighter on dark themes,
+  // darker on light themes
+  const elevate = (amount: number): string =>
+    isLight ? darken(editorBg, amount) : lighten(editorBg, amount);
+  chromeBg ??= elevate(0.03);
 
   const backgrounds = {
-    // Level 0: Deepest background for chrome (activity bar, sidebar, status)
-    deep: bg,
+    // Level 0: Chrome (activity bar, sidebar, status, and - per 2026 Dark -
+    // input/dropdown controls, which sit flush with chrome rather than
+    // "raised" above it)
+    deep: chromeBg,
 
-    // Level 1: Main editor background (editor, panels, terminal)
-    editor: palette.black,
+    // Level 1: Main editor background (editor, panels, terminal) - darkest
+    editor: editorBg,
 
     // Level 2: Elevated surfaces (widgets, dropdowns, tooltips, section headers)
-    elevated: lighten(palette.black, 0.02),
+    elevated: elevate(0.06),
 
-    // Level 3: Interactive hover states
-    hover: lighten(palette.black, 0.03),
+    // Level 3: Interactive hover states and the line-highlight family
+    // (opaque, per 2026 Dark, so it reads as a real surface)
+    hover: elevate(0.05),
 
-    // Level 4: Input fields and form controls
-    input: lighten(palette.black, 0.05),
+    // Level 4: Input fields and form controls - flush with chrome
+    input: chromeBg,
 
     // Level 5: Elevated hover states (welcome tiles, etc)
-    elevatedHover: lighten(palette.black, 0.06),
+    elevatedHover: elevate(0.07),
 
-    // Level 6: High contrast inputs (peek view backgrounds)
-    highContrast: lighten(palette.black, 0.08),
+    // Level 6: High contrast surfaces (peek view titles, checkboxes)
+    highContrast: elevate(0.09),
   };
+
+  // Chrome borders: opaque neutral hairlines derived from the editor
+  // background itself (2026 Dark's #2A2B2C-over-#121314 pattern) instead of
+  // translucent brightBlack, which tints every seam with the palette's grey
+  // hue (a cool blue haze on warm themes)
+  const borders = {
+    strong: elevate(0.09),
+    subtle: elevate(0.055),
+  };
+
+  // Muted chrome-text tier (status bar, title bar, inactive tabs): a solid
+  // blend toward the background - 2026 Dark's secondary text is a solid
+  // mid-grey, not an alpha of brightBlack
+  const fgMuted = blendHex(fg, editorBg, 0.45);
 
   return {
     // ========================================================================
@@ -906,35 +973,37 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'editor.background': backgrounds.editor,
     'editor.foreground': fg,
-    'editorLineNumber.foreground': withOpacity(palette.brightBlack, 0.25),
+    'editorLineNumber.foreground': palette.brightBlack,
     'editorLineNumber.activeForeground': fg,
     'editorCursor.foreground': accent,
     'editorCursor.background': backgrounds.editor,
 
     // ========================================================================
-    // Editor Selections & Highlights - Use red with correct opacities
+    // Editor Selections & Highlights - Heavy selection (per 2026 Dark), no
+    // forced selection foreground: a translucent tint over unchanged syntax
+    // colors reads better than flattening every selected token to one color
     // ========================================================================
-    'editor.selectionBackground': withOpacity(selectionBg || accent, 0.25),
-    'editor.selectionHighlightBackground': withOpacity(selectionBg || accent, 0.125),
-    'editor.inactiveSelectionBackground': withOpacity(selectionBg || accent, 0.08),
-    'editor.lineHighlightBackground': withOpacity(fg, 0.03),
+    'editor.selectionBackground': withOpacity(selectionBg || accent, 0.50),
+    'editor.selectionHighlightBackground': withOpacity(selectionBg || accent, 0.20),
+    'editor.inactiveSelectionBackground': withOpacity(selectionBg || accent, 0.20),
+    'editor.lineHighlightBackground': backgrounds.hover,
     'editor.lineHighlightBorder': '#00000000',
-    'editor.wordHighlightBackground': withOpacity(palette.brightBlue, 0.13),
-    'editor.wordHighlightStrongBackground': withOpacity(palette.brightBlue, 0.19),
+    'editor.wordHighlightBackground': withOpacity(selectionBg || accent, 0.19),
+    'editor.wordHighlightStrongBackground': withOpacity(selectionBg || accent, 0.31),
     'editor.wordHighlightBorder': '#00000000',
     'editor.wordHighlightStrongBorder': '#00000000',
-    'editor.selectionForeground': selectionFg,
 
     // ========================================================================
-    // Find & Search - Use yellow with no opacity for borders
+    // Find & Search - Share the selection/accent family (per 2026 Dark);
+    // yellow is reserved for genuine warning/modified semantics
     // ========================================================================
-    'editor.findMatchBackground': withOpacity(palette.yellow, 0.25),
-    'editor.findMatchHighlightBackground': withOpacity(palette.yellow, 0.15),
-    'editor.findRangeHighlightBackground': withOpacity(fg, 0.05),
-    'editor.findMatchBorder': palette.yellow, // No opacity
+    'editor.findMatchBackground': withOpacity(selectionBg || accent, 0.55),
+    'editor.findMatchHighlightBackground': withOpacity(selectionBg || accent, 0.35),
+    'editor.findRangeHighlightBackground': backgrounds.hover,
+    'editor.findMatchBorder': '#00000000',
     'editor.findMatchHighlightBorder': '#00000000',
-    'editor.rangeHighlightBackground': withOpacity(fg, 0.05),
-    'searchEditor.findMatchBackground': withOpacity(palette.yellow, 0.25),
+    'editor.rangeHighlightBackground': backgrounds.hover,
+    'searchEditor.findMatchBackground': withOpacity(selectionBg || accent, 0.55),
 
     // ========================================================================
     // Bracket Matching & Guides - Use brightBlack with proper opacities
@@ -977,10 +1046,10 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'editorWidget.background': backgrounds.elevated,
     'editorWidget.foreground': fg,
-    'editorWidget.border': withOpacity(palette.brightBlack, 0.25),
-    'editorWidget.resizeBorder': withOpacity(palette.brightBlack, 0.25),
+    'editorWidget.border': borders.strong,
+    'editorWidget.resizeBorder': borders.strong,
     'editorSuggestWidget.background': backgrounds.elevated,
-    'editorSuggestWidget.border': withOpacity(palette.brightBlack, 0.25),
+    'editorSuggestWidget.border': borders.strong,
     'editorSuggestWidget.foreground': fg,
     'editorSuggestWidget.highlightForeground': fg,
     'editorSuggestWidget.selectedBackground': withOpacity(fg, 0.15),
@@ -988,7 +1057,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'editorSuggestWidget.focusHighlightForeground': fg,
     'editorSuggestWidget.selectedIconForeground': fg,
     'editorHoverWidget.background': backgrounds.elevated,
-    'editorHoverWidget.border': withOpacity(palette.brightBlack, 0.25),
+    'editorHoverWidget.border': borders.strong,
     'editorHoverWidget.foreground': fg,
     'editorHoverWidget.statusBarBackground': backgrounds.input,
 
@@ -1011,7 +1080,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // Gutter (Git, Folding, etc) - Use editor background and semantic colors
     // ========================================================================
     'editorGutter.background': backgrounds.editor,
-    'editorGutter.modifiedBackground': palette.yellow,
+    'editorGutter.modifiedBackground': palette.brightBlue,
     'editorGutter.addedBackground': palette.brightGreen,
     'editorGutter.deletedBackground': palette.red,
     'editorGutter.foldingControlForeground': withOpacity(palette.brightBlack, 0.38),
@@ -1020,11 +1089,11 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     // Diff Editor - Git colors
     // ========================================================================
-    'diffEditor.insertedTextBackground': withOpacity(palette.brightGreen, 0.13),
+    'diffEditor.insertedTextBackground': withOpacity(palette.brightGreen, 0.30),
     'diffEditor.insertedTextBorder': '#00000000',
-    'diffEditor.removedTextBackground': withOpacity(palette.red, 0.13),
+    'diffEditor.removedTextBackground': withOpacity(palette.red, 0.30),
     'diffEditor.removedTextBorder': '#00000000',
-    'diffEditor.border': withOpacity(palette.brightBlack, 0.25),
+    'diffEditor.border': borders.strong,
     'diffEditor.diagonalFill': withOpacity(palette.brightBlack, 0.13),
     'diffEditor.insertedLineBackground': withOpacity(palette.brightGreen, 0.08),
     'diffEditor.removedLineBackground': withOpacity(palette.red, 0.08),
@@ -1036,14 +1105,14 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'merge.currentContentBackground': withOpacity(palette.brightBlue, 0.13),
     'merge.incomingHeaderBackground': withOpacity(palette.brightGreen, 0.19),
     'merge.incomingContentBackground': withOpacity(palette.brightGreen, 0.13),
-    'merge.border': withOpacity(palette.brightBlack, 0.25),
+    'merge.border': borders.strong,
 
     // ========================================================================
     // Editor Overview Ruler (Minimap Highlights)
     // ========================================================================
     'editorOverviewRuler.border': '#00000000',
-    'editorOverviewRuler.findMatchForeground': withOpacity(palette.yellow, 0.50),
-    'editorOverviewRuler.rangeHighlightForeground': withOpacity(palette.yellow, 0.38),
+    'editorOverviewRuler.findMatchForeground': withOpacity(selectionBg || accent, 0.60),
+    'editorOverviewRuler.rangeHighlightForeground': withOpacity(selectionBg || accent, 0.38),
     'editorOverviewRuler.selectionHighlightForeground': withOpacity(selectionBg || accent, 0.38),
     'editorOverviewRuler.wordHighlightForeground': withOpacity(palette.brightBlue, 0.38),
     'editorOverviewRuler.wordHighlightStrongForeground': withOpacity(palette.brightBlue, 0.50),
@@ -1060,17 +1129,17 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'activityBar.background': backgrounds.deep,
     'activityBar.foreground': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
-    'activityBar.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
-    'activityBar.border': withOpacity(palette.brightBlack, 0.25),
-    'activityBar.activeBorder': accent,
-    'activityBar.activeBackground': withOpacity(accent, 0.08),
+    'activityBar.inactiveForeground': fgMuted,
+    'activityBar.border': borders.strong,
+    'activityBar.activeBorder': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
+    'activityBar.activeBackground': '#00000000',
     'activityBar.activeFocusBorder': accent,
     'activityBar.dropBorder': accent,
     'activityBarBadge.background': accent,
     'activityBarBadge.foreground': backgrounds.editor,
     'activityBarTop.foreground': fg,
     'activityBarTop.activeBorder': accent,
-    'activityBarTop.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
+    'activityBarTop.inactiveForeground': fgMuted,
     'activityBarTop.dropBorder': accent,
 
     // ========================================================================
@@ -1078,12 +1147,12 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'sideBar.background': backgrounds.deep,
     'sideBar.foreground': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
-    'sideBar.border': withOpacity(palette.brightBlack, 0.25),
+    'sideBar.border': borders.strong,
     'sideBar.dropBackground': withOpacity(accent, 0.13),
     'sideBarTitle.foreground': darken(fg, 0.15),
     'sideBarSectionHeader.background': backgrounds.elevated,
     'sideBarSectionHeader.foreground': darken(fg, 0.15),
-    'sideBarSectionHeader.border': withOpacity(palette.brightBlack, 0.25),
+    'sideBarSectionHeader.border': borders.strong,
 
     // ========================================================================
     // List & Tree - Passive selection/hover states stay neutral (foreground-
@@ -1101,15 +1170,15 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'list.focusBackground': withOpacity(fg, 0.13),
     'list.focusForeground': darken(fg, 0.15),
     'list.focusHighlightForeground': fg,
-    'list.focusOutline': withOpacity(accent, 0.25),
-    'list.focusAndSelectionOutline': withOpacity(accent, 0.38),
+    'list.focusOutline': withOpacity(accent, 0.60),
+    'list.focusAndSelectionOutline': withOpacity(accent, 0.70),
     'list.highlightForeground': fg,
     'list.dropBackground': withOpacity(accent, 0.13),
-    'list.deemphasizedForeground': withOpacity(palette.brightBlack, 0.50),
+    'list.deemphasizedForeground': fgMuted,
     'list.errorForeground': palette.red,
     'list.warningForeground': palette.yellow,
-    'tree.indentGuidesStroke': withOpacity(palette.brightBlack, 0.25),
-    'tree.tableColumnsBorder': withOpacity(palette.brightBlack, 0.13),
+    'tree.indentGuidesStroke': borders.strong,
+    'tree.tableColumnsBorder': borders.subtle,
     'tree.tableOddRowsBackground': withOpacity(palette.brightBlack, 0.03),
 
     // ========================================================================
@@ -1117,11 +1186,12 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // ========================================================================
     'tab.activeBackground': backgrounds.editor,
     'tab.activeForeground': ensureContrast(darken(fg, 0.15), backgrounds.editor, 4.5),
-    'tab.border': withOpacity(palette.brightBlack, 0.25),
+    'tab.border': borders.strong,
     'tab.activeBorder': '#00000000',
     'tab.activeBorderTop': accent,
+    'tab.selectedBorderTop': lighten(accent, 0.2),
     'tab.inactiveBackground': backgrounds.deep,
-    'tab.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
+    'tab.inactiveForeground': fgMuted,
     'tab.hoverBackground': backgrounds.elevated,
     'tab.hoverForeground': darken(fg, 0.15),
     'tab.hoverBorder': '#00000000',
@@ -1135,7 +1205,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Editor Group Header (Tab Container)
     'editorGroupHeader.tabsBackground': backgrounds.deep,
-    'editorGroupHeader.tabsBorder': withOpacity(palette.brightBlack, 0.25),
+    'editorGroupHeader.tabsBorder': borders.strong,
     'editorGroupHeader.noTabsBackground': backgrounds.deep,
 
     // ========================================================================
@@ -1159,30 +1229,29 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'terminal.ansiBrightMagenta': palette.brightMagenta,
     'terminal.ansiBrightCyan': palette.brightCyan,
     'terminal.ansiBrightWhite': palette.brightWhite,
-    'terminal.selectionBackground': withOpacity(selectionBg || accent, 0.25),
-    'terminal.selectionForeground': selectionFg,
+    'terminal.selectionBackground': withOpacity(selectionBg || accent, 0.40),
     'terminalCursor.foreground': accent,
     'terminalCursor.background': backgrounds.editor,
 
     // ========================================================================
     // Notebook Colors - Use elevated background levels
     // ========================================================================
-    'notebook.cellBorderColor': withOpacity(palette.brightBlack, 0.25),
+    'notebook.cellBorderColor': borders.strong,
     'notebook.cellHoverBackground': withOpacity(palette.brightBlack, 0.08),
     'notebook.cellInsertionIndicator': accent,
     'notebook.cellStatusBarItemHoverBackground': withOpacity(palette.brightBlack, 0.13),
-    'notebook.cellToolbarSeparator': withOpacity(palette.brightBlack, 0.25),
+    'notebook.cellToolbarSeparator': borders.strong,
     'notebook.cellEditorBackground': backgrounds.elevated,
     'notebook.editorBackground': backgrounds.editor,
     'notebook.focusedCellBackground': backgrounds.elevated,
     'notebook.focusedCellBorder': accent,
     'notebook.focusedEditorBorder': accent,
     'notebook.inactiveFocusedCellBorder': withOpacity(accent, 0.38),
-    'notebook.inactiveSelectedCellBorder': withOpacity(palette.brightBlack, 0.25),
+    'notebook.inactiveSelectedCellBorder': borders.strong,
     'notebook.outputContainerBackgroundColor': backgrounds.elevated,
-    'notebook.outputContainerBorderColor': withOpacity(palette.brightBlack, 0.25),
+    'notebook.outputContainerBorderColor': borders.strong,
     'notebook.selectedCellBackground': withOpacity(accent, 0.06),
-    'notebook.selectedCellBorder': withOpacity(palette.brightBlack, 0.25),
+    'notebook.selectedCellBorder': borders.strong,
     'notebook.symbolHighlightBackground': withOpacity(palette.yellow, 0.13),
     'notebookScrollbarSlider.activeBackground': withOpacity(palette.brightBlack, 0.38),
     'notebookScrollbarSlider.background': withOpacity(palette.brightBlack, 0.13),
@@ -1242,7 +1311,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'welcomePage.progress.foreground': accent,
     'welcomePage.tileBackground': backgrounds.elevated,
     'welcomePage.tileHoverBackground': backgrounds.elevatedHover,
-    'welcomePage.tileBorder': withOpacity(palette.brightBlack, 0.25),
+    'welcomePage.tileBorder': borders.strong,
     'walkThrough.embeddedEditorBackground': backgrounds.elevated,
     'walkthrough.stepTitle.foreground': darken(fg, 0.15),
 
@@ -1261,50 +1330,57 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'gitDecoration.submoduleResourceForeground': palette.brightBlue,
 
     // ========================================================================
+    // Chat (Copilot Chat) Colors - stable stock VS Code color IDs
+    // ========================================================================
+    'chat.slashCommandBackground': withOpacity(accent, 0.15),
+    'chat.slashCommandForeground': accent,
+    'chat.editedFileForeground': palette.yellow,
+
+    // ========================================================================
     // Settings Editor Colors - Use systematic background levels
     // ========================================================================
     'settings.headerForeground': fg,
     'settings.modifiedItemIndicator': palette.yellow,
-    'settings.dropdownBackground': backgrounds.input,
+    'settings.dropdownBackground': backgrounds.deep,
     'settings.dropdownForeground': fg,
-    'settings.dropdownBorder': withOpacity(palette.brightBlack, 0.25),
-    'settings.dropdownListBorder': withOpacity(palette.brightBlack, 0.25),
-    'settings.checkboxBackground': backgrounds.input,
+    'settings.dropdownBorder': borders.strong,
+    'settings.dropdownListBorder': borders.strong,
+    'settings.checkboxBackground': backgrounds.highContrast,
     'settings.checkboxForeground': fg,
-    'settings.checkboxBorder': withOpacity(palette.brightBlack, 0.25),
-    'settings.textInputBackground': backgrounds.input,
+    'settings.checkboxBorder': borders.strong,
+    'settings.textInputBackground': backgrounds.deep,
     'settings.textInputForeground': fg,
-    'settings.textInputBorder': withOpacity(palette.brightBlack, 0.25),
-    'settings.numberInputBackground': backgrounds.input,
+    'settings.textInputBorder': borders.strong,
+    'settings.numberInputBackground': backgrounds.deep,
     'settings.numberInputForeground': fg,
-    'settings.numberInputBorder': withOpacity(palette.brightBlack, 0.25),
+    'settings.numberInputBorder': borders.strong,
     'settings.focusedRowBackground': withOpacity(palette.brightCyan, 0.08),
     'settings.rowHoverBackground': withOpacity(fg, 0.05),
 
     // ========================================================================
     // Peek View Colors - Use high contrast background level
     // ========================================================================
-    'peekView.border': withOpacity(palette.brightBlack, 0.25),
+    'peekView.border': borders.strong,
     'peekViewEditor.background': backgrounds.highContrast,
     'peekViewEditorGutter.background': backgrounds.highContrast,
     'peekViewResult.background': backgrounds.highContrast,
     'peekViewResult.fileForeground': fg,
     'peekViewResult.lineForeground': darken(fg, 0.15),
-    'peekViewResult.matchHighlightBackground': withOpacity(palette.yellow, 0.25),
+    'peekViewResult.matchHighlightBackground': withOpacity(selectionBg || accent, 0.20),
     'peekViewResult.selectionBackground': withOpacity(accent, 0.15),
     'peekViewResult.selectionForeground': fg,
-    'peekViewTitle.background': backgrounds.deep,
+    'peekViewTitle.background': backgrounds.highContrast,
     'peekViewTitleDescription.foreground': darken(fg, 0.15),
     'peekViewTitleLabel.foreground': fg,
-    'peekViewEditor.matchHighlightBackground': withOpacity(palette.yellow, 0.25),
+    'peekViewEditor.matchHighlightBackground': withOpacity(selectionBg || accent, 0.20),
 
     // ========================================================================
     // Status Bar - Use deep background level
     // ========================================================================
     'statusBar.background': backgrounds.deep,
-    'statusBar.foreground': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
-    'statusBar.border': withOpacity(palette.brightBlack, 0.25),
-    'statusBar.debuggingBackground': withOpacity(accent, 0.75),
+    'statusBar.foreground': ensureContrast(fgMuted, backgrounds.deep, 4.5),
+    'statusBar.border': borders.strong,
+    'statusBar.debuggingBackground': accent,
     'statusBar.debuggingForeground': backgrounds.editor,
     'statusBar.noFolderBackground': backgrounds.deep,
     'statusBar.noFolderForeground': darken(fg, 0.15),
@@ -1316,18 +1392,21 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Title Bar - Use deep background level
     'titleBar.activeBackground': backgrounds.deep,
-    'titleBar.activeForeground': ensureContrast(darken(fg, 0.15), backgrounds.deep, 4.5),
+    'titleBar.activeForeground': ensureContrast(fgMuted, backgrounds.deep, 4.5),
     'titleBar.inactiveBackground': backgrounds.deep,
-    'titleBar.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
-    'titleBar.border': withOpacity(palette.brightBlack, 0.25),
+    'titleBar.inactiveForeground': fgMuted,
+    'titleBar.border': borders.strong,
 
-    // Input Controls - Use input background level
-    'input.background': backgrounds.input,
+    // Input Controls - Recessed, flush with chrome (2026 Dark convention:
+    // controls sit at the deep tier rather than a lighter "raised" tone,
+    // distinguished from their surroundings by border alone)
+    'input.background': backgrounds.deep,
     'input.foreground': darken(fg, 0.15),
-    'input.border': withOpacity(palette.brightBlack, 0.25),
-    'input.placeholderForeground': withOpacity(palette.brightBlack, 0.50),
+    'input.border': borders.strong,
+    'input.placeholderForeground': fgMuted,
     'inputOption.activeBackground': withOpacity(palette.brightBlue, 0.31),
     'inputOption.activeForeground': fg,
+    'inputOption.activeBorder': borders.strong,
     'inputOption.hoverBackground': withOpacity(palette.brightBlue, 0.13),
 
     // Input Validation - Semantic info/warning/error states for form fields
@@ -1341,10 +1420,10 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'inputValidation.errorBorder': palette.red,
     'inputValidation.errorForeground': fg,
 
-    // Dropdown - Use input background level
-    'dropdown.background': backgrounds.input,
+    // Dropdown - Recessed, flush with chrome (see Input Controls above)
+    'dropdown.background': backgrounds.deep,
     'dropdown.foreground': darken(fg, 0.15),
-    'dropdown.border': withOpacity(palette.brightBlack, 0.25),
+    'dropdown.border': borders.strong,
     'dropdown.listBackground': backgrounds.elevated,
 
     // Button - Use red for primary buttons
@@ -1365,24 +1444,25 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Panel (Terminal, Output, Problems) - Use editor background level
     'panel.background': backgrounds.editor,
-    'panel.border': withOpacity(palette.brightBlack, 0.25),
+    'panel.border': borders.strong,
+    'panelInput.border': borders.strong,
     'panel.dropBorder': accent,
     'panelTitle.activeBorder': accent,
     'panelTitle.activeForeground': darken(fg, 0.15),
-    'panelTitle.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
+    'panelTitle.inactiveForeground': fgMuted,
 
     // Scrollbar
     'scrollbar.shadow': withOpacity('#000000', 0.25),
-    'scrollbarSlider.background': withOpacity(palette.brightBlack, 0.13),
-    'scrollbarSlider.activeBackground': withOpacity(palette.brightBlack, 0.38),
-    'scrollbarSlider.hoverBackground': withOpacity(palette.brightBlack, 0.25),
+    'scrollbarSlider.background': withOpacity(fg, 0.15),
+    'scrollbarSlider.activeBackground': withOpacity(fg, 0.35),
+    'scrollbarSlider.hoverBackground': withOpacity(fg, 0.25),
 
     // ========================================================================
     // Extended UI Properties - Use systematic background levels
     // ========================================================================
-    'editor.wordHighlightText.background': withOpacity(palette.brightBlue, 0.13),
+    'editor.wordHighlightText.background': withOpacity(selectionBg || accent, 0.13),
     'editor.wordHighlightText.border': '#00000000',
-    'editor.wordHighlightStrong.background': withOpacity(palette.brightBlue, 0.19),
+    'editor.wordHighlightStrong.background': withOpacity(selectionBg || accent, 0.19),
     'editor.wordHighlightStrong.border': '#00000000',
 
     // Breadcrumb properties
@@ -1394,7 +1474,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Minimap properties
     'minimap.background': backgrounds.editor,
-    'minimap.findMatchHighlight': withOpacity(palette.yellow, 0.50),
+    'minimap.findMatchHighlight': withOpacity(selectionBg || accent, 0.50),
     'minimap.selectionHighlight': withOpacity(selectionBg || accent, 0.50),
     'minimap.errorHighlight': withOpacity(palette.red, 0.50),
     'minimap.warningHighlight': withOpacity(palette.yellow, 0.50),
@@ -1406,17 +1486,17 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'menu.selectionForeground': fg,
     'menu.selectionBackground': withOpacity(accent, 0.13),
     'menu.selectionBorder': accent,
-    'menu.separatorBackground': withOpacity(palette.brightBlack, 0.25),
-    'menu.border': withOpacity(palette.brightBlack, 0.25),
+    'menu.separatorBackground': borders.strong,
+    'menu.border': borders.strong,
 
     // Notification properties
-    'notificationCenter.border': withOpacity(palette.brightBlack, 0.25),
+    'notificationCenter.border': borders.strong,
     'notificationCenterHeader.foreground': fg,
     'notificationCenterHeader.background': backgrounds.elevated,
-    'notificationToast.border': withOpacity(palette.brightBlack, 0.25),
+    'notificationToast.border': borders.strong,
     'notifications.foreground': fg,
     'notifications.background': backgrounds.elevated,
-    'notifications.border': withOpacity(palette.brightBlack, 0.25),
+    'notifications.border': borders.strong,
     'notificationLink.foreground': palette.brightBlue,
     'notificationsErrorIcon.foreground': palette.red,
     'notificationsWarningIcon.foreground': palette.yellow,
@@ -1426,7 +1506,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'extensionButton.prominentForeground': backgrounds.editor,
     'extensionButton.prominentBackground': accent,
     'extensionButton.prominentHoverBackground': lighten(accent, 0.1),
-    'extensionButton.separator': withOpacity(palette.brightBlack, 0.25),
+    'extensionButton.separator': borders.strong,
     'extensionBadge.remoteBackground': palette.brightBlue,
     'extensionBadge.remoteForeground': backgrounds.editor,
 
@@ -1439,7 +1519,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'quickInputTitle.background': backgrounds.hover,
 
     // Simple Find Widget properties
-    'simpleFindWidget.sashBorder': withOpacity(palette.brightBlack, 0.25),
+    'simpleFindWidget.sashBorder': borders.strong,
 
     // Profile Badge properties
     'profileBadge.background': accent,
@@ -1458,7 +1538,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'ports.iconRunningProcessForeground': palette.brightGreen,
 
     // Additional essential properties that might be expected
-    'editor.hoverHighlightBackground': withOpacity(palette.brightBlack, 0.13),
+    'editor.hoverHighlightBackground': backgrounds.hover,
     'editor.linkedEditingBackground': withOpacity(palette.brightBlue, 0.13),
     'editor.inlineValuesBackground': withOpacity(palette.brightCyan, 0.08),
     'editor.inlineValuesForeground': palette.brightCyan,
@@ -1476,81 +1556,67 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'commandCenter.activeForeground': fg,
     'commandCenter.background': backgrounds.deep,
     'commandCenter.activeBackground': withOpacity(fg, 0.06),
-    'commandCenter.border': withOpacity(palette.brightBlack, 0.25),
-    'commandCenter.inactiveForeground': withOpacity(palette.brightBlack, 0.50),
-    'commandCenter.inactiveBorder': withOpacity(palette.brightBlack, 0.13),
+    'commandCenter.border': borders.strong,
+    'commandCenter.inactiveForeground': fgMuted,
+    'commandCenter.inactiveBorder': borders.subtle,
     'commandCenter.activeBorder': accent,
 
     // Sticky Scroll (Editor sticky headers)
     'editorStickyScroll.background': backgrounds.editor,
     'editorStickyScrollHover.background': backgrounds.hover,
-    'editorStickyScroll.border': withOpacity(palette.brightBlack, 0.25),
+    'editorStickyScroll.border': borders.strong,
     'editorStickyScroll.shadow': withOpacity('#000000', 0.25),
 
     // Ghost Text (GitHub Copilot suggestions)
     'editorGhostText.background': withOpacity(palette.brightBlack, 0.08),
     'editorGhostText.foreground': withOpacity(palette.brightBlack, 0.50),
-    'editorGhostText.border': withOpacity(palette.brightBlack, 0.13),
+    'editorGhostText.border': borders.subtle,
 
     // Keybinding Labels
     'keybindingLabel.background': withOpacity(palette.brightBlack, 0.13),
     'keybindingLabel.foreground': withOpacity(fg, 0.75),
-    'keybindingLabel.border': withOpacity(palette.brightBlack, 0.25),
+    'keybindingLabel.border': borders.strong,
     'keybindingLabel.bottomBorder': withOpacity(palette.brightBlack, 0.38),
 
     // Interactive Widget Hover States
     'widget.shadow': withOpacity('#000000', 0.25),
-    'widget.border': withOpacity(palette.brightBlack, 0.25),
+    'widget.border': borders.strong,
 
     // Advanced List States
     'list.invalidItemForeground': palette.red,
     'list.filterMatchBackground': withOpacity(palette.brightBlack, 0.13),
-    'list.filterMatchBorder': withOpacity(palette.brightBlack, 0.25),
+    'list.filterMatchBorder': borders.strong,
 
     // Editor Group Management
-    'editorGroup.border': withOpacity(palette.brightBlack, 0.25),
+    'editorGroup.border': borders.strong,
     'editorGroup.dropBackground': withOpacity(accent, 0.13),
     'editorGroup.focusedEmptyBorder': withOpacity(accent, 0.38),
     'editorGroup.emptyBackground': backgrounds.deep,
 
     // Tab Well Management
-    'editorGroupHeader.border': withOpacity(palette.brightBlack, 0.25),
-    'tab.lastPinnedBorder': withOpacity(palette.brightBlack, 0.25),
+    'editorGroupHeader.border': borders.strong,
+    'tab.lastPinnedBorder': borders.strong,
     'tab.dragAndDropBorder': accent,
 
     // Selection in Inputs
     'input.selectionBackground': withOpacity(accent, 0.25),
     'input.selectionForeground': fg,
 
-    // Enhanced Focus States
-    'focusBorder': withOpacity(accent, 0.38),
+    // Enhanced Focus States - stronger accent ring, per 2026 Dark (~70%)
+    'focusBorder': withOpacity(accent, 0.60),
     'widget.focusBackground': withOpacity(accent, 0.08),
-    'widget.focusBorder': withOpacity(accent, 0.38),
+    'widget.focusBorder': withOpacity(accent, 0.60),
 
     // Merge Conflict States (Advanced)
     'merge.commonContentBackground': withOpacity(palette.yellow, 0.08),
     'merge.commonHeaderBackground': withOpacity(palette.yellow, 0.13),
     'editorOverviewRuler.commonContentForeground': withOpacity(palette.yellow, 0.50),
 
-    // Enhanced Notification States
-    'notification.background': backgrounds.elevated,
-    'notification.foreground': fg,
-    'notification.hoverBackground': backgrounds.hover,
-    'notification.buttonBackground': accent,
-    'notification.buttonForeground': backgrounds.editor,
-    'notification.buttonHoverBackground': lighten(accent, 0.1),
-    'notification.infoBackground': withOpacity(palette.brightBlue, 0.13),
-    'notification.infoForeground': palette.brightBlue,
-    'notification.warningBackground': withOpacity(palette.yellow, 0.13),
-    'notification.warningForeground': palette.yellow,
-    'notification.errorBackground': withOpacity(palette.red, 0.13),
-    'notification.errorForeground': palette.red,
-
     // Enhanced Button States
     'button.separator': withOpacity(palette.brightBlack, 0.38),
-    'checkbox.background': backgrounds.input,
+    'checkbox.background': backgrounds.highContrast,
     'checkbox.foreground': fg,
-    'checkbox.border': withOpacity(palette.brightBlack, 0.25),
+    'checkbox.border': borders.strong,
     'checkbox.selectBackground': accent,
     'checkbox.selectBorder': accent,
 
@@ -1591,23 +1657,23 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Interactive Toolbar States
     'toolbar.hoverBackground': backgrounds.hover,
-    'toolbar.hoverOutline': withOpacity(palette.brightBlack, 0.25),
+    'toolbar.hoverOutline': borders.strong,
     'toolbar.activeBackground': withOpacity(fg, 0.2),
 
     // Enhanced Debug States
     'debugToolBar.background': backgrounds.elevated,
-    'debugToolBar.border': withOpacity(palette.brightBlack, 0.25),
+    'debugToolBar.border': borders.strong,
     'debugExceptionWidget.background': withOpacity(palette.red, 0.13),
     'debugExceptionWidget.border': palette.red,
 
     // Search Results Enhanced States
     'search.resultsInfoForeground': withOpacity(fg, 0.63),
-    'searchEditor.textInputBorder': withOpacity(palette.brightBlack, 0.25),
+    'searchEditor.textInputBorder': borders.strong,
 
     // Enhanced Welcome Page
     'welcomePage.buttonBackground': backgrounds.elevated,
     'welcomePage.buttonHoverBackground': backgrounds.hover,
-    'welcomePage.buttonBorder': withOpacity(palette.brightBlack, 0.25),
+    'welcomePage.buttonBorder': borders.strong,
 
     // Git Graph/Timeline States
     'gitlens.trailingLineForeground': withOpacity(palette.brightBlack, 0.50),
@@ -1616,9 +1682,9 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Enhanced Minimap States
     'minimap.foregroundOpacity': '#000000a0',
-    'minimapSlider.background': withOpacity(palette.brightBlack, 0.13),
-    'minimapSlider.hoverBackground': withOpacity(palette.brightBlack, 0.25),
-    'minimapSlider.activeBackground': withOpacity(palette.brightBlack, 0.38),
+    'minimapSlider.background': withOpacity(fg, 0.15),
+    'minimapSlider.hoverBackground': withOpacity(fg, 0.25),
+    'minimapSlider.activeBackground': withOpacity(fg, 0.35),
     'minimapGutter.addedBackground': palette.brightGreen,
     'minimapGutter.modifiedBackground': palette.yellow,
     'minimapGutter.deletedBackground': palette.red,
@@ -1626,7 +1692,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // Enhanced Terminal States
     'terminal.tab.activeBorder': accent,
     'terminal.dropBackground': withOpacity(accent, 0.13),
-    'terminal.border': withOpacity(palette.brightBlack, 0.25),
+    'terminal.border': borders.strong,
 
     // Editor Inlay Hints (Modern TypeScript/LSP feature)
     'editorInlayHint.background': withOpacity(palette.brightBlack, 0.08),
@@ -1688,12 +1754,12 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Color picker interface
     'colorPicker.background': backgrounds.elevated,
-    'colorPicker.border': withOpacity(palette.brightBlack, 0.25),
+    'colorPicker.border': borders.strong,
     'colorPicker.foreground': fg,
 
     // Quick pick enhancements
     'quickInputFilter.background': backgrounds.input,
-    'quickInputFilter.border': withOpacity(palette.brightBlack, 0.25),
+    'quickInputFilter.border': borders.strong,
 
     // ========================================================================
     // Timeline & History Visualization
@@ -1702,10 +1768,10 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     // Timeline colors for git history and file changes
     'timeline.background': backgrounds.deep,
     'timeline.foreground': darken(fg, 0.15),
-    'timeline.border': withOpacity(palette.brightBlack, 0.25),
+    'timeline.border': borders.strong,
 
     // Tree view enhancements
-    'tree.inactiveIndentGuidesStroke': withOpacity(palette.brightBlack, 0.13),
+    'tree.inactiveIndentGuidesStroke': borders.subtle,
 
     // ========================================================================
     // Settings Sync & Cloud Indicators
@@ -1745,7 +1811,7 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Unused code highlighting
     'editorUnnecessaryCode.opacity': '#000000aa',
-    'editorUnnecessaryCode.border': withOpacity(palette.brightBlack, 0.25),
+    'editorUnnecessaryCode.border': borders.strong,
 
     // Code lens (show references, implementations, etc.)
     'editorCodeLens.foreground': withOpacity(palette.brightBlack, 0.50),
@@ -1760,20 +1826,23 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
 
     // Terminal tab decorations
     'terminal.inactiveSelectionBackground': withOpacity(selectionBg || accent, 0.13),
-    'terminal.findMatchBackground': withOpacity(palette.yellow, 0.25),
-    'terminal.findMatchBorder': withOpacity(palette.yellow, 0.38),
-    'terminal.findMatchHighlightBackground': withOpacity(palette.yellow, 0.15),
+    'terminal.findMatchBackground': withOpacity(selectionBg || accent, 0.55),
+    'terminal.findMatchBorder': '#00000000',
+    'terminal.findMatchHighlightBackground': withOpacity(selectionBg || accent, 0.35),
     'terminal.hoverHighlightBackground': withOpacity(palette.brightBlack, 0.13),
 
     // ========================================================================
-    // Enhanced Workbench & Professional Polish
+    // Global Base Tokens & Text/Link Styling
     // ========================================================================
-
-    // Workbench state indicators
-    'workbench.foreground': fg,
-    'workbench.errorForeground': palette.red,
-    'workbench.warningForeground': palette.yellow,
-    'workbench.infoForeground': palette.brightBlue,
+    // Real workbench-wide foreground tokens (the invalid `workbench.*Foreground`
+    // keys were replaced with these). `descriptionForeground`/`disabledForeground`
+    // are the standard muted/disabled text roles the whole UI reads from.
+    'foreground': fg,
+    'errorForeground': palette.brightRed,
+    'descriptionForeground': fgMuted,
+    'disabledForeground': withOpacity(fg, 0.35),
+    'textLink.foreground': palette.brightBlue,
+    'textLink.activeForeground': lighten(palette.brightBlue, 0.05),
 
     // Professional hover states for all interactive elements
     'button.commandCenter.foreground': darken(fg, 0.15),
@@ -1781,13 +1850,10 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'button.commandCenter.hoverBackground': withOpacity(accent, 0.13),
 
     // Enhanced selection states
-    'selection.background': withOpacity(selectionBg || accent, 0.25),
-    'selection.foreground': fg,
+    'selection.background': withOpacity(selectionBg || accent, 0.50),
 
     // Professional borders and separators
-    'separator.foreground': withOpacity(palette.brightBlack, 0.25),
-    'contrastBorder': withOpacity(palette.brightBlack, 0.13),
-    'contrastActiveBorder': withOpacity(accent, 0.38),
+    'separator.foreground': borders.strong,
 
     // ========================================================================
     // Final Professional Touches
@@ -1806,30 +1872,32 @@ export const buildVSCodeColors = (colors: GhosttyColors): VSCodeThemeColors => {
     'editor.focusedStackFrameHighlightBackground': withOpacity(palette.brightGreen, 0.13),
     'editor.stackFrameHighlightBackground': withOpacity(palette.yellow, 0.13),
 
-    // Professional workbench enhancement
-    'workbench.backgroundNoise': withOpacity('#000000', 0.03),
-
   } as VSCodeThemeColors;
 };
 
 /**
  * Builds comprehensive token colors using direct palette mapping
  *
- * Implements the corrected algorithm based on Eidolon Root theme analysis.
- * Uses direct palette color mappings:
- * 1. Comments: palette[8] (brightBlack) with italic
- * 2. Keywords & Storage: palette[10] (brightGreen)
- * 3. Strings: palette[1] (red)
- * 4. Functions: palette[12] (brightBlue)
- * 5. Classes/Types: palette[5] (magenta)
- * 6. Numbers/Constants: palette[9] (brightRed)
- * 7. Operators/Punctuation: palette[6] (cyan)
- * 8. Tags: palette[11] (brightYellow)
- * 9. Variables: foreground color
- * 10. Support Types: palette[14] (brightCyan)
+ * Recolours the 2026 Dark (GitHub-Dark-derived) token-role grammar with the
+ * source palette, so syntax reads as one coherent system rather than a
+ * per-scope rainbow. Colour marks meaning; punctuation, operators, ordinary
+ * variables and prose stay at the default foreground, and fontStyle is
+ * reserved for comments and markup (italic/bold) plus invalid code.
+ *
+ * Role → palette slot:
+ * 1. Comments: palette[8] (brightBlack) italic
+ * 2. Keywords, storage & control flow: palette[1] (red)
+ * 3. Strings, regexp & templates: palette[12] (brightBlue)
+ * 4. Functions, methods & decorators: palette[13] (brightMagenta)
+ * 5. Numbers, constants & language constants: palette[4] (blue)
+ * 6. Classes & types: palette[6]/[14] (teal)
+ * 7. Tags: palette[10] (brightGreen)
+ * 8. Special variables: palette[11] (brightYellow); ordinary variables: fg
+ * 9. Escapes / character constants: palette[1] (red)
+ * 10. Punctuation & operators: foreground
  *
  * @param colors - Parsed Ghostty colors object
- * @returns Array of token color definitions matching Eidolon Root pattern
+ * @returns Array of token color definitions
  *
  * @since 2.0.0
  */
@@ -1876,13 +1944,49 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Variables - foreground color
+    // Punctuation & Operators - default foreground (2026 Dark keeps braces,
+    // separators and operators uncolored so syntax colour marks meaning, not
+    // scaffolding)
+    // ========================================================================
+    {
+      name: 'Punctuation, Operators',
+      scope: [
+        'punctuation',
+        'keyword.operator',
+        'meta.tag',
+        'punctuation.definition.tag',
+        'punctuation.separator.inheritance.php',
+        'punctuation.definition.tag.html',
+        'punctuation.definition.tag.begin.html',
+        'punctuation.definition.tag.end.html',
+      ],
+      settings: {
+        foreground: fg,
+      },
+    },
+
+    // ========================================================================
+    // Variables - special variables get a warm accent (identity: amber),
+    // ordinary variables/parameters stay default foreground
     // ========================================================================
     {
       name: 'Variables',
       scope: [
         'variable',
+      ],
+      settings: {
+        foreground: palette.brightYellow,
+      },
+    },
+    {
+      name: 'Variable Other, Parameters',
+      scope: [
+        'variable.other',
+        'variable.parameter',
+        'meta.block variable.other',
         'string constant.other.placeholder',
+        'meta.object.member',
+        'meta.embedded.expression',
       ],
       settings: {
         foreground: fg,
@@ -1903,29 +2007,51 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Invalid Code - palette[1] (red) with underline
+    // Invalid Code - palette[9] (brightRed) italic
     // ========================================================================
     {
       name: 'Invalid',
       scope: [
         'invalid',
         'invalid.illegal',
+        'invalid.broken',
+        'invalid.deprecated',
       ],
       settings: {
-        foreground: palette.red,
-        fontStyle: 'underline',
+        foreground: palette.brightRed,
+        fontStyle: 'italic',
       },
     },
 
     // ========================================================================
-    // Keywords and Storage - palette[10] (brightGreen)
+    // Keywords, Storage & Control Flow - palette[1] (red)
     // ========================================================================
     {
       name: 'Keyword, Storage',
       scope: [
         'keyword',
+        'storage',
         'storage.type',
         'storage.modifier',
+        'punctuation.section.embedded',
+        'keyword.other.template',
+        'keyword.other.substitution',
+      ],
+      settings: {
+        foreground: palette.red,
+      },
+    },
+
+    // ========================================================================
+    // Tags - palette[10] (brightGreen)
+    // ========================================================================
+    {
+      name: 'Tag',
+      scope: [
+        'entity.name.tag',
+        'meta.tag.sgml',
+        'support.class.component',
+        'markup.deleted.git_gutter',
       ],
       settings: {
         foreground: palette.brightGreen,
@@ -1933,45 +2059,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Operators and Punctuation - palette[6] (cyan)
-    // ========================================================================
-    {
-      name: 'Operator, Misc',
-      scope: [
-        'keyword.control',
-        'punctuation',
-        'meta.tag',
-        'punctuation.definition.tag',
-        'punctuation.separator.inheritance.php',
-        'punctuation.definition.tag.html',
-        'punctuation.definition.tag.begin.html',
-        'punctuation.definition.tag.end.html',
-        'punctuation.section.embedded',
-        'keyword.other.template',
-        'keyword.other.substitution',
-      ],
-      settings: {
-        foreground: palette.cyan,
-      },
-    },
-
-    // ========================================================================
-    // Tags - palette[11] (brightYellow)
-    // ========================================================================
-    {
-      name: 'Tag',
-      scope: [
-        'entity.name.tag',
-        'meta.tag.sgml',
-        'markup.deleted.git_gutter',
-      ],
-      settings: {
-        foreground: palette.brightYellow,
-      },
-    },
-
-    // ========================================================================
-    // Functions and Methods - palette[12] (brightBlue)
+    // Functions and Methods - palette[13] (brightMagenta) (identity: lavender)
     // ========================================================================
     {
       name: 'Function, Special Method',
@@ -1981,6 +2069,50 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'variable.function',
         'support.function',
         'keyword.other.special-method',
+        'entity.name.method.js',
+        'meta.class-method.js entity.name.function.js',
+        'variable.function.constructor',
+      ],
+      settings: {
+        foreground: palette.brightMagenta,
+      },
+    },
+
+    // ========================================================================
+    // Numbers, Constants & Language Constants - palette[4] (blue)
+    // ========================================================================
+    {
+      name: 'Number, Constant, Language Constant',
+      scope: [
+        'constant.numeric',
+        'constant.language',
+        'support.constant',
+        'support.variable',
+        'variable.language',
+        'variable.other.constant',
+        'variable.other.enummember',
+        'keyword.other.unit',
+        'keyword.other',
+      ],
+      settings: {
+        foreground: palette.blue,
+      },
+    },
+
+    // ========================================================================
+    // Strings, Symbols & String Links - palette[12] (brightBlue)
+    // ========================================================================
+    {
+      name: 'String, Symbols, String Link',
+      scope: [
+        'string',
+        'constant.other.symbol',
+        'constant.other.key',
+        'entity.other.inherited-class',
+        'markup.inserted.git_gutter',
+        'support.other.variable',
+        'string.other.link',
+        'meta.group.braces.curly constant.other.object.key.js string.unquoted.label.js',
       ],
       settings: {
         foreground: palette.brightBlue,
@@ -1988,65 +2120,14 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Block Level Variables - palette[11] (brightYellow)
+    // Escape & Character Constants - palette[1] (red)
     // ========================================================================
     {
-      name: 'Block Level Variables',
+      name: 'Escape Characters',
       scope: [
-        'meta.block variable.other',
-      ],
-      settings: {
-        foreground: palette.brightYellow,
-      },
-    },
-
-    // ========================================================================
-    // Other Variable, String Link - palette[11] (brightYellow)
-    // ========================================================================
-    {
-      name: 'Other Variable, String Link',
-      scope: [
-        'support.other.variable',
-        'string.other.link',
-      ],
-      settings: {
-        foreground: palette.brightYellow,
-      },
-    },
-
-    // ========================================================================
-    // Numbers and Constants - palette[9] (brightRed)
-    // ========================================================================
-    {
-      name: 'Number, Constant, Function Argument, Tag Attribute, Embedded',
-      scope: [
-        'constant.numeric',
-        'constant.language',
-        'support.constant',
         'constant.character',
+        'constant.character.escape',
         'constant.escape',
-        'variable.parameter',
-        'keyword.other.unit',
-        'keyword.other',
-      ],
-      settings: {
-        foreground: palette.brightRed,
-      },
-    },
-
-    // ========================================================================
-    // Strings - palette[1] (red)
-    // ========================================================================
-    {
-      name: 'String, Symbols, Inherited Class, Markup Heading',
-      scope: [
-        'string',
-        'constant.other.symbol',
-        'constant.other.key',
-        'entity.other.inherited-class',
-        'markup.heading',
-        'markup.inserted.git_gutter',
-        'meta.group.braces.curly constant.other.object.key.js string.unquoted.label.js',
       ],
       settings: {
         foreground: palette.red,
@@ -2054,7 +2135,23 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Classes and Types - palette[5] (magenta)
+    // Regular Expressions - palette[12] (brightBlue) (string family)
+    // ========================================================================
+    {
+      name: 'Regular Expressions',
+      scope: [
+        'string.regexp',
+        'source.regexp',
+      ],
+      settings: {
+        foreground: palette.brightBlue,
+      },
+    },
+
+    // ========================================================================
+    // Classes & Types - palette[6]/[14] (teal). Identity claims teal for
+    // types; brightCyan re-colours the narrower support.type after the
+    // broader class rule (later rule wins for that scope).
     // ========================================================================
     {
       name: 'Class, Support',
@@ -2069,17 +2166,14 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'support.type.sys-types',
       ],
       settings: {
-        foreground: palette.magenta,
+        foreground: palette.cyan,
       },
     },
-
-    // ========================================================================
-    // Support Types - palette[14] (brightCyan)
-    // ========================================================================
     {
       name: 'Entity Types',
       scope: [
         'support.type',
+        'entity.name.type',
       ],
       settings: {
         foreground: palette.brightCyan,
@@ -2105,7 +2199,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Sub-methods - palette[6] (cyan)
+    // Modules & Namespaces (sub-methods) - palette[6] (cyan/teal)
     // ========================================================================
     {
       name: 'Sub-methods',
@@ -2120,103 +2214,38 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Language methods - palette[6] (cyan) with italic
-    // ========================================================================
-    {
-      name: 'Language methods',
-      scope: [
-        'variable.language',
-      ],
-      settings: {
-        fontStyle: 'italic',
-        foreground: palette.cyan,
-      },
-    },
-
-    // ========================================================================
-    // entity.name.method.js - palette[12] (brightBlue) with italic
-    // ========================================================================
-    {
-      name: 'entity.name.method.js',
-      scope: [
-        'entity.name.method.js',
-      ],
-      settings: {
-        fontStyle: 'italic',
-        foreground: palette.brightBlue,
-      },
-    },
-
-    // ========================================================================
-    // meta.method.js - palette[12] (brightBlue)
-    // ========================================================================
-    {
-      name: 'meta.method.js',
-      scope: [
-        'meta.class-method.js entity.name.function.js',
-        'variable.function.constructor',
-      ],
-      settings: {
-        foreground: palette.brightBlue,
-      },
-    },
-
-    // ========================================================================
-    // Attributes - palette[10] (brightGreen)
+    // Attributes & CSS selectors - palette[4] (blue)
     // ========================================================================
     {
       name: 'Attributes',
       scope: [
         'entity.other.attribute-name',
-      ],
-      settings: {
-        foreground: palette.brightGreen,
-      },
-    },
-
-    // ========================================================================
-    // HTML Attributes - palette[5] (magenta) with italic
-    // ========================================================================
-    {
-      name: 'HTML Attributes',
-      scope: [
         'text.html.basic entity.other.attribute-name.html',
         'text.html.basic entity.other.attribute-name',
-      ],
-      settings: {
-        fontStyle: 'italic',
-        foreground: palette.magenta,
-      },
-    },
-
-    // ========================================================================
-    // CSS Classes - palette[5] (magenta)
-    // ========================================================================
-    {
-      name: 'CSS Classes',
-      scope: [
         'entity.other.attribute-name.class',
       ],
       settings: {
-        foreground: palette.magenta,
+        foreground: palette.blue,
       },
     },
 
     // ========================================================================
-    // CSS ID's - palette[12] (brightBlue)
+    // Decorators - palette[13] (brightMagenta), grouped with functions
     // ========================================================================
     {
-      name: 'CSS ID\'s',
+      name: 'Decorators',
       scope: [
-        'source.sass keyword.control',
+        'tag.decorator.js entity.name.tag.js',
+        'tag.decorator.js punctuation.definition.tag.js',
       ],
       settings: {
-        foreground: palette.brightBlue,
+        foreground: palette.brightMagenta,
       },
     },
 
     // ========================================================================
-    // Inserted - palette[1] (red)
+    // Diff-style markup markers (git gutter inline) - semantic colours on
+    // faint tinted backgrounds
     // ========================================================================
     {
       name: 'Inserted',
@@ -2224,62 +2253,28 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'markup.inserted',
       ],
       settings: {
-        foreground: palette.red,
+        foreground: palette.brightGreen,
         background: withOpacity(palette.brightGreen, 0.13),
       },
     },
-
-    // ========================================================================
-    // Deleted - palette[6] (cyan)
-    // ========================================================================
     {
       name: 'Deleted',
       scope: [
         'markup.deleted',
       ],
       settings: {
-        foreground: palette.cyan,
+        foreground: palette.brightRed,
         background: withOpacity(palette.red, 0.13),
       },
     },
-
-    // ========================================================================
-    // Changed - palette[10] (brightGreen)
-    // ========================================================================
     {
       name: 'Changed',
       scope: [
         'markup.changed',
       ],
       settings: {
-        foreground: palette.brightGreen,
+        foreground: palette.brightYellow,
         background: withOpacity(palette.yellow, 0.13),
-      },
-    },
-
-    // ========================================================================
-    // Regular Expressions - palette[13] (brightMagenta)
-    // ========================================================================
-    {
-      name: 'Regular Expressions',
-      scope: [
-        'string.regexp',
-      ],
-      settings: {
-        foreground: palette.brightMagenta,
-      },
-    },
-
-    // ========================================================================
-    // Escape Characters - palette[13] (brightMagenta)
-    // ========================================================================
-    {
-      name: 'Escape Characters',
-      scope: [
-        'constant.character.escape',
-      ],
-      settings: {
-        foreground: palette.brightMagenta,
       },
     },
 
@@ -2298,41 +2293,13 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       },
     },
 
-    // ========================================================================
-    // Decorators - palette[12] (brightBlue) with italic
-    // ========================================================================
-    {
-      name: 'Decorators',
-      scope: [
-        'tag.decorator.js entity.name.tag.js',
-        'tag.decorator.js punctuation.definition.tag.js',
-      ],
-      settings: {
-        fontStyle: 'italic',
-        foreground: palette.brightBlue,
-      },
-    },
-
-    // ========================================================================
-    // ES7 Bind Operator - palette[6] (cyan) with italic
-    // ========================================================================
-    {
-      name: 'ES7 Bind Operator',
-      scope: [
-        'source.js constant.other.object.key.js string.unquoted.label.js',
-      ],
-      settings: {
-        fontStyle: 'italic',
-        foreground: palette.cyan,
-      },
-    },
-
   ];
 
   // Comprehensive Markdown support tokens
   const markdownTokens: TokenColor[] = [
     // ========================================================================
-    // Markdown - Plain text - palette[3] (yellow)
+    // Markdown - Plain text - default foreground (prose should read as text,
+    // not as a coloured token)
     // ========================================================================
     {
       name: 'Markdown - Plain',
@@ -2341,20 +2308,21 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'punctuation.definition.list_item.markdown',
       ],
       settings: {
-        foreground: palette.yellow,
+        foreground: fg,
       },
     },
 
     // ========================================================================
-    // Markdown - Inline Code - palette[10] (brightGreen)
+    // Markdown - Inline Code - palette[12] (brightBlue)
     // ========================================================================
     {
       name: 'Markdown - Markup Raw Inline',
       scope: [
         'text.html.markdown markup.inline.raw.markdown',
+        'markup.inline.raw',
       ],
       settings: {
-        foreground: palette.brightGreen,
+        foreground: palette.brightBlue,
       },
     },
 
@@ -2372,22 +2340,25 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Markdown - Headings - palette[1] (red)
+    // Markdown - Headings - palette[4] (blue) bold (per 2026 Dark)
     // ========================================================================
     {
       name: 'Markdown - Heading',
       scope: [
         'markdown.heading',
-        'markup.heading | markup.heading entity.name',
+        'markup.heading',
+        'markup.heading entity.name',
         'markup.heading.markdown punctuation.definition.heading.markdown',
       ],
       settings: {
-        foreground: palette.red,
+        foreground: palette.blue,
+        fontStyle: 'bold',
       },
     },
 
     // ========================================================================
-    // Markdown - Italic - palette[11] (brightYellow) with italic
+    // Markdown - Italic / Bold - default foreground, weight/slant only
+    // (2026 Dark reserves colour for structure, not emphasis)
     // ========================================================================
     {
       name: 'Markup - Italic',
@@ -2396,13 +2367,9 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         fontStyle: 'italic',
-        foreground: palette.brightYellow,
+        foreground: fg,
       },
     },
-
-    // ========================================================================
-    // Markdown - Bold - palette[11] (brightYellow) with bold
-    // ========================================================================
     {
       name: 'Markup - Bold',
       scope: [
@@ -2411,13 +2378,9 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         fontStyle: 'bold',
-        foreground: palette.brightYellow,
+        foreground: fg,
       },
     },
-
-    // ========================================================================
-    // Markdown - Bold-Italic - palette[11] (brightYellow) with bold
-    // ========================================================================
     {
       name: 'Markup - Bold-Italic',
       scope: [
@@ -2429,13 +2392,13 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'markup.quote markup.bold string',
       ],
       settings: {
-        fontStyle: 'bold',
-        foreground: palette.brightYellow,
+        fontStyle: 'bold italic',
+        foreground: fg,
       },
     },
 
     // ========================================================================
-    // Markdown - Underline - palette[9] (brightRed) with underline
+    // Markdown - Underline / Strikethrough - style only
     // ========================================================================
     {
       name: 'Markup - Underline',
@@ -2444,7 +2407,6 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         fontStyle: 'underline',
-        foreground: palette.brightRed,
       },
     },
 
@@ -2462,7 +2424,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Markdown - Quote - italic style
+    // Markdown - Quote - palette[10] (brightGreen) italic (per 2026 Dark)
     // ========================================================================
     {
       name: 'Markup - Quote',
@@ -2471,6 +2433,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         fontStyle: 'italic',
+        foreground: palette.brightGreen,
       },
     },
 
@@ -2514,33 +2477,23 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Markdown - Raw Block - palette[10] (brightGreen)
+    // Markdown - Raw / Fenced Code Blocks - default foreground so embedded
+    // code reads normally (the old #00000050 rendered near-invisible on a
+    // dark background)
     // ========================================================================
     {
       name: 'Markup - Raw Block',
       scope: [
         'markup.raw.block',
-      ],
-      settings: {
-        foreground: palette.brightGreen,
-      },
-    },
-
-    // ========================================================================
-    // Markdown - Fenced Code Block - Semi-transparent
-    // ========================================================================
-    {
-      name: 'Markdown - Raw Block Fenced',
-      scope: [
         'markup.raw.block.fenced.markdown',
       ],
       settings: {
-        foreground: '#00000050',
+        foreground: fg,
       },
     },
 
     // ========================================================================
-    // Markdown - Code Fence - Semi-transparent
+    // Markdown - Code Fence Punctuation - palette[8] (brightBlack)
     // ========================================================================
     {
       name: 'Markdown - Fenced Code Block',
@@ -2548,22 +2501,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'punctuation.definition.fenced.markdown',
       ],
       settings: {
-        foreground: '#00000050',
-      },
-    },
-
-    // ========================================================================
-    // Markdown - Code Language - palette[3] (yellow)
-    // ========================================================================
-    {
-      name: 'Markdown - Fenced Code Block Variable',
-      scope: [
-        'markup.raw.block.fenced.markdown',
-        'variable.language.fenced.markdown',
-        'punctuation.section.class.end',
-      ],
-      settings: {
-        foreground: palette.yellow,
+        foreground: palette.brightBlack,
       },
     },
 
@@ -2595,7 +2533,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
 
     // ========================================================================
-    // Markdown - Table - palette[3] (yellow)
+    // Markdown - Table - default foreground
     // ========================================================================
     {
       name: 'Markup - Table',
@@ -2603,7 +2541,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'markup.table',
       ],
       settings: {
-        foreground: palette.yellow,
+        foreground: fg,
       },
     },
   ];
@@ -2611,7 +2549,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
   // Advanced language and framework support
   const advancedTokens: TokenColor[] = [
     // ========================================================================
-    // Storage Type Modifier - palette[5] (magenta)
+    // Storage Type Modifier - palette[1] (red), keyword/storage family
     // ========================================================================
     {
       name: 'Storage Type Modifier',
@@ -2622,12 +2560,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'storage.type.type',
       ],
       settings: {
-        foreground: palette.magenta,
+        foreground: palette.red,
       },
     },
 
     // ========================================================================
-    // This, Self, Me - palette[6] (cyan) with italic
+    // This, Self, Me - palette[4] (blue), language constant family
     // ========================================================================
     {
       name: 'This, Self, Me',
@@ -2638,8 +2576,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'variable.parameter.function.language.special.self',
       ],
       settings: {
-        foreground: palette.cyan,
-        fontStyle: 'italic',
+        foreground: palette.blue,
       },
     },
 
@@ -2670,7 +2607,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'punctuation.definition.template-expression',
       ],
       settings: {
-        foreground: palette.red,
+        foreground: palette.brightBlue,
       },
     },
 
@@ -2700,12 +2637,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'entity.name.tag.yaml',
       ],
       settings: {
-        foreground: palette.brightBlue,
+        foreground: palette.blue,
       },
     },
 
     // ========================================================================
-    // Annotations & Decorators - palette[3] (yellow) with italic
+    // Annotations & Decorators - palette[13] (brightMagenta), function family
     // ========================================================================
     {
       name: 'Annotations & Decorators',
@@ -2717,8 +2654,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'punctuation.decorator',
       ],
       settings: {
-        foreground: palette.yellow,
-        fontStyle: 'italic',
+        foreground: palette.brightMagenta,
       },
     },
 
@@ -2812,8 +2748,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'keyword.other.alias.sql',
       ],
       settings: {
-        foreground: palette.brightGreen,
-        fontStyle: 'bold',
+        foreground: palette.red,
       },
     },
 
@@ -2842,13 +2777,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'keyword.control.dockerfile',
       ],
       settings: {
-        foreground: palette.magenta,
-        fontStyle: 'bold',
+        foreground: palette.red,
       },
     },
 
     // ========================================================================
-    // TOML Keys - palette[12] (brightBlue)
+    // TOML Keys - palette[4] (blue), property-name family
     // ========================================================================
     {
       name: 'TOML Keys',
@@ -2858,7 +2792,7 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'entity.name.tag.toml',
       ],
       settings: {
-        foreground: palette.brightBlue,
+        foreground: palette.blue,
       },
     },
 
@@ -2928,13 +2862,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'keyword.control.default',
       ],
       settings: {
-        foreground: palette.brightGreen,
-        fontStyle: 'italic',
+        foreground: palette.red,
       },
     },
 
     // ========================================================================
-    // Async/Await Keywords - palette[13] (brightMagenta) with italic
+    // Async/Await Keywords - palette[1] (red), keyword family
     // ========================================================================
     {
       name: 'Async/Await Keywords',
@@ -2945,13 +2878,12 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
         'keyword.control.flow.python',
       ],
       settings: {
-        foreground: palette.brightMagenta,
-        fontStyle: 'italic',
+        foreground: palette.red,
       },
     },
 
     // ========================================================================
-    // Try/Catch/Finally - palette[1] (red) with italic
+    // Try/Catch/Finally - palette[1] (red), keyword family
     // ========================================================================
     {
       name: 'Try/Catch/Finally',
@@ -2961,7 +2893,6 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
       ],
       settings: {
         foreground: palette.red,
-        fontStyle: 'italic',
       },
     },
 
@@ -3006,52 +2937,17 @@ export const buildTokenColors = (colors: GhosttyColors): TokenColor[] => {
     },
   ];
 
-  // JSON Rainbow colors - levels 0-8 cycling through colors
+  // JSON property keys - a single flat colour at every nesting depth (per
+  // 2026 Dark). The old per-level rainbow made deeply-nested config files
+  // read as noise; one calm green matches how the scaffold treats JSON keys.
   const jsonTokens: TokenColor[] = [
     {
-      name: 'JSON Key - Level 0',
-      scope: ['source.json meta.structure.dictionary.json support.type.property-name.json'],
+      name: 'JSON Key',
+      scope: [
+        'source.json support.type.property-name.json',
+        'support.type.property-name.json',
+      ],
       settings: { foreground: palette.brightGreen },
-    },
-    {
-      name: 'JSON Key - Level 1',
-      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
-      settings: { foreground: palette.magenta },
-    },
-    {
-      name: 'JSON Key - Level 2',
-      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
-      settings: { foreground: palette.brightBlue },
-    },
-    {
-      name: 'JSON Key - Level 3',
-      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
-      settings: { foreground: palette.yellow },
-    },
-    {
-      name: 'JSON Key - Level 4',
-      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
-      settings: { foreground: palette.brightRed },
-    },
-    {
-      name: 'JSON Key - Level 5',
-      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
-      settings: { foreground: palette.brightCyan },
-    },
-    {
-      name: 'JSON Key - Level 6',
-      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
-      settings: { foreground: palette.green },
-    },
-    {
-      name: 'JSON Key - Level 7',
-      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
-      settings: { foreground: palette.brightYellow },
-    },
-    {
-      name: 'JSON Key - Level 8',
-      scope: ['source.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json meta.structure.dictionary.value.json meta.structure.dictionary.json support.type.property-name.json'],
-      settings: { foreground: palette.brightMagenta },
     },
   ];
 
@@ -3173,6 +3069,7 @@ export const buildVSCodeTheme = (
       type,
       colors: themeColors,
       tokenColors,
+      semanticHighlighting: true,
     };
   } catch (error) {
     throw new FileProcessingError(`Failed to build VS Code theme: ${(error as Error).message}`, filePath);

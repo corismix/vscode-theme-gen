@@ -111,7 +111,7 @@ bun run dev
 | `bun run lint:fix` | Auto-fix linting issues |
 | `bun run format` | Format code with Prettier |
 | `bun run format:check` | Check formatting without changes |
-| `bun test` | Run all tests with verbose output |
+| `bun run test` | Run all tests with verbose output |
 | `bun run test:watch` | Run tests in watch mode |
 | `bun run test:coverage` | Generate coverage reports |
 | `bun run test:ui` | Visual test interface |
@@ -146,7 +146,7 @@ src/
 
 ```bash
 # Run all tests
-bun test
+bun run test
 
 # Run tests in watch mode
 bun run test:watch
@@ -169,7 +169,7 @@ bun run test:ui
 1. **Fork the repository**
 2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
 3. **Make your changes** following the existing code style
-4. **Run tests** (`bun test`) and linting (`bun run lint`)
+4. **Run tests** (`bun run test`) and linting (`bun run lint`)
 5. **Commit your changes** (`git commit -m 'Add amazing feature'`)
 6. **Push to the branch** (`git push origin feature/amazing-feature`)
 7. **Open a Pull Request**

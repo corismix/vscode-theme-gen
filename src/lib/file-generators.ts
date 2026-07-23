@@ -904,7 +904,8 @@ export const generateExtensionFiles = async (
     }
 
     // Generate theme file
-    const themeContent = JSON.stringify(theme, null, 2);
+    const themeFileContent = { $schema: 'vscode://schemas/color-theme', ...theme };
+    const themeContent = JSON.stringify(themeFileContent, null, 2);
     const themeFilePath = join(normalizedOutputPath, 'themes', themeFileName);
     await fs.writeFile(themeFilePath, themeContent);
 
